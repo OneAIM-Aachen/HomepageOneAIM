@@ -1,0 +1,55 @@
+---
+// src/pages/[city]/aim-connect.astro
+// AIM Connect – erzeugt aus EINER Datei für München & Aachen.
+
+import CityLayout from "../../layouts/CityLayout.astro";
+import ContentSection from "../../components/sections/ContentSection.astro";
+import IconCard from "../../components/cards/IconCard.astro";
+import { getCityStaticPaths } from "../../data/cityData";
+import type { CityData } from "../../data/cityData";
+
+export function getStaticPaths() {
+  return getCityStaticPaths();
+}
+
+interface Props {
+  city: CityData;
+}
+
+const { city } = Astro.props as Props;
+---
+
+<CityLayout city={city} pageTitle="AIM Connect">
+  <ContentSection heading="What is" headingAccent="AIM Connect?" background="page">
+    <p>{city.aimConnect.intro}</p>
+  </ContentSection>
+
+  <section class="aim-connect-cards" aria-label="Scope und Topic">
+    <div class="container aim-connect-cards__grid">
+      {
+        city.aimConnect.cards.map((card) => (
+          <IconCard title={card.title} bullets={card.bullets} />
+        ))
+      }
+    </div>
+  </section>
+</CityLayout>
+
+<style>
+  .aim-connect-cards {
+    padding-block: var(--space-8) var(--space-24);
+    background: var(--color-bg-page);
+  }
+
+  .aim-connect-cards__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+
+  @media (max-width: 760px) {
+    .aim-connect-cards__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

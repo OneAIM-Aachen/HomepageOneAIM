@@ -1,0 +1,79 @@
+---
+// src/components/sections/ProgramTeasers.astro
+// Teaser-Grid auf der München/Aachen-Hub-Seite, verlinkt zu den drei
+// Unterseiten. Wiederverwendet für beide Standorte (nur citySlug variiert).
+
+interface Teaser {
+  label: string;
+  slug: string;
+  description: string;
+}
+
+interface Props {
+  citySlug: "muenchen" | "aachen";
+  teasers: Teaser[];
+}
+
+const { citySlug, teasers } = Astro.props;
+---
+
+<section class="program-teasers" aria-label="Programme und Team">
+  <div class="container program-teasers__grid">
+    {
+      teasers.map((teaser) => (
+        <a href={`/${citySlug}/${teaser.slug}`} class="program-teasers__card">
+          <h3>{teaser.label}</h3>
+          <p>{teaser.description}</p>
+          <span class="program-teasers__link" aria-hidden="true">Mehr erfahren →</span>
+        </a>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .program-teasers {
+    padding-block: var(--space-16) var(--space-24);
+    background: var(--color-bg-page);
+  }
+
+  .program-teasers__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+  }
+
+  .program-teasers__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-8);
+    color: var(--color-text-body);
+    transition: transform var(--transition-fast);
+  }
+
+  .program-teasers__card:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+
+  .program-teasers__card h3 {
+    color: var(--color-text-heading);
+  }
+
+  .program-teasers__link {
+    margin-top: auto;
+    color: var(--color-brand-blue);
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-small);
+  }
+
+  @media (max-width: 880px) {
+    .program-teasers__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

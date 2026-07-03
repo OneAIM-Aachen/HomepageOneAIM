@@ -1,0 +1,48 @@
+---
+// src/components/sections/TeamGrid.astro
+// Grid-Wrapper für TeamMemberCard. Wiederverwendet für München & Aachen.
+
+import TeamMemberCard from "../cards/TeamMemberCard.astro";
+
+interface Member {
+  name: string;
+  role: string;
+}
+
+interface Props {
+  members: Member[];
+}
+
+const { members } = Astro.props;
+---
+
+<section class="team-grid" aria-label="Team">
+  <ul class="container team-grid__list">
+    {members.map((member) => <TeamMemberCard name={member.name} role={member.role} />)}
+  </ul>
+</section>
+
+<style>
+  .team-grid {
+    padding-block: var(--space-16) var(--space-24);
+    background: var(--color-bg-page);
+  }
+
+  .team-grid__list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-6);
+  }
+
+  @media (max-width: 880px) {
+    .team-grid__list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .team-grid__list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

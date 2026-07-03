@@ -1,0 +1,43 @@
+---
+// src/layouts/BaseLayout.astro
+// Globales Layout – Grundlage für alle Seiten (Home, München/Aachen-Hubs,
+// News, Publications, Contact, Impressum).
+
+import Header from "../components/navigation/Header.astro";
+import Footer from "../components/navigation/Footer.astro";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = "OneAIM – Germany's first student-led interdisciplinary initiative in MedTech.",
+} = Astro.props;
+
+const pageTitle = title ? `${title} | OneAIM` : "OneAIM";
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{pageTitle}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <a href="#page-content" class="skip-link">Zum Inhalt springen</a>
+
+    <Header />
+
+    <main id="page-content">
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>

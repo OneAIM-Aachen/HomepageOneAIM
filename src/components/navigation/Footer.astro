@@ -1,0 +1,189 @@
+---
+// src/components/navigation/Footer.astro
+// Globaler Footer – Newsletter-CTA + Link-Liste + Copyright.
+
+const year = new Date().getFullYear();
+
+const footerLinks = [
+  { label: "Contact Us", href: "/contact" },
+  { label: "Impressum", href: "/impressum" },
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/company/oneaim",
+    external: true,
+  },
+];
+---
+
+<footer class="site-footer">
+  <section class="site-footer__cta" aria-labelledby="newsletter-heading">
+    <div class="container site-footer__cta-inner">
+      <h2 id="newsletter-heading">Stay Connected</h2>
+      <p class="site-footer__cta-subtext">
+        Sign up to our newsletter to receive news about events, workshops and more.
+      </p>
+
+      <form class="site-footer__form" aria-label="Newsletter-Anmeldung">
+        <div class="site-footer__field">
+          <label for="footer-first-name">First Name:</label>
+          <input id="footer-first-name" name="firstName" type="text" autocomplete="given-name" required />
+        </div>
+
+        <div class="site-footer__field">
+          <label for="footer-last-name">Last Name:</label>
+          <input id="footer-last-name" name="lastName" type="text" autocomplete="family-name" required />
+        </div>
+
+        <div class="site-footer__field">
+          <label for="footer-email">Email address:</label>
+          <input id="footer-email" name="email" type="email" autocomplete="email" required />
+        </div>
+
+        <button type="submit" class="site-footer__submit">Notify me</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="site-footer__base">
+    <div class="container site-footer__base-inner">
+      <nav aria-label="Footer-Navigation">
+        <ul class="site-footer__links">
+          {
+            footerLinks.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  target={link.external ? "_blank" : undefined}
+                  rel={link.external ? "noopener noreferrer" : undefined}
+                >
+                  {link.label}
+                  {link.external && <span class="visually-hidden"> (öffnet in neuem Tab)</span>}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+      <p class="site-footer__copyright">© OneAIM {year}. All Rights Reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer__cta {
+    background: var(--color-bg-footer-cta);
+    color: var(--color-text-on-brand);
+    padding-block: var(--space-24) var(--space-16);
+    text-align: center;
+  }
+
+  .site-footer__cta-inner {
+    max-width: 640px;
+  }
+
+  .site-footer__cta h2 {
+    color: var(--color-text-on-brand);
+    margin-bottom: var(--space-3);
+  }
+
+  .site-footer__cta-subtext {
+    font-size: var(--fs-body-lg);
+    color: rgba(255, 255, 255, 0.92);
+    margin-bottom: var(--space-8);
+  }
+
+  .site-footer__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    text-align: left;
+  }
+
+  .site-footer__field label {
+    display: block;
+    font-size: var(--fs-small);
+    font-weight: var(--fw-medium);
+    margin-bottom: var(--space-2);
+  }
+
+  .site-footer__field input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    font-size: var(--fs-body);
+    background: var(--color-bg-surface);
+    color: var(--color-text-heading);
+  }
+
+  .site-footer__field input:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring-on-dark);
+  }
+
+  .site-footer__submit {
+    margin-top: var(--space-2);
+    align-self: flex-start;
+    padding: var(--space-3) var(--space-8);
+    background: var(--color-accent-violet);
+    color: var(--color-text-on-brand);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-body);
+    transition: background var(--transition-fast);
+  }
+
+  .site-footer__submit:hover {
+    background: var(--color-accent-violet-dark);
+  }
+
+  .site-footer__submit:focus-visible {
+    box-shadow: var(--focus-ring-on-dark);
+  }
+
+  .site-footer__base {
+    background: var(--color-bg-footer);
+    color: var(--color-text-on-dark);
+    padding-block: var(--space-8);
+  }
+
+  .site-footer__base-inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .site-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
+  }
+
+  .site-footer__links a {
+    color: var(--color-text-on-dark);
+    font-size: var(--fs-small);
+  }
+
+  .site-footer__links a:hover {
+    color: var(--color-brand-blue);
+  }
+
+  .site-footer__copyright {
+    font-size: var(--fs-caption);
+    color: rgba(245, 245, 247, 0.65);
+  }
+
+  @media (min-width: 560px) {
+    .site-footer__form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: var(--space-4);
+    }
+
+    .site-footer__field:nth-child(3),
+    .site-footer__submit {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

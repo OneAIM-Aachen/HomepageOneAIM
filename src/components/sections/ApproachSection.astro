@@ -1,0 +1,80 @@
+---
+// src/components/sections/ApproachSection.astro
+// "Our Approach" – Zweispaltiges Layout, vgl. "What is AIM Connect?"-Pattern
+// (Headline + zwei Karten). Eigenständiger Inhalt für die Homepage-Ebene.
+
+import IconCard from "../cards/IconCard.astro";
+
+const approachCards = [
+  {
+    title: "Praxisnahe Programme",
+    iconPath: "M9 18l-5-5 1.4-1.4L9 15.2l9.6-9.6L20 7z",
+    bullets: [
+      { label: "Hands-On", text: "Von Coding-Bootcamps bis Makeathons – Lernen findet an echten Use-Cases statt." },
+      { label: "Standortübergreifend", text: "München und Aachen folgen demselben bewährten Programmaufbau." },
+    ],
+  },
+  {
+    title: "Offen für alle Disziplinen",
+    iconPath: "M4 7h16M4 12h16M4 17h10",
+    bullets: [
+      { label: "Zugänglich", text: "Unsere Angebote sind kostenfrei und richten sich an Studierende aller Fachrichtungen." },
+      { label: "Mentoring", text: "Erfahrene Mentor*innen aus Medizin, Technik und Wirtschaft begleiten jeden Schritt." },
+    ],
+  },
+];
+---
+
+<section class="approach-section" aria-labelledby="approach-heading">
+  <div class="container approach-section__inner">
+    <div class="approach-section__intro">
+      <h2 id="approach-heading">
+        Our <span class="approach-section__accent">Approach</span>
+      </h2>
+      <p>
+        Wir verbinden Theorie und Praxis durch strukturierte Programme, die Studierende direkt mit
+        der HealthTech-Branche vernetzen – getragen von Mentoring, echten Projekten und einer
+        wachsenden Community.
+      </p>
+    </div>
+
+    <div class="approach-section__cards">
+      {approachCards.map((card) => <IconCard title={card.title} bullets={card.bullets} iconPath={card.iconPath} />)}
+    </div>
+  </div>
+</section>
+
+<style>
+  .approach-section {
+    padding-block: var(--space-24);
+    background: var(--color-bg-page);
+  }
+
+  .approach-section__inner {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: var(--space-12);
+    align-items: start;
+  }
+
+  .approach-section__intro p {
+    margin-top: var(--space-4);
+    color: var(--color-text-body);
+    font-size: var(--fs-body-lg);
+  }
+
+  .approach-section__accent {
+    color: var(--color-brand-blue);
+  }
+
+  .approach-section__cards {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  @media (max-width: 880px) {
+    .approach-section__inner {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

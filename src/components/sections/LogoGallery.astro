@@ -1,0 +1,84 @@
+---
+// src/components/sections/LogoGallery.astro
+// "Sponsors and partners" – Logo-Grid, vgl. Screenshot "Logos".
+// Logos werden als Props übergeben, damit die Komponente generisch bleibt.
+
+interface Partner {
+  name: string;
+}
+
+interface Props {
+  heading: string;
+  subtext?: string;
+  partners: Partner[];
+}
+
+const { heading, subtext, partners } = Astro.props;
+---
+
+<section class="logo-gallery" aria-labelledby="partners-heading">
+  <div class="container logo-gallery__inner">
+    <h2 id="partners-heading">{heading}</h2>
+    {subtext && <p class="logo-gallery__subtext">{subtext}</p>}
+
+    <ul class="logo-gallery__grid">
+      {
+        partners.map((partner) => (
+          <li class="logo-gallery__item">
+            <span class="logo-gallery__placeholder">{partner.name}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .logo-gallery {
+    padding-block: var(--space-24);
+    background: var(--color-bg-surface);
+  }
+
+  .logo-gallery__inner {
+    text-align: center;
+  }
+
+  .logo-gallery__subtext {
+    max-width: 560px;
+    margin: var(--space-4) auto var(--space-12);
+    color: var(--color-text-body);
+  }
+
+  .logo-gallery__grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-8);
+    align-items: center;
+  }
+
+  .logo-gallery__item {
+    display: flex;
+    justify-content: center;
+  }
+
+  .logo-gallery__placeholder {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-small);
+    color: var(--color-text-body);
+    opacity: 0.75;
+  }
+
+  @media (max-width: 880px) {
+    .logo-gallery__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .logo-gallery__grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-6);
+    }
+  }
+</style>

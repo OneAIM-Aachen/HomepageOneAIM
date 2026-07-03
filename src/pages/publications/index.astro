@@ -1,0 +1,56 @@
+---
+// src/pages/publications/index.astro
+// Publications-Übersicht. Inhalte kommen aus src/data/publicationsData.ts
+// (DUMMY-Daten). Neue Einträge: einfach im Array ergänzen, keine
+// Änderung an dieser Seite oder an ListItemCard nötig.
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ContentSection from "../../components/sections/ContentSection.astro";
+import ListItemCard from "../../components/cards/ListItemCard.astro";
+import DummyNotice from "../../components/ui/DummyNotice.astro";
+import { publications } from "../../data/publicationsData";
+---
+
+<BaseLayout
+  title="Publications"
+  description="Publikationen und Berichte rund um OneAIM, AIM Connect und AIM Code."
+>
+  <ContentSection heading="Publications" background="page">
+    <p>
+      Eine Auswahl an Publikationen, Berichten und Lernmaterialien aus der Arbeit von OneAIM.
+    </p>
+  </ContentSection>
+
+  <section class="publications-list-section" aria-label="Publikationen">
+    <div class="container">
+      <DummyNotice text="Alle unten aufgeführten Publikationen sind Platzhalterinhalte. Vor dem Live-Gang durch echte Quellen ersetzen." />
+
+      <ul class="publications-list-section__list">
+        {
+          publications.map((pub) => (
+            <ListItemCard
+              title={pub.title}
+              meta={`${pub.authors.join(", ")} · ${pub.year}`}
+              description={pub.description}
+              isDummy
+            />
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .publications-list-section {
+    padding-block: var(--space-8) var(--space-24);
+    background: var(--color-bg-page);
+  }
+
+  .publications-list-section__list {
+    margin-top: var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+</style>

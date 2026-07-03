@@ -1,0 +1,104 @@
+/* ==========================================================================
+   OneAIM Design Tokens
+   Abgeleitet aus den Screenshots: Hero-Gradients, Markenblau, Violett-Akzent,
+   helle Section-Hintergründe, dunkler Footer.
+   ========================================================================== */
+
+:root {
+  /* ---- Farben: Marke ---- */
+  --color-brand-blue: #1e4fe0;        /* Primärfarbe: Headlines, Links, Buttons */
+  --color-brand-blue-dark: #1338a8;   /* Hover-/Active-Zustand */
+  --color-accent-violet: #9333ea;     /* Sekundärakzent: CTA-Button, Gradient-Icons */
+  --color-accent-violet-dark: #7e22ce;
+
+  /* ---- Farben: Neutral / Hintergrund ---- */
+  --color-bg-page: #f5f8fc;           /* Standard-Seitenhintergrund */
+  --color-bg-surface: #ffffff;        /* Cards, Content-Flächen */
+  --color-bg-subtle: #eef2f9;         /* alternierende Section-Hintergründe */
+  --color-bg-footer: #0a0a0a;         /* Footer-Fläche */
+  --color-bg-footer-cta: var(--color-brand-blue); /* "Stay Connected"-Block */
+
+  /* ---- Farben: Text ---- */
+  --color-text-heading: #0b0c0e;
+  --color-text-body: #5a6472;
+  --color-text-on-dark: #f5f5f7;
+  --color-text-on-brand: #ffffff;
+  --color-text-link: var(--color-brand-blue);
+
+  /* ---- Farben: Rand / Schatten ---- */
+  --color-border-subtle: rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --shadow-header: 0 1px 0 rgba(15, 23, 42, 0.06);
+
+  /* ---- Hero-Gradient (Aurora-artig, unscharf) ---- */
+  --gradient-hero: radial-gradient(
+      40% 60% at 20% 30%,
+      rgba(255, 255, 255, 0.9),
+      transparent 70%
+    ),
+    radial-gradient(50% 60% at 75% 20%, rgba(236, 196, 255, 0.55), transparent 65%),
+    radial-gradient(70% 80% at 50% 90%, rgba(30, 79, 224, 0.85), transparent 70%),
+    linear-gradient(180deg, #eef3ff 0%, #2554e8 100%);
+
+  --gradient-icon: linear-gradient(160deg, var(--color-brand-blue), var(--color-accent-violet));
+
+  /* ---- Typografie ---- */
+  --font-display: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+
+  --fs-h1: clamp(2.25rem, 1.4rem + 3.2vw, 4rem);
+  --fs-h2: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+  --fs-h3: clamp(1.125rem, 1rem + 0.4vw, 1.375rem);
+  --fs-body-lg: 1.125rem;
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-caption: 0.75rem;
+
+  --lh-heading: 1.15;
+  --lh-body: 1.65;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+
+  /* ---- Spacing-Skala ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+
+  /* ---- Layout ---- */
+  --container-max: 1280px;
+  --container-padding: clamp(1.25rem, 4vw, 3rem);
+  --header-height: 76px;
+
+  /* ---- Radien ---- */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* ---- Übergänge ---- */
+  --transition-fast: 150ms ease;
+  --transition-base: 220ms ease;
+
+  /* ---- Platzhalter-/Dummy-Kennzeichnung (DummyNotice-Komponente) ---- */
+  --color-warning-bg: #fef3c7;
+  --color-warning-border: #fbbf24;
+  --color-warning-text: #92400e;
+
+  /* ---- Fokus (Accessibility) ---- */
+  --focus-ring: 0 0 0 3px rgba(30, 79, 224, 0.35);
+  --focus-ring-on-dark: 0 0 0 3px rgba(255, 255, 255, 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Bewusst kein automatischer Dark Mode: Marke ist hell/gradient-basiert.
+     Platzhalter für spätere bewusste Entscheidung, falls gewünscht. */
+}

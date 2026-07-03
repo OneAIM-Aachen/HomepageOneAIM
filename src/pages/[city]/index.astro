@@ -1,0 +1,39 @@
+---
+// src/pages/[city]/index.astro
+// City-Hub (München & Aachen) – erzeugt aus EINER Datei via getStaticPaths().
+// Inhalt: Hero (über CityLayout) + Intro-Text + Teaser zu AIM Connect/Code/Team.
+
+import CityLayout from "../../layouts/CityLayout.astro";
+import ContentSection from "../../components/sections/ContentSection.astro";
+import ProgramTeasers from "../../components/sections/ProgramTeasers.astro";
+import { getCityStaticPaths } from "../../data/cityData";
+import type { CityData } from "../../data/cityData";
+
+export function getStaticPaths() {
+  return getCityStaticPaths();
+}
+
+interface Props {
+  city: CityData;
+}
+
+const { city } = Astro.props as Props;
+
+const teasers = [
+  { label: "AIM Connect", slug: "aim-connect", description: city.aimConnect.intro },
+  { label: "AIM Code", slug: "aim-code", description: city.aimCode.intro },
+  {
+    label: "Team",
+    slug: "team",
+    description: `Lerne das Team hinter OneAIM ${city.displayName} kennen.`,
+  },
+];
+---
+
+<CityLayout city={city} pageTitle="Übersicht">
+  <ContentSection heading={`OneAIM in ${city.displayName}`} background="page">
+    {city.introText.map((paragraph) => <p>{paragraph}</p>)}
+  </ContentSection>
+
+  <ProgramTeasers citySlug={city.slug} teasers={teasers} />
+</CityLayout>

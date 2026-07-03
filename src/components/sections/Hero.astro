@@ -1,0 +1,130 @@
+---
+// src/components/sections/Hero.astro
+// Hero-Pattern: Gradient-Hintergrund, Branding-Logo, Headline, optionale
+// Subline, CTA-Buttons als Slot (siehe index.astro für München/Aachen-CTAs).
+
+interface Props {
+  headline: string;
+  subtext?: string;
+}
+
+const { headline, subtext } = Astro.props;
+---
+
+<section class="hero" aria-label="Intro">
+  <div class="hero__gradient" aria-hidden="true"></div>
+
+  <div class="container hero__inner">
+    <div class="hero__brand">
+      <svg
+        class="hero__logo-icon"
+        viewBox="0 0 48 40"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M2 38 L24 4 L46 38"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <path
+          d="M24 4 L24 38 L46 38"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+        <circle cx="38" cy="10" r="5" fill="var(--color-accent-violet)"></circle>
+      </svg>
+      <span class="hero__brand-name">OneAIM</span>
+    </div>
+
+    <h1 class="hero__headline">{headline}</h1>
+
+    {subtext && <p class="hero__subtext">{subtext}</p>}
+
+    <div class="hero__ctas">
+      <slot />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding-block: var(--space-32) var(--space-24);
+    text-align: center;
+  }
+
+  .hero__gradient {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--gradient-hero);
+  }
+
+  .hero__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  .hero__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--color-brand-blue);
+  }
+
+  .hero__logo-icon {
+    width: 40px;
+    height: 34px;
+  }
+
+  .hero__brand-name {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size: 1.5rem;
+  }
+
+  .hero__headline {
+    color: var(--color-brand-blue);
+    max-width: 18ch;
+  }
+
+  .hero__subtext {
+    font-size: var(--fs-body-lg);
+    color: var(--color-text-heading);
+    max-width: 32ch;
+  }
+
+  .hero__ctas {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+
+  @media (max-width: 480px) {
+    .hero {
+      padding-block: var(--space-24) var(--space-16);
+    }
+
+    .hero__ctas {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+    }
+
+    .hero__ctas :global(.btn) {
+      width: 100%;
+    }
+  }
+</style>

@@ -1,0 +1,65 @@
+---
+// src/components/ui/FormField.astro
+// Wiederverwendbares Formularfeld mit Label. Nutzbar für künftige
+// Formulare (aktuell: Contact-Seite).
+
+interface Props {
+  id: string;
+  name: string;
+  label: string;
+  type?: "text" | "email" | "textarea";
+  required?: boolean;
+  placeholder?: string;
+}
+
+const { id, name, label, type = "text", required = false, placeholder } = Astro.props;
+---
+
+<div class="form-field">
+  <label for={id}>
+    {label}
+    {required && <span aria-hidden="true"> *</span>}
+  </label>
+
+  {
+    type === "textarea" ? (
+      <textarea id={id} name={name} required={required} placeholder={placeholder} rows={5} />
+    ) : (
+      <input id={id} name={name} type={type} required={required} placeholder={placeholder} />
+    )
+  }
+</div>
+
+<style>
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .form-field label {
+    font-size: var(--fs-small);
+    font-weight: var(--fw-medium);
+    color: var(--color-text-heading);
+  }
+
+  .form-field input,
+  .form-field textarea {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-bg-surface);
+    color: var(--color-text-heading);
+    font-size: var(--fs-body);
+    font-family: var(--font-body);
+    resize: vertical;
+  }
+
+  .form-field input:focus-visible,
+  .form-field textarea:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-color: var(--color-brand-blue);
+  }
+</style>

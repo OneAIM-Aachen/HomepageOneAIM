@@ -1,0 +1,63 @@
+---
+// src/components/ui/DummyNotice.astro
+// Markiert Inhalte deutlich als Platzhalter/Dummy-Daten.
+// "banner" = volle Breite am Seitenanfang, "inline" = kleines Badge in Cards.
+
+interface Props {
+  variant?: "banner" | "inline";
+  text?: string;
+}
+
+const {
+  variant = "banner",
+  text = "Platzhalterinhalt – vor Veröffentlichung durch echte Daten ersetzen.",
+} = Astro.props;
+---
+
+{
+  variant === "banner" ? (
+    <div class="dummy-notice dummy-notice--banner" role="note">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+        <path
+          fill="currentColor"
+          d="M12 2 1 21h22L12 2zm0 6 1 1v6l-1 1-1-1v-6l1-1zm0 10.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"
+        />
+      </svg>
+      <span>{text}</span>
+    </div>
+  ) : (
+    <span class="dummy-notice dummy-notice--inline">Platzhalter</span>
+  )
+}
+
+<style>
+  .dummy-notice--banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--fs-small);
+    font-weight: var(--fw-medium);
+  }
+
+  .dummy-notice--banner svg {
+    flex-shrink: 0;
+  }
+
+  .dummy-notice--inline {
+    display: inline-block;
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-pill);
+    padding: 2px var(--space-3);
+    font-size: var(--fs-caption);
+    font-weight: var(--fw-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+</style>

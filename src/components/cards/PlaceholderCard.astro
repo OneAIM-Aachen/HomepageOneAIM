@@ -1,0 +1,45 @@
+---
+// src/components/cards/PlaceholderCard.astro
+// Dashed-Border-Karte für zukünftige Inhalte, z. B. "weitere News folgen".
+// Bewusst eigenständig von ListItemCard, da visuell andere Funktion
+// (Ankündigung statt Inhalt).
+
+interface Props {
+  message: string;
+}
+
+const { message } = Astro.props;
+---
+
+<li class="placeholder-card">
+  <span class="placeholder-card__icon" aria-hidden="true">+</span>
+  <p>{message}</p>
+</li>
+
+<style>
+  .placeholder-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    text-align: center;
+    padding: var(--space-8);
+    border: 2px dashed var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--color-text-body);
+  }
+
+  .placeholder-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    background: var(--color-bg-subtle);
+    color: var(--color-brand-blue);
+    font-size: 1.25rem;
+    font-weight: var(--fw-bold);
+  }
+</style>

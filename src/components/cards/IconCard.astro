@@ -1,0 +1,90 @@
+---
+// src/components/cards/IconCard.astro
+// Wiederverwendbare Karte: Gradient-Icon + Titel + Bullet-Liste.
+// Eingesetzt in "Our Mission" und "Our Approach" auf der Homepage.
+
+interface Bullet {
+  label: string;
+  text: string;
+}
+
+interface Props {
+  title: string;
+  bullets: Bullet[];
+  iconPath?: string; // optionaler SVG-Pfad, sonst Standard-Punkt-Icon
+}
+
+const { title, bullets, iconPath } = Astro.props;
+---
+
+<article class="icon-card">
+  <span class="icon-card__icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22" focusable="false">
+      <path
+        d={iconPath ?? "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4v6l4 2"}
+        fill="none"
+        stroke="white"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      ></path>
+    </svg>
+  </span>
+
+  <h3 class="icon-card__title">{title}</h3>
+
+  <ul class="icon-card__list">
+    {
+      bullets.map((bullet) => (
+        <li>
+          <strong>{bullet.label}:</strong> {bullet.text}
+        </li>
+      ))
+    }
+  </ul>
+</article>
+
+<style>
+  .icon-card {
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    text-align: left;
+  }
+
+  .icon-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-pill);
+    background: var(--gradient-icon);
+  }
+
+  .icon-card__title {
+    color: var(--color-text-heading);
+  }
+
+  .icon-card__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    color: var(--color-text-body);
+    font-size: var(--fs-body);
+    line-height: var(--lh-body);
+  }
+
+  .icon-card__list li {
+    list-style: disc;
+    margin-left: var(--space-4);
+  }
+
+  .icon-card__list strong {
+    color: var(--color-text-heading);
+  }
+</style>

@@ -1,0 +1,80 @@
+---
+// src/components/sections/MissionSection.astro
+// "Our Mission" – 2x2 Card-Grid, vgl. Screenshot "Our Mission".
+// Inhalte sind eigene Kurzfassung der vier Themenfelder.
+
+import IconCard from "../cards/IconCard.astro";
+
+const missionCards = [
+  {
+    title: "Exploration",
+    iconPath: "M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z",
+    bullets: [
+      { label: "Healthcare Challenges", text: "Wir geben Einblick in zentrale Herausforderungen im Gesundheitswesen und zeigen, wo KI wirklich etwas bewegen kann." },
+      { label: "Cross-Disciplinary Insights", text: "Teilnehmende verstehen die Schnittstellen von Technologie, Medizin und weiteren Feldern." },
+      { label: "Guidance from Experts", text: "Mentor*innen aus unterschiedlichen Hintergründen begleiten den gesamten Weg." },
+    ],
+  },
+  {
+    title: "Network",
+    iconPath: "M17 9a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm-10 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm10 2c-2.2 0-6 1.1-6 3.3V17h12v-2.7C23 12.1 19.2 11 17 11zm-10 0c-2.2 0-6 1.1-6 3.3V17h7v-2.7c0-.9.3-1.9 1-2.7-.7-.4-1.4-.6-2-.6z",
+    bullets: [
+      { label: "Interdisciplinary Community", text: "Studierende verschiedener Fachrichtungen kommen in einem dynamischen Netzwerk zusammen." },
+      { label: "Lasting Connections", text: "Wir fördern Beziehungen, die über das Programm hinaus Bestand haben." },
+      { label: "Alumni Expertise", text: "Unser Alumni-Netzwerk bringt Erfahrung aus erster Hand in die Community ein." },
+    ],
+  },
+  {
+    title: "Interaction",
+    iconPath: "M4 4h16v12H7l-3 3z",
+    bullets: [
+      { label: "Mutual Empowerment", text: "Ein respektvolles Umfeld, in dem sich Teilnehmende gegenseitig stärken." },
+      { label: "Real-World Challenges", text: "Praxisnahe Projekte an echten Problemstellungen im Gesundheitswesen." },
+      { label: "Navigating Complex Issues", text: "Gemeinsames Lernen zu Themen wie Regulatorik, Datenschutz und Ethik." },
+    ],
+  },
+  {
+    title: "Personal Development",
+    iconPath: "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z",
+    bullets: [
+      { label: "Social Connection", text: "Events und Community-Building schaffen eine lebendige, soziale Atmosphäre." },
+      { label: "Advancement Opportunities", text: "Wege zu Führungsrollen und Mitgestaltung der Initiative." },
+      { label: "Soft Skills", text: "Aufbau von Kommunikations-, Team- und Leadership-Fähigkeiten." },
+    ],
+  },
+];
+---
+
+<section class="mission-section" aria-labelledby="mission-heading">
+  <div class="container">
+    <h2 id="mission-heading" class="mission-section__heading">Our Mission</h2>
+
+    <div class="mission-section__grid">
+      {missionCards.map((card) => <IconCard title={card.title} bullets={card.bullets} iconPath={card.iconPath} />)}
+    </div>
+  </div>
+</section>
+
+<style>
+  .mission-section {
+    padding-block: var(--space-24);
+    background: var(--color-bg-subtle);
+  }
+
+  .mission-section__heading {
+    text-align: center;
+    margin-bottom: var(--space-12);
+  }
+
+  .mission-section__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+
+  @media (max-width: 760px) {
+    .mission-section__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

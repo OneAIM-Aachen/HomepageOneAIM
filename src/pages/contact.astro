@@ -1,0 +1,160 @@
+---
+// src/pages/contact.astro
+// Kontaktformular (Dummy, ohne Backend) + Kontaktinformationen (Platzhalter).
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ContentSection from "../components/sections/ContentSection.astro";
+import FormField from "../components/ui/FormField.astro";
+import Button from "../components/ui/Button.astro";
+import DummyNotice from "../components/ui/DummyNotice.astro";
+---
+
+<BaseLayout title="Contact Us" description="Kontaktiere OneAIM in München und Aachen.">
+  <ContentSection heading="Contact Us" background="page">
+    <p>Fragen zu unseren Programmen, Partnerschaften oder zur Initiative? Schreib uns gerne.</p>
+  </ContentSection>
+
+  <section class="contact-section" aria-label="Kontaktformular und Kontaktinformationen">
+    <div class="container contact-section__grid">
+      <div class="contact-section__form-col">
+        <DummyNotice text="Dieses Formular ist aktuell nicht mit einem Backend verbunden (Demo-Verhalten beim Absenden)." />
+
+        <form id="contact-form" class="contact-form" novalidate>
+          <FormField id="contact-name" name="name" label="Name" required />
+          <FormField id="contact-email" name="email" type="email" label="E-Mail-Adresse" required />
+          <FormField id="contact-message" name="message" type="textarea" label="Nachricht" required />
+
+          <Button href="#" variant="primary">
+            <span style="pointer-events: none;">Nachricht senden</span>
+          </Button>
+
+          <!-- Platzhalter für Erfolgsmeldung: wird per JS sichtbar gemacht.
+               In Produktion: nur nach erfolgreicher Backend-Antwort anzeigen. -->
+          <p id="contact-success" class="contact-form__message contact-form__message--success" role="status" aria-live="polite" hidden>
+            Danke für deine Nachricht! (Platzhalter – in Produktion: echte Bestätigung nach Server-Antwort.)
+          </p>
+
+          <!-- Platzhalter für Fehlermeldung: aktuell nicht aktiv geschaltet.
+               In Produktion: bei fehlgeschlagenem Request einblenden. -->
+          <p id="contact-error" class="contact-form__message contact-form__message--error" role="alert" aria-live="assertive" hidden>
+            Etwas ist schiefgelaufen. Bitte versuche es später erneut. (Platzhalter)
+          </p>
+        </form>
+      </div>
+
+      <aside class="contact-section__info-col" aria-label="Kontaktinformationen">
+        <h2>Kontaktinformationen</h2>
+        <DummyNotice text="Alle folgenden Angaben sind Platzhalter und müssen vor Veröffentlichung ersetzt werden." />
+
+        <dl class="contact-info">
+          <div class="contact-info__item">
+            <dt>E-Mail</dt>
+            <dd>kontakt@platzhalter-domain.de</dd>
+          </div>
+          <div class="contact-info__item">
+            <dt>LinkedIn</dt>
+            <dd><a href="https://www.linkedin.com/company/PLATZHALTER" target="_blank" rel="noopener noreferrer">linkedin.com/company/PLATZHALTER</a></dd>
+          </div>
+          <div class="contact-info__item">
+            <dt>Standort München</dt>
+            <dd>Musterstraße 1, 80331 München (Platzhalter)</dd>
+          </div>
+          <div class="contact-info__item">
+            <dt>Standort Aachen</dt>
+            <dd>Beispielweg 2, 52062 Aachen (Platzhalter)</dd>
+          </div>
+        </dl>
+      </aside>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .contact-section {
+    padding-block: var(--space-8) var(--space-24);
+    background: var(--color-bg-page);
+  }
+
+  .contact-section__grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: var(--space-12);
+    align-items: start;
+  }
+
+  .contact-section__form-col,
+  .contact-section__info-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    background: var(--color-bg-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-card);
+    padding: var(--space-8);
+  }
+
+  .contact-form__message {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-small);
+  }
+
+  .contact-form__message--success {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .contact-form__message--error {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .contact-section__info-col h2 {
+    font-size: var(--fs-h3);
+  }
+
+  .contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+  }
+
+  .contact-info__item dt {
+    font-size: var(--fs-small);
+    font-weight: var(--fw-bold);
+    color: var(--color-text-heading);
+  }
+
+  .contact-info__item dd {
+    margin: 0;
+    color: var(--color-text-body);
+  }
+
+  @media (max-width: 880px) {
+    .contact-section__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // Demo-Verhalten ohne Backend: simuliert eine erfolgreiche Übermittlung.
+  // In Produktion: echten Request senden und success/error je nach
+  // Antwort umschalten statt immer "success" zu zeigen.
+  const form = document.getElementById("contact-form");
+  const success = document.getElementById("contact-success");
+  const error = document.getElementById("contact-error");
+
+  form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    error?.setAttribute("hidden", "");
+    success?.removeAttribute("hidden");
+  });
+</script>

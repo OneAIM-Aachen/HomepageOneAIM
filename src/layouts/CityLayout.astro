@@ -1,0 +1,30 @@
+---
+// src/layouts/CityLayout.astro
+// Gemeinsames Layout für alle Standort-Seiten (Hub, AIM Connect, AIM Code,
+// Team). München und Aachen nutzen exakt dasselbe Layout – nur die
+// übergebenen Stadt-Daten unterscheiden sich.
+
+import BaseLayout from "./BaseLayout.astro";
+import Hero from "../components/sections/Hero.astro";
+import CityTabs from "../components/navigation/CityTabs.astro";
+import type { CityData } from "../data/cityData";
+
+interface Props {
+  city: CityData;
+  pageTitle: string; // z. B. "AIM Connect", "Team" – wird mit Stadtname kombiniert
+  description?: string;
+}
+
+const { city, pageTitle, description } = Astro.props;
+---
+
+<BaseLayout
+  title={`${pageTitle} – ${city.displayName}`}
+  description={description ?? `${pageTitle} am OneAIM-Standort ${city.displayName}.`}
+>
+  <Hero headline={city.heroHeadline} subtext={city.heroSubtext} />
+
+  <CityTabs citySlug={city.slug} />
+
+  <slot />
+</BaseLayout>
