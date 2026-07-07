@@ -1,0 +1,258 @@
+---
+// src/components/cards/EventCard.astro
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Eigenständige Karte für ein einzelnes Timeline-Event.
+//
+// UNABHÄNGIG von Timeline.astro – kann auch einzeln verwendet werden:
+//   • In der Timeline als Slide-Inhalt
+//   • Auf einer Event-Übersichtsseite
+//   • Als "Featured Event"-Highlight auf einer Startseite
+//
+// Verwendung (Beispiel):
+//   import EventCard from "../components/cards/EventCard.astro";
+//   <EventCard event={myEvent} />
+// ─────────────────────────────────────────────────────────────────────────────
+
+import type { TimelineEvent } from "../../types/events";
+
+interface Props {
+  event: TimelineEvent;
+}
+
+const { event } = Astro.props;
+
+// Datum formatieren
+const formattedDate = new Intl.DateTimeFormat("de-DE", {
+  day:   "2-digit",
+  month: "long",
+  year:  "numeric",
+}).format(new Date(event.date));
+
+// Kategorie-CSS-Klasse bestimmen
+type CategoryKey =
+  | "kick-off" | "company-visit" | "workshop"
+  | "conference" | "networking" | "makeathon"
+  | "social-event" | "default";
+
+function getCategoryClass(category: string): CategoryKey {
+  const map: Record<string, CategoryKey> = {
+    "Kick-Off":      "kick-off",
+    "Company Visit": "company-visit",
+    "Workshop":      "workshop",
+    "Conference":    "conference",
+    "Networking":    "networking",
+    "Makeathon":     "makeathon",
+    "Social Event":  "social-event",
+  };
+  return map[category] ?? "default";
+}
+
+const categoryClass = getCategoryClass(event.category);
+---
+
+<article class:list={["event-card", event.featured && "event-card--featured"]}>
+  <!-- ── Bild ──────────────────────────────────────────────────── -->
+  <div class="event-card__img-wrap">
+    <img
+      src={event.image}
+      alt={event.imageAlt ?? `${event.title} – Event-Foto`}
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+
+  <!-- ── Inhalt ────────────────────────────────────────────────── -->
+  <div class="event-card__body">
+
+    <!-- Kategorie-Badge -->
+    <span class={`event-card__category event-card__category--${categoryClass}`}>
+      {event.category}
+    </span>
+
+    <!-- Titel -->
+    <h3 class="event-card__title">
+      {event.title}
+      {event.featured && (
+        <span class="event-card__featured-badge" aria-label="Highlight-Event">★</span>
+      )}
+    </h3>
+
+    <!-- Datum + Standort -->
+    <div class="event-card__meta">
+      <time class="event-card__date" datetime={event.date}>
+        <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
+          <rect x="1" y="2" width="14" height="13" rx="2" fill="none"
+            stroke="currentColor" stroke-width="1.5"/>
+          <line x1="1" y1="6" x2="15" y2="6" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="5"  y1="0.5" x2="5"  y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="0.5" x2="11" y2="4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        {formattedDate}
+      </time>
+
+      {event.location && (
+        <span class="event-card__location">
+          <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">
+            <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+              d="M8 1.5a4.5 4.5 0 0 1 4.5 4.5c0 3-4.5 8.5-4.5 8.5S3.5 9 3.5 6A4.5 4.5 0 0 1 8 1.5z"/>
+            <circle cx="8" cy="6" r="1.5" fill="currentColor"/>
+          </svg>
+          {event.location}
+        </span>
+      )}
+    </div>
+
+    <!-- Beschreibung -->
+    <p class="event-card__desc">{event.description}</p>
+
+    <!-- Tags -->
+    {event.tags.length > 0 && (
+      <ul class="event-card__tags" aria-label="Tags">
+        {event.tags.map(tag => (
+          <li class="event-card__tag">{tag}</li>
+        ))}
+      </ul>
+    )}
+
+  </div>
+</article>
+
+<style>
+  /* ── Basis-Karte ──────────────────────────────────────────── */
+  .event-card {
+    background:    var(--color-bg-surface);
+    border-radius: var(--radius-md);
+    border:        1px solid var(--color-border-subtle);
+    box-shadow:    var(--shadow-card);
+    overflow:      hidden;
+    transition:
+      box-shadow var(--transition-fast),
+      transform  var(--transition-fast);
+  }
+
+  .event-card:hover {
+    box-shadow: 0 8px 32px rgba(0, 82, 233, 0.12);
+    transform:  translateY(-2px);
+  }
+
+  /* Featured-Variante: stärkerer Ring */
+  .event-card--featured {
+    border-color:  var(--color-brand-blue-light);
+    box-shadow:
+      var(--shadow-card),
+      0 0 0 2px var(--color-brand-blue-light);
+  }
+
+  /* ── Bild-Container ───────────────────────────────────────── */
+  .event-card__img-wrap {
+    width:    100%;
+    height:   240px;
+    overflow: hidden;
+  }
+
+  .event-card__img-wrap img {
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+    display:    block;
+    transition: transform 0.45s ease;
+  }
+
+  .event-card:hover .event-card__img-wrap img {
+    transform: scale(1.04);
+  }
+
+  /* ── Card-Body ────────────────────────────────────────────── */
+  .event-card__body {
+    padding:        var(--space-6);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-3);
+  }
+
+  /* ── Kategorie-Badge ──────────────────────────────────────── */
+  .event-card__category {
+    display:       inline-block;
+    padding:       3px var(--space-3);
+    border-radius: var(--radius-pill);
+    font-size:     var(--fs-caption);
+    font-weight:   var(--fw-semibold);
+    letter-spacing: 0.03em;
+    align-self:    flex-start;
+  }
+
+  .event-card__category--kick-off      { background: #EEF3FF; color: #232ACF; }
+  .event-card__category--company-visit { background: #E6F5E6; color: #1A6B1A; }
+  .event-card__category--workshop      { background: #F3E8FF; color: #6B1A8D; }
+  .event-card__category--conference    { background: #FFF0E0; color: #8A4000; }
+  .event-card__category--networking    { background: #E6F0FF; color: #0A4088; }
+  .event-card__category--makeathon     { background: #FFE8F5; color: #9B0058; }
+  .event-card__category--social-event  { background: #FFF5E0; color: #7A4800; }
+  .event-card__category--default       { background: var(--color-bg-subtle); color: var(--color-text-muted); }
+
+  /* ── Titel ────────────────────────────────────────────────── */
+  .event-card__title {
+    font-family:  var(--font-display);
+    font-weight:  var(--fw-bold);
+    font-size:    var(--fs-h3);
+    color:        var(--color-text-heading);
+    line-height:  1.25;
+    margin:       0;
+    display:      flex;
+    align-items:  center;
+    gap:          var(--space-2);
+  }
+
+  .event-card__featured-badge {
+    color:     var(--color-brand-blue);
+    font-size: var(--fs-small);
+  }
+
+  /* ── Meta: Datum + Standort ───────────────────────────────── */
+  .event-card__meta {
+    display:     flex;
+    flex-wrap:   wrap;
+    gap:         var(--space-4);
+    align-items: center;
+  }
+
+  .event-card__date,
+  .event-card__location {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-2);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-medium);
+    color:       var(--color-text-muted);
+    line-height: 1;
+  }
+
+  /* ── Beschreibung ─────────────────────────────────────────── */
+  .event-card__desc {
+    font-size:   var(--fs-body);
+    color:       var(--color-text-body);
+    line-height: var(--lh-body);
+    margin:      0;
+  }
+
+  /* ── Tags ─────────────────────────────────────────────────── */
+  .event-card__tags {
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       var(--space-2);
+    list-style: none;
+    margin:    0;
+    padding:   0;
+  }
+
+  .event-card__tag {
+    background:    var(--color-bg-subtle);
+    color:         var(--color-text-muted);
+    border-radius: var(--radius-pill);
+    padding:       2px var(--space-3);
+    font-size:     var(--fs-caption);
+    font-weight:   var(--fw-medium);
+    white-space:   nowrap;
+  }
+</style>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-label="Makeathon Summit (Platzhalter)">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8D2DF1"/>
+      <stop offset="100%" stop-color="#D400FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="480" fill="url(#g)"/>
+  <circle cx="400" cy="240" r="300" fill="rgba(255,255,255,0.04)"/>
+  <!-- Trophy -->
+  <rect x="360" y="300" width="80" height="20" rx="4" fill="rgba(255,255,255,0.25)"/>
+  <rect x="375" y="265" width="50" height="40" rx="4" fill="rgba(255,255,255,0.20)"/>
+  <path d="M340,150 Q320,200 340,240 L460,240 Q480,200 460,150 Z" fill="rgba(255,255,255,0.22)"/>
+  <path d="M340,150 Q280,160 285,210 Q290,240 340,240" fill="none" stroke="rgba(255,255,255,0.20)" stroke-width="3"/>
+  <path d="M460,150 Q520,160 515,210 Q510,240 460,240" fill="none" stroke="rgba(255,255,255,0.20)" stroke-width="3"/>
+  <!-- Star on trophy -->
+  <polygon points="400,165 407,185 428,185 412,197 418,218 400,206 382,218 388,197 372,185 393,185"
+    fill="rgba(255,255,255,0.30)"/>
+  <!-- Confetti -->
+  <rect x="150" y="100" width="12" height="12" rx="2" fill="rgba(255,255,255,0.30)" transform="rotate(30 156 106)"/>
+  <rect x="600" y="150" width="10" height="10" rx="2" fill="rgba(255,255,255,0.25)" transform="rotate(-20 605 155)"/>
+  <rect x="680" y="300" width="14" height="14" rx="2" fill="rgba(255,255,255,0.20)" transform="rotate(45 687 307)"/>
+  <rect x="100" y="300" width="11" height="11" rx="2" fill="rgba(255,255,255,0.28)" transform="rotate(15 105 305)"/>
+  <circle cx="220" cy="200" r="8" fill="rgba(255,255,255,0.22)"/>
+  <circle cx="650" cy="230" r="6" fill="rgba(255,255,255,0.20)"/>
+  <circle cx="550" cy="380" r="9" fill="rgba(255,255,255,0.18)"/>
+  <rect x="40" y="400" width="220" height="44" rx="8" fill="rgba(0,0,0,0.22)"/>
+  <text x="56" y="428" font-family="Arial,sans-serif" font-size="15" fill="rgba(255,255,255,0.9)" font-weight="600">Makeathon &amp; Summit</text>
+</svg>

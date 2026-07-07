@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-label="Kick-Off Weekend (Platzhalter)">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a3fa8"/>
+      <stop offset="100%" stop-color="#0052E9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="480" fill="url(#g)"/>
+  <circle cx="700" cy="60" r="260" fill="rgba(255,255,255,0.05)"/>
+  <circle cx="80"  cy="440" r="180" fill="rgba(255,255,255,0.04)"/>
+  <!-- People silhouettes (group) -->
+  <ellipse cx="200" cy="380" rx="28" ry="28" fill="rgba(255,255,255,0.22)"/>
+  <rect x="183" y="408" width="34" height="48" rx="10" fill="rgba(255,255,255,0.20)"/>
+  <ellipse cx="270" cy="370" rx="30" ry="30" fill="rgba(255,255,255,0.24)"/>
+  <rect x="252" y="400" width="36" height="52" rx="10" fill="rgba(255,255,255,0.22)"/>
+  <ellipse cx="340" cy="378" rx="27" ry="27" fill="rgba(255,255,255,0.22)"/>
+  <rect x="325" y="405" width="30" height="48" rx="10" fill="rgba(255,255,255,0.20)"/>
+  <ellipse cx="405" cy="365" rx="32" ry="32" fill="rgba(255,255,255,0.25)"/>
+  <rect x="385" y="397" width="40" height="55" rx="10" fill="rgba(255,255,255,0.22)"/>
+  <ellipse cx="478" cy="375" rx="28" ry="28" fill="rgba(255,255,255,0.22)"/>
+  <rect x="462" y="403" width="34" height="50" rx="10" fill="rgba(255,255,255,0.20)"/>
+  <!-- Stars / celebration -->
+  <text x="580" y="180" font-family="Arial" font-size="60" fill="rgba(255,255,255,0.20)">✦</text>
+  <text x="120" y="160" font-family="Arial" font-size="40" fill="rgba(255,255,255,0.15)">✦</text>
+  <text x="650" y="320" font-family="Arial" font-size="36" fill="rgba(255,255,255,0.12)">✦</text>
+  <!-- Label -->
+  <rect x="40" y="400" width="200" height="44" rx="8" fill="rgba(0,0,0,0.25)"/>
+  <text x="56" y="428" font-family="Arial,sans-serif" font-size="15" fill="rgba(255,255,255,0.9)" font-weight="600">Kick-Off Weekend</text>
+</svg>

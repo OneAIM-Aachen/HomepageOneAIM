@@ -74,29 +74,61 @@ export const teamMembers: TeamMember[] = [
 
   // ── Aachen ─────────────────────────────────────────────────────────────
   {
-    id:       "mara-lindner",
-    name:     "Mara Lindner",            // DUMMY – ersetzen
-    role:     "Standortleitung Aachen",
-    photo:    "/images/team/mara-lindner.svg",
+    id:       "lucas-gildehaus",
+    name:     "Lucas Gildehaus",            // DUMMY – ersetzen
+    role:     "President of OneAIM Aachen",
+    photo:    "/images/team/lucas-gildehaus.png",
     photoAlt: "Profilfoto Mara Lindner (Platzhalter)",
     city:     "aachen",
   },
   {
-    id:       "tobias-klein",
-    name:     "Tobias Klein",            // DUMMY – ersetzen
-    role:     "Programmleitung AIM Connect",
-    photo:    "/images/team/tobias-klein.svg",
+    id:       "eric-hoelpes",
+    name:     "Eric Hölpes",            // DUMMY – ersetzen
+    role:     "Team Lead Social Media",
+    photo:    "/images/team/eric-hoelpes.png",
     photoAlt: "Profilfoto Tobias Klein (Platzhalter)",
     city:     "aachen",
   },
   {
-    id:       "anna-vogel",
-    name:     "Anna Vogel",              // DUMMY – ersetzen
-    role:     "Programmleitung AIM Code",
-    photo:    "/images/team/anna-vogel.svg",
+    id:       "david-forster",
+    name:     "David Forster",              // DUMMY – ersetzen
+    role:     "Team Lead Make-A-Thon",
+    photo:    "/images/team/david-forster.png",
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
   },
+  {
+    id:       "sebastian-ha",
+    name:     "Sebastian Ha",              // DUMMY – ersetzen
+    role:     "Team Lead AIM Code",
+    photo:    "/images/team/sebastian-ha.png",
+    photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
+    city:     "aachen",
+  },
+  {
+    id:       "aliya-zwiens",
+    name:     "Aliya Zwiens",              // DUMMY – ersetzen
+    role:     "Team Lead Application Management",
+    photo:    "/images/team/aliya-zwiens.png",
+    photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
+    city:     "aachen",
+  },{
+    id:       "sven-mattus",
+    name:     "Sven Mattus",              // DUMMY – ersetzen
+    role:     "",
+    photo:    "/images/team/sven-mattus.png",
+    photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
+    city:     "aachen",
+  },
+  {
+    id:       "huang-lin",
+    name:     "Huang Lin",              // DUMMY – ersetzen
+    role:     "",
+    photo:    "/images/team/huang-lin.png",
+    photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
+    city:     "aachen",
+  },
+
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

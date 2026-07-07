@@ -1,50 +1,85 @@
 ---
 // src/pages/[city]/aim-connect.astro
-// AIM Connect – erzeugt aus EINER Datei für München & Aachen.
+//
+// AIM Connect – erzeugt aus EINER Datei für München & Aachen:
+//   /muenchen/aim-connect
+//   /aachen/aim-connect
+//
+// NEUE STADT ERGÄNZEN:
+//   1. Datei src/data/connect-[city].ts anlegen
+//   2. Import unten hinzufügen
+//   3. In eventMap eintragen: { [city]: connectCityEvents }
+//   → Keine Änderung an Timeline.astro oder EventCard.astro nötig.
 
-import CityLayout from "../../layouts/CityLayout.astro";
-import ContentSection from "../../components/sections/ContentSection.astro";
-import IconCard from "../../components/cards/IconCard.astro";
+import CityLayout      from "../../layouts/CityLayout.astro";
+import ContentSection  from "../../components/sections/ContentSection.astro";
+import IconCard        from "../../components/cards/IconCard.astro";
+import Timeline        from "../../components/sections/Timeline.astro";
+
 import { getCityStaticPaths } from "../../data/cityData";
-import type { CityData } from "../../data/cityData";
+import type { CityData }       from "../../data/cityData";
+
+// ── Event-Daten pro Stadt ────────────────────────────────────────────────────
+// Jede Stadt hat eine eigene Datendatei. Nur hier muss beim Ergänzen
+// einer neuen Stadt etwas geändert werden.
+import { connectMunichEvents } from "../../data/connect-munich";
+import { connectAachenEvents } from "../../data/connect-aachen";
 
 export function getStaticPaths() {
   return getCityStaticPaths();
 }
 
-interface Props {
-  city: CityData;
-}
-
+interface Props { city: CityData }
 const { city } = Astro.props as Props;
+
+// Korrekte Events für den aktuellen Standort auswählen
+const eventMap: Record<string, typeof connectMunichEvents> = {
+  muenchen: connectMunichEvents,
+  aachen:   connectAachenEvents,
+};
+const timelineEvents = eventMap[city.slug] ?? [];
 ---
 
 <CityLayout city={city} pageTitle="AIM Connect">
-  <ContentSection heading="What is" headingAccent="AIM Connect?" background="page">
+
+  <!-- ① Einleitungstext -->
+  <ContentSection
+    heading="What is"
+    headingAccent="AIM Connect?"
+    background="page"
+  >
     <p>{city.aimConnect.intro}</p>
   </ContentSection>
 
+  <!-- ② Scope + Topic Cards -->
   <section class="aim-connect-cards" aria-label="Scope und Topic">
     <div class="container aim-connect-cards__grid">
-      {
-        city.aimConnect.cards.map((card) => (
-          <IconCard title={card.title} bullets={card.bullets} />
-        ))
-      }
+      {city.aimConnect.cards.map(card => (
+        <IconCard title={card.title} bullets={card.bullets} />
+      ))}
     </div>
   </section>
+
+  <!-- ③ Timeline – direkt unterhalb der Einleitung, vor anderen Sektionen -->
+  <Timeline
+    events={timelineEvents}
+    heading="Timeline"
+    sortOrder="asc"
+    background="subtle"
+  />
+
 </CityLayout>
 
 <style>
   .aim-connect-cards {
-    padding-block: var(--space-8) var(--space-24);
-    background: var(--color-bg-page);
+    padding-block: var(--space-8) var(--space-16);
+    background:    var(--color-bg-page);
   }
 
   .aim-connect-cards__grid {
-    display: grid;
+    display:               grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-6);
+    gap:                   var(--space-6);
   }
 
   @media (max-width: 760px) {

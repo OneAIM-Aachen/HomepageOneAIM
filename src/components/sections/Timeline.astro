@@ -1,0 +1,284 @@
+---
+// src/components/sections/Timeline.astro
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// GENERISCHE TIMELINE-KOMPONENTE
+//
+// Kennt KEINE fachlichen Inhalte. Erhält alle Daten über Props.
+// Verantwortlich ausschließlich für:
+//   • Reihenfolge der Events (Sortierung)
+//   • Vertikale Linie + Punkte
+//   • Wechselndes Links-/Rechts-Layout (Desktop)
+//   • Einspaltiges Layout (Tablet/Mobile)
+//
+// Die Darstellung jedes einzelnen Events übernimmt EventCard.astro.
+//
+// WIEDERVERWENDUNG:
+//   AIM Connect München:  <Timeline events={connectMunichEvents} />
+//   AIM Connect Aachen:   <Timeline events={connectAachenEvents} />
+//   AIM Code:             <Timeline events={codeEvents} heading="Programme" />
+//   Zukünftige Standorte: Neue Datendatei → in diese Komponente übergeben.
+//
+// ZUKUNFTSSICHERHEIT (noch nicht implementiert, aber vorbereitet):
+//   <Timeline events={...} filterByCategory="Workshop" />
+//   <Timeline events={...} filterByTag="AI" />
+//   <Timeline events={...} sortOrder="desc" />
+// ─────────────────────────────────────────────────────────────────────────────
+
+import EventCard from "../cards/EventCard.astro";
+import type { TimelineEvent } from "../../types/events";
+
+interface Props {
+  /** Event-Array – die einzige inhaltliche Quelle dieser Komponente */
+  events: TimelineEvent[];
+  /** Überschrift der Timeline-Sektion */
+  heading?: string;
+  /**
+   * Sortierreihenfolge.
+   * "asc"  = älteste zuerst (Standard für historische Timelines)
+   * "desc" = neueste zuerst
+   *
+   * ZUKUNFT: Zusätzliche Filter-Props wie filterByCategory, filterByTag,
+   * filterByLocation können hier ergänzt werden, ohne EventCard oder die
+   * aufrufenden Seiten ändern zu müssen.
+   */
+  sortOrder?: "asc" | "desc";
+  /** Hintergrundvariante der Section */
+  background?: "page" | "subtle" | "surface";
+}
+
+const {
+  events,
+  heading    = "Timeline",
+  sortOrder  = "asc",
+  background = "subtle",
+} = Astro.props;
+
+// ── Sortierung ─────────────────────────────────────────────────────────────
+const sorted = [...events].sort((a, b) => {
+  const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+  return sortOrder === "asc" ? diff : -diff;
+});
+---
+
+<section
+  class={`timeline-section timeline-section--${background}`}
+  aria-labelledby="timeline-heading"
+>
+  <div class="container timeline-section__inner">
+
+    <!-- Überschrift -->
+    <h2 id="timeline-heading" class="timeline-section__heading">{heading}</h2>
+
+    {sorted.length === 0 ? (
+      <!-- Leer-Zustand -->
+      <p class="timeline-empty">
+        Aktuell sind keine Events vorhanden.
+      </p>
+    ) : (
+      <!-- Timeline-Liste -->
+      <ol class="timeline" aria-label={`${sorted.length} Events in der Timeline`}>
+        {sorted.map((event, i) => {
+          // Auf Desktop: abwechselnd rechts (gerade Index) und links (ungerade)
+          const side = i % 2 === 0 ? "right" : "left";
+
+          return (
+            <li class={`timeline__item timeline__item--${side}`}>
+
+              <!--
+                3-Spalten-Grid auf Desktop:
+                  Col 1 = linker Slot  (.timeline__slot-left)
+                  Col 2 = Punkt-Spalte (.timeline__dot)
+                  Col 3 = rechter Slot (.timeline__slot-right)
+
+                Auf Tablet/Mobile: 2-Spalten-Grid (Punkt | Karte).
+                Leere Slots werden per CSS ausgeblendet.
+              -->
+
+              <!-- Linker Slot (enthält Karte, wenn side="left") -->
+              <div
+                class:list={[
+                  "timeline__slot",
+                  "timeline__slot--left",
+                  side !== "left" && "timeline__slot--empty"
+                ]}
+                aria-hidden={side !== "left" ? "true" : undefined}
+              >
+                {side === "left" && <EventCard event={event} />}
+              </div>
+
+              <!-- Punkt auf der Mittellinie -->
+              <div class="timeline__dot-col" aria-hidden="true">
+                <span class="timeline__dot"></span>
+              </div>
+
+              <!-- Rechter Slot (enthält Karte, wenn side="right") -->
+              <div
+                class:list={[
+                  "timeline__slot",
+                  "timeline__slot--right",
+                  side !== "right" && "timeline__slot--empty"
+                ]}
+                aria-hidden={side !== "right" ? "true" : undefined}
+              >
+                {side === "right" && <EventCard event={event} />}
+              </div>
+
+            </li>
+          );
+        })}
+      </ol>
+    )}
+
+  </div>
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────────────── */
+  .timeline-section {
+    padding-block: var(--space-16) var(--space-24);
+  }
+
+  .timeline-section--page    { background: var(--color-bg-page);    }
+  .timeline-section--subtle  { background: var(--color-bg-subtle);  }
+  .timeline-section--surface { background: var(--color-bg-surface); }
+
+  .timeline-section__inner {
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            var(--space-12);
+  }
+
+  .timeline-section__heading {
+    text-align:  center;
+    color:       var(--color-text-heading);
+  }
+
+  /* ── Timeline-Liste ───────────────────────────────────────── */
+  .timeline {
+    position:      relative;
+    width:         100%;
+    list-style:    none;
+    margin:        0;
+    padding:       0;
+
+    /* ── Durchgehende Mittellinie ─────────────────────────────
+       Exakte Zentrierung: Die Dot-Spalte hat eine feste Breite
+       von 44px. Ihre Mitte liegt genau auf 50% des Containers,
+       weil wir 1fr | 44px | 1fr verwenden.
+       Die Linie liegt daher bei left: 50%, translateX(-50%).  */
+  }
+
+  .timeline::before {
+    content:          '';
+    position:         absolute;
+    top:              0;
+    bottom:           0;
+    left:             50%;
+    width:            2px;
+    transform:        translateX(-50%);
+    background:       linear-gradient(
+                        to bottom,
+                        transparent 0%,
+                        var(--color-brand-blue-light) 5%,
+                        var(--color-brand-blue-light) 95%,
+                        transparent 100%
+                      );
+    z-index:          0;
+    pointer-events:   none;
+  }
+
+  /* ── Einzelner Timeline-Eintrag ───────────────────────────── */
+  .timeline__item {
+    display:               grid;
+    grid-template-columns: 1fr 44px 1fr;   /* links | Punkt | rechts */
+    gap:                   0 var(--space-8);
+    margin-bottom:         var(--space-12);
+    position:              relative;
+  }
+
+  .timeline__item:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ── Punkt-Spalte ─────────────────────────────────────────── */
+  .timeline__dot-col {
+    grid-column:    2;
+    grid-row:       1;
+    display:        flex;
+    justify-content: center;
+    align-items:    flex-start;
+    padding-top:    var(--space-6);   /* Punkt ca. auf Höhe Karteninhalt */
+    position:       relative;
+    z-index:        1;
+  }
+
+  /* Der sichtbare Punkt */
+  .timeline__dot {
+    display:       block;
+    width:         16px;
+    height:        16px;
+    border-radius: var(--radius-pill);
+    background:    var(--color-brand-blue);
+    /* Weißer Ring-Effekt wie im Screenshot */
+    border:        3px solid var(--color-bg-subtle);
+    box-shadow:    0 0 0 2px var(--color-brand-blue);
+    flex-shrink:   0;
+    position:      relative;
+    z-index:       1;
+  }
+
+  /* Punktfarbe an Section-Hintergrund anpassen */
+  .timeline-section--page    .timeline__dot { border-color: var(--color-bg-page);    }
+  .timeline-section--surface .timeline__dot { border-color: var(--color-bg-surface); }
+
+  /* ── Karten-Slots ─────────────────────────────────────────── */
+  .timeline__slot--left  { grid-column: 1; grid-row: 1; }
+  .timeline__slot--right { grid-column: 3; grid-row: 1; }
+
+  /* Leere Slots: kein Platz, keine Interaktion */
+  .timeline__slot--empty {
+    visibility: hidden;   /* Platz erhalten für symmetrisches Layout */
+    pointer-events: none;
+  }
+
+  /* ── TABLET/MOBILE: einspaltige Timeline ──────────────────── */
+  @media (max-width: 900px) {
+    /* Linie wechselt auf linke Seite */
+    .timeline::before {
+      left:      22px;   /* Mitte der 44px Punkt-Spalte */
+      transform: none;
+    }
+
+    .timeline__item {
+      grid-template-columns: 44px 1fr;   /* Punkt | Karte */
+      gap:                   0 var(--space-4);
+    }
+
+    /* Punkt in der linken Spalte */
+    .timeline__dot-col {
+      grid-column: 1;
+      grid-row:    1;
+    }
+
+    /* Beide Karten-Slots landen in Spalte 2 */
+    .timeline__slot--left,
+    .timeline__slot--right {
+      grid-column: 2;
+      grid-row:    1;
+    }
+
+    /* Leere Slots werden ausgeblendet (kein Platzbedarf auf Mobile) */
+    .timeline__slot--empty {
+      display: none;
+    }
+  }
+
+  /* ── Leer-Zustand ─────────────────────────────────────────── */
+  .timeline-empty {
+    color:     var(--color-text-muted);
+    font-size: var(--fs-body);
+    text-align: center;
+  }
+</style>

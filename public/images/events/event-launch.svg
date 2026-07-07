@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-label="Launch Event (Platzhalter)">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#003880"/>
+      <stop offset="100%" stop-color="#0052E9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="480" fill="url(#g)"/>
+  <circle cx="400" cy="240" r="280" fill="rgba(255,255,255,0.04)"/>
+  <circle cx="400" cy="240" r="200" fill="rgba(255,255,255,0.03)"/>
+  <!-- Aachen cathedral silhouette (simplified) -->
+  <rect x="260" y="280" width="280" height="120" rx="4" fill="rgba(255,255,255,0.12)"/>
+  <rect x="310" y="240" width="60" height="60" rx="0" fill="rgba(255,255,255,0.14)"/>
+  <polygon points="340,195 310,240 370,240" fill="rgba(255,255,255,0.18)"/>
+  <rect x="420" y="250" width="60" height="50" rx="0" fill="rgba(255,255,255,0.12)"/>
+  <polygon points="450,210 420,250 480,250" fill="rgba(255,255,255,0.15)"/>
+  <!-- Stars -->
+  <circle cx="180" cy="120" r="3" fill="rgba(255,255,255,0.50)"/>
+  <circle cx="300" cy="80"  r="2" fill="rgba(255,255,255,0.40)"/>
+  <circle cx="550" cy="100" r="3" fill="rgba(255,255,255,0.45)"/>
+  <circle cx="650" cy="140" r="2" fill="rgba(255,255,255,0.35)"/>
+  <circle cx="720" cy="60"  r="4" fill="rgba(255,255,255,0.40)"/>
+  <circle cx="100" cy="180" r="2" fill="rgba(255,255,255,0.35)"/>
+  <rect x="40" y="400" width="200" height="44" rx="8" fill="rgba(0,0,0,0.28)"/>
+  <text x="56" y="428" font-family="Arial,sans-serif" font-size="15" fill="rgba(255,255,255,0.9)" font-weight="600">AIM Connect Aachen Launch</text>
+</svg>
