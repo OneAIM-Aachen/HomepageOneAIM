@@ -1,13 +1,21 @@
 ---
 // src/components/navigation/Header.astro
+//
 // Globale Navigation – auf jeder Seite über BaseLayout eingebunden.
-// Struktur kommt aus navData.ts (einzige Quelle, 1:1 aus dem Flowchart).
+// Navigationsstruktur kommt aus navData.ts (Single Source of Truth).
+//
+// Besonderheit "Contact Us":
+//   href="#contact" → Anker-Link, kein Seitennavigation.
+//   isActive() gibt false zurück (Anker ≠ Pfad) → kein aria-current.
+//   Das Mobile-Menü schließt auch bei Hash-Links per JS (siehe <script>).
 
 import { globalNavItems as navItems } from "./navData";
 
 const currentPath = new URL(Astro.request.url).pathname;
 
 function isActive(href: string): boolean {
+  // Hash-Links (#...) sind nie "aktiv" im Sinne der aktuellen Seite
+  if (href.startsWith("#")) return false;
   if (href === "/") return currentPath === "/";
   return currentPath === href || currentPath.startsWith(href + "/");
 }
@@ -15,52 +23,36 @@ function isActive(href: string): boolean {
 
 <header class="site-header">
   <div class="container site-header__inner">
+
+    <!-- Logo -->
     <a href="/" class="site-header__logo" aria-label="OneAIM – Startseite">
-      <svg
-        class="site-header__logo-icon"
-        viewBox="0 0 48 40"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path
-          d="M2 38 L24 4 L46 38"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        ></path>
-        <path
-          d="M24 4 L24 38 L46 38"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        ></path>
-        <circle cx="38" cy="10" r="5" fill="var(--color-accent-violet)"></circle>
+      <svg class="site-header__logo-icon" viewBox="-2 -8 58 62"
+           aria-hidden="true" focusable="false">
+        <path d="M 16 14 L 30 14 L 14 54 L 0 54 Z" fill="#0052E9"/>
+        <path d="M 30 14 L 38 7 L 52 7 L 52 54 L 26 54 Z" fill="#0052E9"/>
+        <circle cx="45" cy="0" r="5.5" fill="none" stroke="#8D2DF1" stroke-width="3.5"/>
       </svg>
       <span class="site-header__logo-text">OneAIM</span>
     </a>
 
+    <!-- Desktop-Navigation -->
     <nav class="site-header__nav" aria-label="Hauptnavigation">
       <ul class="site-header__nav-list">
-        {
-          navItems.map((item) => (
-            <li>
-              <a
-                href={item.href}
-                class="site-header__nav-link"
-                aria-current={isActive(item.href) ? "page" : undefined}
-              >
-                {item.label}
-              </a>
-            </li>
-          ))
-        }
+        {navItems.map(item => (
+          <li>
+            <a
+              href={item.href}
+              class="site-header__nav-link"
+              aria-current={isActive(item.href) ? "page" : undefined}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
       </ul>
     </nav>
 
+    <!-- Aktionen: LinkedIn-Icon + Burger-Button -->
     <div class="site-header__actions">
       <a
         href="https://www.linkedin.com/company/oneaim"
@@ -70,10 +62,11 @@ function isActive(href: string): boolean {
         aria-label="OneAIM auf LinkedIn (öffnet in neuem Tab)"
       >
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-          <path
-            fill="currentColor"
-            d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"
-          ></path>
+          <path fill="currentColor"
+            d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14
+               1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85
+               3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06
+               0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/>
         </svg>
       </a>
 
@@ -86,15 +79,13 @@ function isActive(href: string): boolean {
         id="menu-toggle"
       >
         <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-          <path
-            fill="currentColor"
-            d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"
-          ></path>
+          <path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/>
         </svg>
       </button>
     </div>
   </div>
 
+  <!-- Mobile-Navigation (via Burger-Menü) -->
   <nav
     id="mobile-nav"
     class="site-header__mobile-nav"
@@ -102,185 +93,207 @@ function isActive(href: string): boolean {
     hidden
   >
     <ul class="site-header__mobile-list">
-      {
-        navItems.map((item) => (
-          <li>
-            <a
-              href={item.href}
-              class="site-header__mobile-link"
-              aria-current={isActive(item.href) ? "page" : undefined}
-            >
-              {item.label}
-            </a>
-          </li>
-        ))
-      }
+      {navItems.map(item => (
+        <li>
+          <a
+            href={item.href}
+            class="site-header__mobile-link"
+            aria-current={isActive(item.href) ? "page" : undefined}
+          >
+            {item.label}
+          </a>
+        </li>
+      ))}
     </ul>
   </nav>
 </header>
 
 <style>
+  /* ── Äußerer Header ───────────────────────────────────────── */
   .site-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(8px);
-    box-shadow: var(--shadow-header);
+    position:         sticky;
+    top:              0;
+    z-index:          100;
+    background:       rgba(255, 255, 255, 0.92);
+    backdrop-filter:  blur(8px);
+    box-shadow:       var(--shadow-header);
   }
 
+  /* ── Innere Zeile: Logo | Nav | Aktionen ──────────────────── */
   .site-header__inner {
-    display: flex;
+    display:     flex;
     align-items: center;
     justify-content: space-between;
-    height: var(--header-height);
-    gap: var(--space-6);
+    height:      var(--header-height);
+    gap:         var(--space-6);
   }
 
+  /* ── Logo ─────────────────────────────────────────────────── */
   .site-header__logo {
-    display: flex;
+    display:     flex;
     align-items: center;
-    gap: var(--space-2);
-    color: var(--color-brand-blue);
+    gap:         var(--space-2);
     flex-shrink: 0;
+    color:       var(--color-brand-blue);
   }
 
-  .site-header__logo:hover {
-    text-decoration: none;
-  }
+  .site-header__logo:hover { text-decoration: none; }
 
   .site-header__logo-icon {
-    width: 28px;
-    height: 24px;
-    color: var(--color-brand-blue);
+    width:  30px;
+    height: 26px;
   }
 
   .site-header__logo-text {
-    font-family: var(--font-display);
-    font-weight: var(--fw-bold);
-    font-size: 1.25rem;
-    color: var(--color-brand-blue);
+    font-family:  var(--font-display);
+    font-weight:  var(--fw-bold);
+    font-size:    1.25rem;
+    color:        var(--color-brand-blue);
   }
 
+  /* ── Desktop-Nav ──────────────────────────────────────────── */
   .site-header__nav {
-    flex: 1;
-    display: flex;
+    flex:            1;
+    display:         flex;
     justify-content: center;
   }
 
   .site-header__nav-list {
-    display: flex;
+    display:     flex;
     align-items: center;
-    gap: var(--space-6);
+    gap:         var(--space-6);
   }
 
   .site-header__nav-link {
-    font-size: var(--fs-small);
+    font-size:   var(--fs-small);
     font-weight: var(--fw-medium);
-    color: var(--color-brand-blue);
+    color:       var(--color-brand-blue);
+    padding:     var(--space-2) var(--space-1);
     white-space: nowrap;
-    padding: var(--space-2) var(--space-1);
+    transition:  color var(--transition-fast);
   }
 
-  .site-header__nav-link:hover {
-    text-decoration: underline;
-  }
+  .site-header__nav-link:hover { text-decoration: underline; }
 
   .site-header__nav-link[aria-current="page"] {
-    color: var(--color-text-heading);
-    text-decoration: underline;
+    color:                   var(--color-text-heading);
+    text-decoration:         underline;
     text-decoration-thickness: 2px;
-    text-underline-offset: 4px;
+    text-underline-offset:   4px;
   }
 
+  /* ── Aktionen (Icon + Burger) ─────────────────────────────── */
   .site-header__actions {
-    display: flex;
+    display:     flex;
     align-items: center;
-    gap: var(--space-4);
+    gap:         var(--space-4);
     flex-shrink: 0;
   }
 
   .site-header__icon-link {
-    display: inline-flex;
-    color: var(--color-text-heading);
-    padding: var(--space-1);
+    display:       inline-flex;
+    color:         var(--color-text-heading);
+    padding:       var(--space-1);
     border-radius: var(--radius-sm);
+    transition:    color var(--transition-fast);
   }
+
+  .site-header__icon-link:hover { color: var(--color-brand-blue); text-decoration: none; }
 
   .site-header__menu-toggle {
-    display: none;
-    align-items: center;
+    display:       none;
+    align-items:   center;
     justify-content: center;
-    background: none;
-    border: none;
-    color: var(--color-text-heading);
-    padding: var(--space-2);
+    background:    none;
+    border:        none;
+    color:         var(--color-text-heading);
+    padding:       var(--space-2);
     border-radius: var(--radius-sm);
+    cursor:        pointer;
   }
 
+  /* ── Mobile-Menü ──────────────────────────────────────────── */
   .site-header__mobile-nav {
     border-top: 1px solid var(--color-border-subtle);
     background: var(--color-bg-surface);
   }
 
   .site-header__mobile-list {
-    display: flex;
+    display:        flex;
     flex-direction: column;
-    padding: var(--space-2) var(--container-padding) var(--space-4);
+    padding:        var(--space-2) var(--container-padding) var(--space-4);
   }
 
   .site-header__mobile-link {
-    display: block;
-    padding: var(--space-3) var(--space-1);
-    font-size: var(--fs-body);
-    font-weight: var(--fw-medium);
-    color: var(--color-brand-blue);
+    display:       block;
+    padding:       var(--space-3) var(--space-1);
+    font-size:     var(--fs-body);
+    font-weight:   var(--fw-medium);
+    color:         var(--color-brand-blue);
     border-bottom: 1px solid var(--color-border-subtle);
+    transition:    color var(--transition-fast);
   }
 
   .site-header__mobile-link[aria-current="page"] {
     color: var(--color-text-heading);
   }
 
-  /* ---- Responsive: unter 880px wird die Hauptnav zum Burger-Menü ---- */
+  /* ── Responsive ───────────────────────────────────────────── */
   @media (max-width: 880px) {
-    .site-header__nav {
-      display: none;
-    }
-
-    .site-header__menu-toggle {
-      display: inline-flex;
-    }
+    .site-header__nav       { display: none; }
+    .site-header__menu-toggle { display: inline-flex; }
   }
 
   @media (min-width: 881px) {
-    .site-header__mobile-nav {
-      display: none !important;
-    }
+    .site-header__mobile-nav { display: none !important; }
   }
 </style>
 
 <script>
-  // Burger-Menü: Zustand wird über aria-expanded gesteuert (Accessibility).
-  const toggle = document.getElementById("menu-toggle");
+  const toggle    = document.getElementById("menu-toggle");
   const mobileNav = document.getElementById("mobile-nav");
+
+  // ── Burger-Toggle ──────────────────────────────────────────
+
+  function openMenu() {
+    mobileNav?.removeAttribute("hidden");
+    toggle?.setAttribute("aria-expanded", "true");
+    toggle?.setAttribute("aria-label", "Menü schließen");
+  }
+
+  function closeMenu() {
+    mobileNav?.setAttribute("hidden", "");
+    toggle?.setAttribute("aria-expanded", "false");
+    toggle?.setAttribute("aria-label", "Menü öffnen");
+  }
 
   toggle?.addEventListener("click", () => {
     const isOpen = toggle.getAttribute("aria-expanded") === "true";
-    toggle.setAttribute("aria-expanded", String(!isOpen));
-    toggle.setAttribute("aria-label", isOpen ? "Menü öffnen" : "Menü schließen");
-    if (mobileNav) {
-      mobileNav.hidden = isOpen;
-    }
+    isOpen ? closeMenu() : openMenu();
   });
 
-  // Menü schließen, wenn von Mobile- auf Desktop-Breite gewechselt wird.
-  const mediaQuery = window.matchMedia("(min-width: 881px)");
-  mediaQuery.addEventListener("change", (e) => {
-    if (e.matches && mobileNav && toggle) {
-      mobileNav.hidden = true;
-      toggle.setAttribute("aria-expanded", "false");
-      toggle.setAttribute("aria-label", "Menü öffnen");
+  // ── Menü schließen wenn Link geklickt ─────────────────────
+  //
+  // Bei normalen Links schließt das Menü automatisch durch den
+  // Seitenneulad. Bei Hash-Links (#contact) bleibt die Seite
+  // identisch – daher müssen wir das Menü explizit schließen.
+
+  mobileNav?.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => closeMenu());
+  });
+
+  // ── Menü schließen bei Resize auf Desktop-Breite ──────────
+
+  window.matchMedia("(min-width: 881px)").addEventListener("change", e => {
+    if (e.matches) closeMenu();
+  });
+
+  // ── Escape-Taste schließt Menü ─────────────────────────────
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && toggle?.getAttribute("aria-expanded") === "true") {
+      closeMenu();
+      toggle?.focus();   // Fokus zurück auf den Toggle-Button
     }
   });
 </script>

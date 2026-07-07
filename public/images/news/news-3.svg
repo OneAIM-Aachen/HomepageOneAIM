@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="News-Vorschaubild (Platzhalter)">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A8070"/>
+      <stop offset="100%" stop-color="#0052E9"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#g)"/>
+  <circle cx="680" cy="60"  r="240" fill="rgba(255,255,255,0.05)"/>
+  <circle cx="80"  cy="420" r="160" fill="rgba(255,255,255,0.04)"/>
+  <!-- Handshake / link icon (abstract) -->
+  <rect x="310" y="190" width="80" height="80" rx="12" fill="rgba(255,255,255,0.20)" transform="rotate(-10 350 230)"/>
+  <rect x="370" y="180" width="80" height="80" rx="12" fill="rgba(255,255,255,0.16)" transform="rotate(8 410 220)"/>
+  <line x1="350" y1="230" x2="410" y2="220" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round"/>
+  <!-- Pulse rings -->
+  <circle cx="400" cy="225" r="80"  fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="2"/>
+  <circle cx="400" cy="225" r="120" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="2"/>
+  <rect x="40" y="360" width="230" height="48" rx="8" fill="rgba(0,0,0,0.18)"/>
+  <text x="60" y="390" font-family="Arial,sans-serif" font-size="16" fill="rgba(255,255,255,0.9)" font-weight="600">Partnership · München</text>
+</svg>

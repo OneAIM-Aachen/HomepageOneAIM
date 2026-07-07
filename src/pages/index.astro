@@ -1,47 +1,42 @@
 ---
 // src/pages/index.astro
-// Startseite – Sections exakt in Flowchart-Reihenfolge:
-// Hero -> Introduction -> Mission -> Approach -> Partners/Sponsors.
-// News, Publications, Contact, Impressum sind eigene Seiten (hier nicht enthalten).
+//
+// Startseite von OneAIM.
+//
+// Reihenfolge der Sections (entspricht exakt dem Flowchart):
+//   1. Hero            – Headline, Logo, CTA München / Aachen
+//   2. PartnersSection – Karussell mit Sponsoren/Partnern  ← NEU (ersetzt LogoGallery)
+//   3. ContentSection  – Einleitungstext (Introduction)
+//   4. MissionSection  – "Our Mission" Card-Grid
+//   5. ApproachSection – "Our Approach" zweispaltig
 
-import BaseLayout from "../layouts/BaseLayout.astro";
-import Hero from "../components/sections/Hero.astro";
-import ContentSection from "../components/sections/ContentSection.astro";
-import MissionSection from "../components/sections/MissionSection.astro";
-import ApproachSection from "../components/sections/ApproachSection.astro";
-import LogoGallery from "../components/sections/LogoGallery.astro";
-import Button from "../components/ui/Button.astro";
-
-const partners = [
-  { name: "TUM" },
-  { name: "Brainlab" },
-  { name: "LMU Klinikum" },
-  { name: "Helmholtz Munich" },
-  { name: "MRI – Klinikum rechts der Isar" },
-  { name: "Floy" },
-  { name: "Ryver AI" },
-  { name: "Smart Reporting" },
-  { name: "YZR" },
-  { name: "Ocumeda" },
-  { name: "Simon-Kucher" },
-  { name: "strategy&" },
-  { name: "UnternehmerTUM" },
-  { name: "TeleClinic" },
-  { name: "TÜV SÜD" },
-];
+import BaseLayout        from "../layouts/BaseLayout.astro";
+import Hero              from "../components/sections/Hero.astro";
+import PartnersSection   from "../components/sections/PartnersSection.astro";
+import ContentSection    from "../components/sections/ContentSection.astro";
+import MissionSection    from "../components/sections/MissionSection.astro";
+import ApproachSection   from "../components/sections/ApproachSection.astro";
+import Button            from "../components/ui/Button.astro";
+// LogoGallery wurde bewusst entfernt – ersetzt durch PartnersSection mit Karussell.
 ---
 
 <BaseLayout
   title="Home"
   description="OneAIM – Germany's first student-led interdisciplinary initiative in MedTech. Aktiv in München und Aachen."
 >
-  <!-- Hero Section: Headline, Logo/Branding, CTA München/Aachen -->
-  <Hero headline="AIM high with us" subtext="Advancing Technology in Healthcare">
+  <!-- ① Hero: Headline, Branding, CTA-Buttons -->
+  <Hero
+    headline="AIM high with us"
+    subtext="Advancing Technology in Healthcare"
+  >
     <Button href="/muenchen" variant="primary">München</Button>
-    <Button href="/aachen" variant="secondary">Aachen</Button>
+    <Button href="/aachen"   variant="secondary">Aachen</Button>
   </Hero>
 
-  <!-- Introduction Section -->
+  <!-- ② Sponsoren/Partner-Karussell – direkt unter dem Hero -->
+  <PartnersSection />
+
+  <!-- ③ Introduction – Wer sind wir? -->
   <ContentSection
     heading="Germany's First Student-Led"
     headingAccent="Interdisciplinary Initiative in MedTech"
@@ -49,27 +44,21 @@ const partners = [
   >
     <p>
       OneAIM (AI in Medicine) ist Europas größte studentisch geführte Initiative für
-      Gesundheitstechnologie. Wir befähigen Studierende mit den Fähigkeiten, dem Wissen und der
-      unternehmerischen Denkweise, die es braucht, um den Fortschritt im MedTech-Bereich aktiv
-      mitzugestalten.
+      Gesundheitstechnologie. Wir befähigen Studierende mit den Fähigkeiten, dem Wissen
+      und der unternehmerischen Denkweise, die es braucht, um den Fortschritt im
+      MedTech-Bereich aktiv mitzugestalten.
     </p>
     <p>
       Mit Standorten in München und Aachen verbinden wir über 500 Studierende aus Technik,
-      Medizin, Wirtschaft und weiteren Disziplinen – durch Programme wie AIM Connect und AIM
-      Code, praxisnahe Projekte und ein wachsendes Netzwerk.
+      Medizin, Wirtschaft und weiteren Disziplinen – durch Programme wie AIM Connect und
+      AIM Code, praxisnahe Projekte und ein wachsendes Netzwerk.
     </p>
   </ContentSection>
 
-  <!-- Mission Section -->
+  <!-- ④ Mission – 2×2 Card-Grid -->
   <MissionSection />
 
-  <!-- Approach Section -->
+  <!-- ⑤ Approach – zweispaltig -->
   <ApproachSection />
 
-  <!-- Partners / Sponsors Section -->
-  <LogoGallery
-    heading="Sponsors and partners we have collaborated with"
-    subtext="Wir freuen uns über jede Kooperation, die unsere Mission einer kostenfreien Bildung im MedTech-Bereich unterstützt."
-    partners={partners}
-  />
 </BaseLayout>

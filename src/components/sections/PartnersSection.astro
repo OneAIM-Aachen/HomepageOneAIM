@@ -1,0 +1,79 @@
+---
+// src/components/sections/PartnersSection.astro
+//
+// Verbindet die Daten aus partners.ts mit der generischen Carousel-Komponente.
+// Diese Komponente enthält KEINE eigene Darstellungslogik für das Karussell –
+// sie übersetzt lediglich das Partner-Format in das CarouselItem-Format.
+//
+// Neue Partner ergänzen:
+//   1. Logo nach public/images/partners/ legen
+//   2. Eintrag in src/data/partners.ts hinzufügen
+//   → Diese Datei muss NICHT angefasst werden.
+
+import Carousel, { type CarouselItem } from "../ui/Carousel.astro";
+import { partners } from "../../data/partners";
+
+// Partner → CarouselItem (beide Interfaces haben dasselbe Shape)
+const items: CarouselItem[] = partners.map(p => ({
+  id:       p.id,
+  name:     p.name,
+  image:    p.logo,
+  imageAlt: p.logoAlt ?? `${p.name} Logo`,
+  href:     p.website,
+}));
+---
+
+<section class="partners-section" aria-labelledby="partners-heading">
+  <div class="container partners-section__inner">
+
+    <h2 id="partners-heading" class="partners-section__heading">
+      Sponsors and partners we have collaborated with
+    </h2>
+    <p class="partners-section__sub">
+      Als studentisch geführte Initiative freuen wir uns über jede Unterstützung,
+      die unsere Mission einer kostenfreien Bildung im MedTech-Bereich trägt.
+    </p>
+
+    <Carousel
+      items={items}
+      ariaLabel="Sponsoren und Kooperationspartner von OneAIM"
+      visibleDesktop={5}
+      visibleTablet={3}
+      visibleMobile={2}
+      autoPlay={true}
+      autoPlayInterval={4500}
+      showLabels={false}
+    />
+
+  </div>
+</section>
+
+<style>
+  .partners-section {
+    background:   var(--color-bg-surface);   /* Weiß – hebt sich vom hellen Seiten-BG ab */
+    padding-block: var(--space-16) var(--space-20);
+  }
+
+  .partners-section__inner {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-6);
+  }
+
+  .partners-section__heading {
+    text-align:  center;
+    color:       var(--color-text-heading);
+    font-size:   var(--fs-h2);
+    font-weight: var(--fw-bold);
+    max-width:   640px;
+    margin:      0 auto;
+  }
+
+  .partners-section__sub {
+    text-align:  center;
+    color:       var(--color-text-muted);
+    font-size:   var(--fs-body);
+    max-width:   560px;
+    margin:      0 auto;
+  }
+</style>

@@ -1,104 +1,179 @@
 /* ==========================================================================
-   OneAIM Design Tokens
-   Abgeleitet aus den Screenshots: Hero-Gradients, Markenblau, Violett-Akzent,
-   helle Section-Hintergründe, dunkler Footer.
+   OneAIM Design Tokens — Brand Style Guide (Stand: 28.02.2025)
+   Alle Werte direkt aus der offiziellen Design Guideline übernommen.
+   Änderungen an einer einzigen Stelle hier wirken sich auf die gesamte
+   Website aus.
    ========================================================================== */
 
 :root {
-  /* ---- Farben: Marke ---- */
-  --color-brand-blue: #1e4fe0;        /* Primärfarbe: Headlines, Links, Buttons */
-  --color-brand-blue-dark: #1338a8;   /* Hover-/Active-Zustand */
-  --color-accent-violet: #9333ea;     /* Sekundärakzent: CTA-Button, Gradient-Icons */
-  --color-accent-violet-dark: #7e22ce;
 
-  /* ---- Farben: Neutral / Hintergrund ---- */
-  --color-bg-page: #f5f8fc;           /* Standard-Seitenhintergrund */
-  --color-bg-surface: #ffffff;        /* Cards, Content-Flächen */
-  --color-bg-subtle: #eef2f9;         /* alternierende Section-Hintergründe */
-  --color-bg-footer: #0a0a0a;         /* Footer-Fläche */
-  --color-bg-footer-cta: var(--color-brand-blue); /* "Stay Connected"-Block */
+  /* -----------------------------------------------------------------------
+     FARBEN – Primärpalette
+     Quelle: Style Guide S. 5–8
+     ----------------------------------------------------------------------- */
 
-  /* ---- Farben: Text ---- */
-  --color-text-heading: #0b0c0e;
-  --color-text-body: #5a6472;
-  --color-text-on-dark: #f5f5f7;
-  --color-text-on-brand: #ffffff;
-  --color-text-link: var(--color-brand-blue);
+  /* AIM Blue – erste Hauptfarbe, Headlines, Links, CTAs, Vertrauen/Medizin */
+  --color-brand-blue:        #0052E9;
+  /* Dark Blue – Schriftfarbe auf Light-Blue-Hintergründen, Alternative zu Schwarz */
+  --color-brand-blue-dark:   #232ACF;
+  /* Light Blue – Hintergründe, Section-Flächen, Hero-Basis */
+  --color-brand-blue-light:  #C9D8FF;
 
-  /* ---- Farben: Rand / Schatten ---- */
-  --color-border-subtle: rgba(15, 23, 42, 0.08);
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
-  --shadow-header: 0 1px 0 rgba(15, 23, 42, 0.06);
+  /* -----------------------------------------------------------------------
+     FARBEN – Sekundärpalette (Akzente)
+     Quelle: Style Guide S. 5, 9–10
+     ----------------------------------------------------------------------- */
 
-  /* ---- Hero-Gradient (Aurora-artig, unscharf) ---- */
-  --gradient-hero: radial-gradient(
-      40% 60% at 20% 30%,
-      rgba(255, 255, 255, 0.9),
-      transparent 70%
-    ),
-    radial-gradient(50% 60% at 75% 20%, rgba(236, 196, 255, 0.55), transparent 65%),
-    radial-gradient(70% 80% at 50% 90%, rgba(30, 79, 224, 0.85), transparent 70%),
-    linear-gradient(180deg, #eef3ff 0%, #2554e8 100%);
+  /* Pink – zweite Hauptfarbe, Kreativität, Innovation, immer mit Purple */
+  --color-accent-pink:       #D400FF;
+  --color-accent-pink-dark:  #aa00cc;
+  /* Purple – dritte Hauptfarbe, Highlight-Events, Summits, mit Pink kombiniert */
+  --color-accent-purple:     #8D2DF1;
+  --color-accent-purple-dark:#7120c8;
+  /* Black – Footer, abgeschlossene Projekte, Schrift dann weiß */
+  --color-black:             #000000;
 
-  --gradient-icon: linear-gradient(160deg, var(--color-brand-blue), var(--color-accent-violet));
+  /* -----------------------------------------------------------------------
+     FARBEN – Hintergründe
+     Ableitung aus Guide: Light Blue = bevorzugte Hintergrundfarbe
+     ----------------------------------------------------------------------- */
 
-  /* ---- Typografie ---- */
-  --font-display: "Inter", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --color-bg-page:           #EEF3FF;   /* Light Blue (abgeschwächt) für Seiten-BG */
+  --color-bg-subtle:         #C9D8FF;   /* Light Blue 100 % für Section-Akzente    */
+  --color-bg-surface:        #FFFFFF;   /* Cards, Formulare, Content-Flächen        */
+  --color-bg-footer-cta:     #0052E9;   /* AIM Blue für Newsletter-CTA-Block        */
+  --color-bg-footer:         #000000;   /* Schwarz für Link-Footer                  */
 
-  --fs-h1: clamp(2.25rem, 1.4rem + 3.2vw, 4rem);
-  --fs-h2: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
-  --fs-h3: clamp(1.125rem, 1rem + 0.4vw, 1.375rem);
-  --fs-body-lg: 1.125rem;
-  --fs-body: 1rem;
-  --fs-small: 0.875rem;
-  --fs-caption: 0.75rem;
+  /* -----------------------------------------------------------------------
+     FARBEN – Text
+     Quelle: Guide S. 8 (Dark Blue als Schriftfarbe auf Light Blue),
+             S. 11 (Weiß auf Schwarz)
+     ----------------------------------------------------------------------- */
 
-  --lh-heading: 1.15;
-  --lh-body: 1.65;
+  --color-text-heading:      #232ACF;   /* Dark Blue – Überschriften                */
+  --color-text-body:         #3D4660;   /* Dunkles Blaugrau – Fließtext (lesbar)    */
+  --color-text-muted:        #6B7599;   /* Gedämpft – Metazeilen, Labels            */
+  --color-text-on-dark:      #FFFFFF;   /* Weiß auf Schwarz/Blue-Flächen            */
+  --color-text-on-brand:     #FFFFFF;
+  --color-text-link:         #0052E9;   /* AIM Blue – Links                         */
 
-  --fw-regular: 400;
-  --fw-medium: 500;
-  --fw-bold: 700;
+  /* -----------------------------------------------------------------------
+     GRADIENTEN
+     ----------------------------------------------------------------------- */
 
-  /* ---- Spacing-Skala ---- */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-  --space-24: 6rem;
-  --space-32: 8rem;
+  /* Hero-Gradient: AIM Blue → Light Blue mit weichen Farbübergängen */
+  --gradient-hero:
+    radial-gradient(50% 70% at 15% 20%,
+      rgba(255, 255, 255, 0.85) 0%,
+      transparent 65%),
+    radial-gradient(45% 55% at 80% 15%,
+      rgba(212, 0, 255, 0.30) 0%,
+      transparent 60%),
+    radial-gradient(65% 75% at 50% 100%,
+      rgba(0, 82, 233, 0.90) 0%,
+      transparent 70%),
+    linear-gradient(170deg, #C9D8FF 0%, #0052E9 100%);
 
-  /* ---- Layout ---- */
-  --container-max: 1280px;
+  /* Icon-Gradient: Pink → Purple (laut Guide immer als Duo) */
+  --gradient-icon:
+    linear-gradient(135deg, #D400FF 0%, #8D2DF1 100%);
+
+  /* Button-Gradient (Sekundär): Pink + Purple */
+  --gradient-btn-secondary:
+    linear-gradient(135deg, #D400FF 0%, #8D2DF1 100%);
+
+  /* -----------------------------------------------------------------------
+     RÄNDER / SCHATTEN
+     ----------------------------------------------------------------------- */
+
+  --color-border-subtle:     rgba(35, 42, 207, 0.12);  /* Dark Blue transparent   */
+  --shadow-card:
+    0 1px 3px rgba(0, 82, 233, 0.06),
+    0 4px 16px rgba(0, 82, 233, 0.08);
+  --shadow-header:           0 1px 0 rgba(0, 82, 233, 0.08);
+
+  /* -----------------------------------------------------------------------
+     TYPOGRAFIE
+     Quelle: Style Guide S. 3–4
+     Schriftart: AUSSCHLIESSLICH Raleway
+     Größenhierarchie (web-skaliert aus Guide-Verhältnis 110:35:20):
+       Display 110px → ~5.5rem (Hero)
+       H1/H2   35px  → ~2.2rem
+       Body    20px  → ~1.25rem
+     ----------------------------------------------------------------------- */
+
+  --font-display:  "Raleway", "Helvetica Neue", Arial, sans-serif;
+  --font-body:     "Raleway", "Helvetica Neue", Arial, sans-serif;
+
+  /* Fluid-Größen: skalieren zwischen kleinstem (320px) und größtem Viewport */
+  --fs-display:  clamp(2.5rem,   2rem + 4vw,    5.5rem);  /* Hero             */
+  --fs-h1:       clamp(1.75rem,  1.4rem + 1.8vw, 2.75rem); /* Seitentitel      */
+  --fs-h2:       clamp(1.4rem,   1.2rem + 1vw,   2.2rem);  /* Section-Titel    */
+  --fs-h3:       clamp(1.1rem,   1rem + 0.4vw,   1.375rem);/* Karten-Titel     */
+  --fs-body-lg:  1.25rem;   /* 20px – Intro-/Fließtexte (Guide: 20px Body)    */
+  --fs-body:     1rem;      /* 16px – Standard                                 */
+  --fs-small:    0.875rem;  /* 14px – Labels, Meta                             */
+  --fs-caption:  0.75rem;   /* 12px – Footer, Captions                         */
+
+  --lh-heading:  1.15;
+  --lh-body:     1.65;
+
+  --fw-regular:  400;
+  --fw-medium:   500;  /* Raleway Medium                                        */
+  --fw-semibold: 600;  /* Raleway SemiBold                                      */
+  --fw-bold:     700;  /* Raleway Bold                                          */
+
+  /* -----------------------------------------------------------------------
+     SPACING-SKALA
+     ----------------------------------------------------------------------- */
+
+  --space-1:   0.25rem;   /*  4px */
+  --space-2:   0.5rem;    /*  8px */
+  --space-3:   0.75rem;   /* 12px */
+  --space-4:   1rem;      /* 16px */
+  --space-6:   1.5rem;    /* 24px */
+  --space-8:   2rem;      /* 32px */
+  --space-12:  3rem;      /* 48px */
+  --space-16:  4rem;      /* 64px */
+  --space-24:  6rem;      /* 96px */
+  --space-32:  8rem;      /* 128px */
+
+  /* -----------------------------------------------------------------------
+     LAYOUT
+     ----------------------------------------------------------------------- */
+
+  --container-max:     1280px;
   --container-padding: clamp(1.25rem, 4vw, 3rem);
-  --header-height: 76px;
+  --header-height:     76px;
 
-  /* ---- Radien ---- */
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  /* -----------------------------------------------------------------------
+     RADIEN
+     ----------------------------------------------------------------------- */
+
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
   --radius-pill: 999px;
 
-  /* ---- Übergänge ---- */
+  /* -----------------------------------------------------------------------
+     ÜBERGÄNGE
+     ----------------------------------------------------------------------- */
+
   --transition-fast: 150ms ease;
   --transition-base: 220ms ease;
 
-  /* ---- Platzhalter-/Dummy-Kennzeichnung (DummyNotice-Komponente) ---- */
-  --color-warning-bg: #fef3c7;
+  /* -----------------------------------------------------------------------
+     PLATZHALTER-KENNZEICHNUNG (DummyNotice)
+     ----------------------------------------------------------------------- */
+
+  --color-warning-bg:     #fef3c7;
   --color-warning-border: #fbbf24;
-  --color-warning-text: #92400e;
+  --color-warning-text:   #92400e;
 
-  /* ---- Fokus (Accessibility) ---- */
-  --focus-ring: 0 0 0 3px rgba(30, 79, 224, 0.35);
-  --focus-ring-on-dark: 0 0 0 3px rgba(255, 255, 255, 0.55);
-}
+  /* -----------------------------------------------------------------------
+     FOKUS-RINGE (Accessibility)
+     ----------------------------------------------------------------------- */
 
-@media (prefers-color-scheme: dark) {
-  /* Bewusst kein automatischer Dark Mode: Marke ist hell/gradient-basiert.
-     Platzhalter für spätere bewusste Entscheidung, falls gewünscht. */
+  --focus-ring:         0 0 0 3px rgba(0, 82, 233, 0.40);
+  --focus-ring-on-dark: 0 0 0 3px rgba(255, 255, 255, 0.60);
 }

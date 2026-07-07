@@ -1,0 +1,307 @@
+---
+// src/components/cards/NewsCard.astro
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Wiederverwendbare News-Karte. Unabhängig von der News-Seite verwendbar.
+//
+// VARIANTEN:
+//   variant="horizontal" (Standard) – Bild links, Text rechts (Desktop)
+//                                      Bild oben, Text unten (Mobile)
+//   variant="vertical"              – Bild immer oben, Text unten
+//                                      Ideal für "Latest News"-Sektionen
+//
+// VERWENDUNG:
+//   import NewsCard from "../components/cards/NewsCard.astro";
+//   <NewsCard {...newsItem} />
+//   <NewsCard {...newsItem} variant="vertical" />
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Props {
+  title:     string;
+  date:      string;      // ISO: YYYY-MM-DD
+  excerpt:   string;
+  image:     string;
+  imageAlt?: string;
+  tags:      string[];
+  variant?:  "horizontal" | "vertical";
+  /** Dummy-Kennzeichnung: zeigt ein kleines "Platzhalter"-Badge */
+  isDummy?:  boolean;
+}
+
+const {
+  title,
+  date,
+  excerpt,
+  image,
+  imageAlt = "News-Vorschaubild",
+  tags,
+  variant  = "horizontal",
+  isDummy  = false,
+} = Astro.props;
+
+// Datum formatieren
+const formattedDate = new Intl.DateTimeFormat("de-DE", {
+  day:   "2-digit",
+  month: "long",
+  year:  "numeric",
+}).format(new Date(date));
+
+// ── Tag-Kategorisierung für Farbgebung ──────────────────────────────────────
+// Bekannte Kategorien liefern passende CSS-Klassen.
+// Unbekannte Tags erhalten die Klasse "tag--default".
+// Neue Kategorien: Funktion einfach erweitern.
+
+type TagCategory = "location" | "program" | "event" | "research" | "default";
+
+function getTagCategory(tag: string): TagCategory {
+  const locations = ["München", "Aachen"];
+  const programs  = ["AIM Connect", "AIM Code", "AIM Innovate", "AIM Educate"];
+  const events    = ["Event", "Workshop", "Conference", "Makeathon", "Summit"];
+  const research  = ["Research", "Partnership", "Announcement"];
+
+  if (locations.includes(tag)) return "location";
+  if (programs.includes(tag))  return "program";
+  if (events.includes(tag))    return "event";
+  if (research.includes(tag))  return "research";
+  return "default";
+}
+---
+
+<article class={`news-card news-card--${variant}`}>
+  <!-- ── Bild ──────────────────────────────────────────────────── -->
+  <div class="news-card__img-wrap">
+    <img
+      src={image}
+      alt={imageAlt}
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+
+  <!-- ── Inhalt ────────────────────────────────────────────────── -->
+  <div class="news-card__body">
+
+    <!-- Tags (oberhalb des Titels) -->
+    {tags.length > 0 && (
+      <ul class="news-card__tags" aria-label="Tags">
+        {tags.map(tag => (
+          <li>
+            <span class={`news-card__tag news-card__tag--${getTagCategory(tag)}`}>
+              {tag}
+            </span>
+          </li>
+        ))}
+        {isDummy && (
+          <li>
+            <span class="news-card__tag news-card__tag--dummy">Platzhalter</span>
+          </li>
+        )}
+      </ul>
+    )}
+
+    <!-- Titel -->
+    <h3 class="news-card__title">{title}</h3>
+
+    <!-- Datum -->
+    <time class="news-card__date" datetime={date}>
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+        <rect x="1" y="2" width="14" height="13" rx="2" fill="none"
+          stroke="currentColor" stroke-width="1.4"/>
+        <line x1="1" y1="6" x2="15" y2="6" stroke="currentColor" stroke-width="1.4"/>
+        <line x1="5" y1="0.5" x2="5" y2="4" stroke="currentColor"
+          stroke-width="1.4" stroke-linecap="round"/>
+        <line x1="11" y1="0.5" x2="11" y2="4" stroke="currentColor"
+          stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      {formattedDate}
+    </time>
+
+    <!-- Beschreibung -->
+    <p class="news-card__excerpt">{excerpt}</p>
+
+  </div>
+</article>
+
+<style>
+  /* ── Basis-Karte ──────────────────────────────────────────── */
+  .news-card {
+    background:    var(--color-bg-surface);
+    border-radius: var(--radius-md);
+    border:        1px solid var(--color-border-subtle);
+    box-shadow:    var(--shadow-card);
+    overflow:      hidden;
+    transition:
+      box-shadow var(--transition-fast),
+      transform  var(--transition-fast);
+  }
+
+  .news-card:hover {
+    box-shadow: 0 6px 28px rgba(0, 82, 233, 0.12);
+    transform:  translateY(-2px);
+  }
+
+  /* ── Horizontale Variante: Bild links / Text rechts ──────────
+     Auf schmalen Bildschirmen: Bild oben / Text unten           */
+  .news-card--horizontal {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 220px;
+  }
+
+  @media (max-width: 720px) {
+    .news-card--horizontal {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ── Vertikale Variante: Bild immer oben ────────────────────── */
+  .news-card--vertical {
+    display:        flex;
+    flex-direction: column;
+  }
+
+  /* ── Bild-Container ───────────────────────────────────────── */
+  .news-card__img-wrap {
+    overflow:    hidden;
+    flex-shrink: 0;
+  }
+
+  /* Horizontal: volle Höhe der Karte, feste Breite via Grid */
+  .news-card--horizontal .news-card__img-wrap {
+    height: 100%;
+    min-height: 200px;
+  }
+
+  /* Vertikal: feste Aspektverhältnis-ähnliche Höhe */
+  .news-card--vertical .news-card__img-wrap {
+    height: 200px;
+  }
+
+  .news-card__img-wrap img {
+    width:       100%;
+    height:      100%;
+    object-fit:  cover;
+    display:     block;
+    transition:  transform 0.4s ease;
+  }
+
+  .news-card:hover .news-card__img-wrap img {
+    transform: scale(1.03);
+  }
+
+  /* ── Text-Bereich ─────────────────────────────────────────── */
+  .news-card__body {
+    padding:        var(--space-6);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-3);
+  }
+
+  /* ── Tag-Liste ────────────────────────────────────────────── */
+  .news-card__tags {
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       var(--space-2);
+    list-style: none;
+    margin:    0;
+    padding:   0;
+  }
+
+  /* Basis-Badge für alle Tags */
+  .news-card__tag {
+    display:       inline-block;
+    padding:       3px var(--space-3);
+    border-radius: var(--radius-pill);
+    font-family:   var(--font-display);
+    font-size:     var(--fs-caption);
+    font-weight:   var(--fw-semibold);
+    letter-spacing: 0.02em;
+    line-height:   1.5;
+    white-space:   nowrap;
+  }
+
+  /* Standort-Tags: Light Blue / Dark Blue */
+  .news-card__tag--location {
+    background: #EEF3FF;
+    color:      var(--color-brand-blue-dark);
+  }
+
+  /* Programm-Tags: Lila-Töne */
+  .news-card__tag--program {
+    background: #F3E8FF;
+    color:      var(--color-accent-purple);
+  }
+
+  /* Event-Tags: Pink-Töne */
+  .news-card__tag--event {
+    background: #FFE8F5;
+    color:      #9B0058;
+  }
+
+  /* Research / Partnership: Grün-Töne */
+  .news-card__tag--research {
+    background: #E6F5E6;
+    color:      #1A6B1A;
+  }
+
+  /* Unbekannte Tags: neutrale Farbe */
+  .news-card__tag--default {
+    background: var(--color-bg-subtle);
+    color:      var(--color-text-muted);
+  }
+
+  /* Platzhalter-Badge */
+  .news-card__tag--dummy {
+    background: var(--color-warning-bg);
+    color:      var(--color-warning-text);
+    border:     1px solid var(--color-warning-border);
+  }
+
+  /* ── Titel ────────────────────────────────────────────────── */
+  .news-card__title {
+    font-family:  var(--font-display);
+    font-weight:  var(--fw-bold);
+    font-size:    var(--fs-h3);
+    color:        var(--color-text-heading);
+    line-height:  1.25;
+    margin:       0;
+  }
+
+  /* ── Datum ────────────────────────────────────────────────── */
+  .news-card__date {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-2);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-medium);
+    color:       var(--color-text-muted);
+    line-height: 1;
+  }
+
+  /* ── Beschreibung ─────────────────────────────────────────── */
+  .news-card__excerpt {
+    font-size:   var(--fs-body);
+    color:       var(--color-text-body);
+    line-height: var(--lh-body);
+    margin:      0;
+    /* Auf langen Texten: max 3 Zeilen + Ellipsis */
+    display:            -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow:           hidden;
+  }
+
+  /* Vertikale Variante: kompaktere Abstände */
+  .news-card--vertical .news-card__body {
+    padding: var(--space-4);
+    gap:     var(--space-2);
+  }
+
+  .news-card--vertical .news-card__title {
+    font-size: var(--fs-body);
+  }
+
+  .news-card--vertical .news-card__excerpt {
+    -webkit-line-clamp: 2;
+  }
+</style>

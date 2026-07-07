@@ -1,61 +1,131 @@
 ---
 // src/pages/news/index.astro
-// News-Übersicht. Inhalte kommen aus src/data/newsData.ts (DUMMY-Daten).
+//
+// News-Übersichtsseite.
+// Beiträge kommen aus src/data/newsData.ts (Dummy-Daten).
+// Sortierung: automatisch nach Datum, neueste zuerst (via getSortedNews()).
+// Neue Beiträge: Eintrag in newsData.ts ergänzen + Bild in public/images/news/.
 
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import ContentSection from "../../components/sections/ContentSection.astro";
-import ListItemCard from "../../components/cards/ListItemCard.astro";
-import PlaceholderCard from "../../components/cards/PlaceholderCard.astro";
-import DummyNotice from "../../components/ui/DummyNotice.astro";
-import { newsItems } from "../../data/newsData";
+import BaseLayout    from "../../layouts/BaseLayout.astro";
+import NewsCard      from "../../components/cards/NewsCard.astro";
+import DummyNotice   from "../../components/ui/DummyNotice.astro";
+import { getSortedNews } from "../../data/newsData";
 
-const dateFormatter = new Intl.DateTimeFormat("de-DE", {
-  day: "2-digit",
-  month: "long",
-  year: "numeric",
-});
+// Automatisch sortiert: neueste zuerst – keine manuelle Reihenfolge nötig
+const news = getSortedNews();
 ---
 
-<BaseLayout title="News" description="Aktuelle News von OneAIM aus München und Aachen.">
-  <ContentSection heading="News" background="page">
-    <p>
-      Hier findest du Updates zu Programmen, Events und Kooperationen von OneAIM – aus München
-      und Aachen.
-    </p>
-  </ContentSection>
+<BaseLayout
+  title="News"
+  description="Aktuelle News, Events und Ankündigungen von OneAIM aus München und Aachen."
+>
 
-  <section class="news-list-section" aria-label="News-Beiträge">
-    <div class="container">
-      <DummyNotice text="Alle unten aufgeführten News sind Platzhalterinhalte. Vor dem Live-Gang durch echte Beiträge ersetzen." />
-
-      <ul class="news-list-section__list">
-        {
-          newsItems.map((item) => (
-            <ListItemCard
-              title={item.title}
-              meta={dateFormatter.format(new Date(item.date))}
-              description={item.excerpt}
-              isDummy
-            />
-          ))
-        }
-
-        <PlaceholderCard message="Weitere News folgen in Kürze. Dieser Platz ist für künftige Beiträge reserviert." />
-      </ul>
+  <!-- ── Seiten-Kopf ────────────────────────────────────────── -->
+  <section class="news-header" aria-labelledby="news-page-heading">
+    <div class="container news-header__inner">
+      <h1 id="news-page-heading">News</h1>
+      <p class="news-header__sub">
+        Updates zu Programmen, Events und Kooperationen von OneAIM –
+        aus München und Aachen.
+      </p>
     </div>
   </section>
+
+  <!-- ── News-Liste ─────────────────────────────────────────── -->
+  <section class="news-list-section" aria-label="News-Beiträge">
+    <div class="container">
+
+      <!-- Platzhalter-Hinweis -->
+      <DummyNotice
+        text="Alle Beiträge sind Platzhalterinhalte. Vor dem Live-Gang durch echte News ersetzen (src/data/newsData.ts)."
+      />
+
+      <!-- Automatisch nach Datum sortierte Beitragsliste -->
+      {news.length > 0
+        ? (
+          <ul class="news-list" aria-label={`${news.length} News-Beiträge`}>
+            {news.map(item => (
+              <li>
+                <NewsCard
+                  title={item.title}
+                  date={item.date}
+                  excerpt={item.excerpt}
+                  image={item.image}
+                  imageAlt={item.imageAlt}
+                  tags={item.tags}
+                  variant="horizontal"
+                  isDummy={true}
+                />
+              </li>
+            ))}
+          </ul>
+        )
+        : (
+          <p class="news-empty">
+            Aktuell sind keine News-Beiträge vorhanden.
+            Einträge können in <code>src/data/newsData.ts</code> ergänzt werden.
+          </p>
+        )
+      }
+
+    </div>
+  </section>
+
 </BaseLayout>
 
 <style>
-  .news-list-section {
-    padding-block: var(--space-8) var(--space-24);
-    background: var(--color-bg-page);
+  /* ── Seiten-Kopf ──────────────────────────────────────────── */
+  .news-header {
+    background:    var(--color-bg-subtle);
+    padding-block: var(--space-16) var(--space-12);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
-  .news-list-section__list {
-    margin-top: var(--space-8);
-    display: flex;
+  .news-header__inner {
+    display:        flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap:            var(--space-3);
+  }
+
+  .news-header__inner h1 {
+    font-size: var(--fs-h1);
+  }
+
+  .news-header__sub {
+    font-size:  var(--fs-body-lg);
+    color:      var(--color-text-muted);
+    max-width:  560px;
+    margin:     0;
+  }
+
+  /* ── Listen-Bereich ───────────────────────────────────────── */
+  .news-list-section {
+    background:   var(--color-bg-page);
+    padding-block: var(--space-8) var(--space-24);
+  }
+
+  /* ── Kartenliste ──────────────────────────────────────────── */
+  .news-list {
+    list-style:     none;
+    margin:         var(--space-8) 0 0;
+    padding:        0;
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-6);
+  }
+
+  /* ── Leer-Zustand ─────────────────────────────────────────── */
+  .news-empty {
+    margin-top: var(--space-8);
+    color:      var(--color-text-muted);
+    font-size:  var(--fs-body);
+  }
+
+  .news-empty code {
+    font-size:     0.9em;
+    background:    var(--color-bg-subtle);
+    border-radius: var(--radius-sm);
+    padding:       2px 6px;
+    color:         var(--color-brand-blue-dark);
   }
 </style>

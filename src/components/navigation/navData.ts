@@ -1,51 +1,49 @@
 // src/components/navigation/navData.ts
 //
-// Einzige Quelle der Navigationsstruktur, abgeleitet 1:1 aus dem finalen
-// Sitemap-Flowchart. Wird von Header.astro (global) und künftig von
-// CityTabs.astro (lokal, München/Aachen) gemeinsam genutzt, damit die
-// Struktur nicht an zwei Stellen gepflegt werden muss.
+// Einzige Quelle der Navigationsstruktur (Single Source of Truth).
+// Wird von Header.astro (global) und CityTabs.astro (lokal) verwendet.
 
 export interface NavItem {
   label: string;
-  href: string;
+  href:  string;
 }
 
 /**
  * Globale Top-Level-Navigation.
- * Entspricht den Flowchart-Knoten direkt unter "Home":
- * München, Aachen, News, Publications, Contact Us, Impressum.
- * (LinkedIn ist im Flowchart ein "External Link"-Blatt und wird bewusst
- * als Icon-Link statt als Textlink in der Liste geführt – siehe Header.)
+ * Entspricht den Flowchart-Knoten direkt unter "Home".
+ *
+ * "Contact Us" verwendet einen Anker-Link (#contact) statt einer eigenen
+ * Seite. Der Browser scrollt sanft zur id="contact" im Footer der jeweils
+ * aktuellen Seite – keine Navigation zu einer neuen URL.
  */
 export const globalNavItems: NavItem[] = [
-  { label: "München", href: "/muenchen" },
-  { label: "Aachen", href: "/aachen" },
-  { label: "News", href: "/news" },
+  { label: "München",    href: "/muenchen"  },
+  { label: "Aachen",     href: "/aachen"    },
+  { label: "News",       href: "/news"      },
   { label: "Publications", href: "/publications" },
-  { label: "Contact Us", href: "/contact" },
-  { label: "Impressum", href: "/impressum" },
+  // ↓ Anker-Link – öffnet KEINE neue Seite, scrollt zum Footer-Kontaktbereich
+  { label: "Contact Us", href: "#contact"   },
+  { label: "Impressum",  href: "/impressum" },
 ];
 
 /**
- * Lokale Unterstruktur pro Standort, laut Flowchart für München UND Aachen
- * identisch: AIM Connect, AIM Code, Team.
+ * Lokale Unterstruktur pro Standort (München/Aachen).
+ * Identisch für beide Städte – slug unterscheidet die Links.
  */
 export const cityProgramSlugs = [
   { label: "AIM Connect", slug: "aim-connect" },
-  { label: "AIM Code", slug: "aim-code" },
-  { label: "Team", slug: "team" },
+  { label: "AIM Code",    slug: "aim-code"    },
+  { label: "Team",        slug: "team"        },
 ] as const;
 
 /**
- * Erzeugt die lokale Navigation für einen Standort (München/Aachen):
- * "Übersicht" (Hub) + AIM Connect, AIM Code, Team.
- * Identisch für beide Standorte – nur citySlug unterscheidet die Links.
+ * Erzeugt die lokale Subnav für einen Standort.
+ * Übersichts-Link wird vorangestellt.
  */
 export function getCityNavItems(citySlug: "muenchen" | "aachen"): NavItem[] {
-  const programItems = cityProgramSlugs.map(({ label, slug }) => ({
+  const programs = cityProgramSlugs.map(({ label, slug }) => ({
     label,
     href: `/${citySlug}/${slug}`,
   }));
-
-  return [{ label: "Übersicht", href: `/${citySlug}` }, ...programItems];
+  return [{ label: "Übersicht", href: `/${citySlug}` }, ...programs];
 }

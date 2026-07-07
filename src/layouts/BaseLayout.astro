@@ -1,7 +1,7 @@
 ---
 // src/layouts/BaseLayout.astro
-// Globales Layout – Grundlage für alle Seiten (Home, München/Aachen-Hubs,
-// News, Publications, Contact, Impressum).
+// Globales Layout – Grundlage für alle Seiten.
+// Bindet Raleway (Google Fonts) und die globalen Styles ein.
 
 import Header from "../components/navigation/Header.astro";
 import Footer from "../components/navigation/Footer.astro";
@@ -27,8 +27,29 @@ const pageTitle = title ? `${title} | OneAIM` : "OneAIM";
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <title>{pageTitle}</title>
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!--
+      Raleway – einzige Schriftart laut OneAIM Brand Style Guide (S. 3–4).
+      Gewichte: 400 (Regular), 500 (Medium), 600 (SemiBold), 700 (Bold).
+      preconnect reduziert DNS-Lookup-Zeit für Google Fonts.
+
+      HINWEIS FÜR DSGVO-KONFORMITÄT (vor Go-Live):
+      Raleway selbst hosten statt Google Fonts zu nutzen:
+      1. Dateien von https://fonts.google.com/specimen/Raleway herunterladen
+      2. Nach public/fonts/ kopieren
+      3. Diese beiden Link-Tags durch @font-face in tokens.css ersetzen.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
+
   <body>
     <a href="#page-content" class="skip-link">Zum Inhalt springen</a>
 

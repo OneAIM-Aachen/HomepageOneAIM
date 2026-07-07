@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" role="img" aria-label="Simon-Kucher – Platzhalter-Logo">
+  <title>Simon-Kucher</title>
+  <rect x="0" y="0" width="200" height="80" fill="#1A1A1A"/>
+  <text x="100" y="36" font-family="Arial,sans-serif" font-size="13" font-weight="700"
+    fill="#ffffff" text-anchor="middle" dominant-baseline="middle" letter-spacing="2">SIMON-KUCHER</text>
+  <rect x="30" y="50" width="140" height="1" fill="#E2001A"/>
+  <text x="100" y="62" font-family="Arial,sans-serif" font-size="9" font-weight="400"
+    fill="#aaaaaa" text-anchor="middle" dominant-baseline="middle" letter-spacing="1">UNLOCKING BETTER GROWTH</text>
+</svg>

@@ -1,16 +1,18 @@
 ---
 // src/components/ui/Button.astro
-// Wiederverwendbarer CTA-Button. variant "primary" = Markenblau,
-// "secondary" = Violett-Akzent (vgl. Footer "Notify me"),
-// "ghost" = transparent mit weißem Rand (für Einsatz auf dunklem/Gradient-Hero).
+// Wiederverwendbarer CTA-Button nach OneAIM Brand Style Guide.
+//
+// variant="primary"   → AIM Blue #0052E9 (Hauptfarbe, Vertrauen/Medizin)
+// variant="secondary" → Pink-Purple-Gradient #D400FF → #8D2DF1
+//                        (Kreativität/Innovation, laut Guide immer als Duo)
 
 interface Props {
   href: string;
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary";
   external?: boolean;
 }
 
-const { href, variant = "primary", external = false } = Astro.props;
+const { href, variant = "primary", external = false } = Astro.props as Props;
 ---
 
 <a
@@ -27,52 +29,62 @@ const { href, variant = "primary", external = false } = Astro.props;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: var(--space-2);
+
+    /* Raleway Bold, wie im Guide für alle Texte vorgeschrieben */
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-body);
+    line-height: 1;
+
     padding: var(--space-3) var(--space-8);
     border-radius: var(--radius-sm);
-    font-size: var(--fs-body);
-    font-weight: var(--fw-bold);
-    text-decoration: none;
-    transition: background var(--transition-fast), color var(--transition-fast),
-      border-color var(--transition-fast);
     white-space: nowrap;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+
+    transition:
+      opacity        var(--transition-fast),
+      transform      var(--transition-fast),
+      box-shadow     var(--transition-fast);
   }
 
   .btn:hover {
     text-decoration: none;
+    transform: translateY(-1px);
+    opacity: 0.92;
   }
 
-  .btn--primary {
-    background: var(--color-brand-blue);
-    color: var(--color-text-on-brand);
-    border: 1px solid transparent;
-  }
-
-  .btn--primary:hover {
-    background: var(--color-brand-blue-dark);
-  }
-
-  .btn--secondary {
-    background: var(--color-accent-violet);
-    color: var(--color-text-on-brand);
-    border: 1px solid transparent;
-  }
-
-  .btn--secondary:hover {
-    background: var(--color-accent-violet-dark);
-  }
-
-  .btn--ghost {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--color-text-on-brand);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-  }
-
-  .btn--ghost:hover {
-    background: rgba(255, 255, 255, 0.22);
+  .btn:active {
+    transform: translateY(0);
+    opacity: 1;
   }
 
   .btn:focus-visible {
     outline: none;
-    box-shadow: var(--focus-ring-on-dark);
+    box-shadow: var(--focus-ring);
+  }
+
+  /* Primär: AIM Blue – erste Hauptfarbe (Style Guide S. 6) */
+  .btn--primary {
+    background: var(--color-brand-blue);   /* #0052E9 */
+    color:      var(--color-text-on-brand);
+  }
+
+  .btn--primary:hover {
+    background: var(--color-brand-blue-dark); /* #232ACF beim Hover */
+    opacity: 1;
+  }
+
+  /* Sekundär: Pink + Purple als Gradient – laut Guide immer als Duo     */
+  /* (Style Guide S. 9–10: "Usually use together as graduation")          */
+  .btn--secondary {
+    background: var(--gradient-btn-secondary); /* #D400FF → #8D2DF1 */
+    color:      var(--color-text-on-brand);
+  }
+
+  .btn--secondary:hover {
+    opacity: 0.88;
   }
 </style>

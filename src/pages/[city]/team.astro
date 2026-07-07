@@ -1,31 +1,38 @@
 ---
 // src/pages/[city]/team.astro
-// Team – erzeugt aus EINER Datei für München & Aachen.
+//
+// Team-Seite für einen Standort (München / Aachen).
+// Erzeugt via getStaticPaths() aus einer Datei zwei Seiten:
+//   /muenchen/team
+//   /aachen/team
+//
+// Daten kommen aus:
+//   • src/data/cityData.ts  – Standort-Metadaten (Name, Hero-Text)
+//   • src/data/team.ts      – Teammitglieder (gefiltert nach city)
 
-import CityLayout from "../../layouts/CityLayout.astro";
-import ContentSection from "../../components/sections/ContentSection.astro";
-import TeamGrid from "../../components/sections/TeamGrid.astro";
+import CityLayout  from "../../layouts/CityLayout.astro";
+import TeamSection from "../../components/sections/TeamSection.astro";
+
 import { getCityStaticPaths } from "../../data/cityData";
-import type { CityData } from "../../data/cityData";
+import { getTeamByCity       } from "../../data/team";
+import type { CityData }       from "../../data/cityData";
 
 export function getStaticPaths() {
   return getCityStaticPaths();
 }
 
-interface Props {
-  city: CityData;
-}
-
+interface Props { city: CityData }
 const { city } = Astro.props as Props;
+
+// Teammitglieder für diesen Standort aus team.ts laden
+const members = getTeamByCity(city.slug);
 ---
 
 <CityLayout city={city} pageTitle="Team">
-  <ContentSection heading={`Das Team in ${city.displayName}`} background="page">
-    <p>
-      Die Menschen hinter OneAIM {city.displayName} – engagiert, interdisziplinär und mit einem
-      gemeinsamen Ziel: MedTech-Innovation für Studierende greifbar zu machen.
-    </p>
-  </ContentSection>
-
-  <TeamGrid members={city.team} />
+  <TeamSection
+    members={members}
+    heading={`Das Team in ${city.displayName}`}
+    subtext={`Die Menschen hinter OneAIM ${city.displayName} – engagiert, interdisziplinär, mit einem gemeinsamen Ziel: MedTech-Innovation für Studierende greifbar machen.`}
+    background="subtle"
+  />
 </CityLayout>

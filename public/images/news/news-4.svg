@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="News-Vorschaubild (Platzhalter)">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A1A6E"/>
+      <stop offset="100%" stop-color="#232ACF"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#g)"/>
+  <circle cx="700" cy="50"  r="260" fill="rgba(141,45,241,0.15)"/>
+  <circle cx="60"  cy="420" r="180" fill="rgba(212,0,255,0.10)"/>
+  <!-- Code brackets -->
+  <text x="240" y="280" font-family="'Courier New',monospace" font-size="140" font-weight="700"
+    fill="rgba(255,255,255,0.14)">&lt;/&gt;</text>
+  <!-- Floating code lines -->
+  <rect x="420" y="160" width="200" height="10" rx="5" fill="rgba(255,255,255,0.18)"/>
+  <rect x="420" y="185" width="140" height="10" rx="5" fill="rgba(212,0,255,0.35)"/>
+  <rect x="420" y="210" width="170" height="10" rx="5" fill="rgba(255,255,255,0.14)"/>
+  <rect x="420" y="235" width="110" height="10" rx="5" fill="rgba(141,45,241,0.40)"/>
+  <rect x="420" y="260" width="190" height="10" rx="5" fill="rgba(255,255,255,0.12)"/>
+  <rect x="40" y="360" width="250" height="48" rx="8" fill="rgba(0,0,0,0.25)"/>
+  <text x="60" y="390" font-family="Arial,sans-serif" font-size="16" fill="rgba(255,255,255,0.9)" font-weight="600">AIM Code · Bootcamp</text>
+</svg>

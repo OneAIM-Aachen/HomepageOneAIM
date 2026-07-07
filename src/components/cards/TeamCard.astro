@@ -1,0 +1,144 @@
+---
+// src/components/cards/TeamCard.astro
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// Eigenständige Karte für ein einzelnes Teammitglied.
+//
+// UNABHÄNGIG vom Carousel – kann überall verwendet werden:
+//   • In Carousel via TeamSection (carousel-gesteuert)
+//   • Auf einer dedizierten Team-Seite im statischen Grid
+//   • In einer About-Seite als Highlight-Element
+//
+// Verwendung (Beispiel statisches Grid):
+//   <ul class="team-grid">
+//     {members.map(m => (
+//       <li><TeamCard name={m.name} role={m.role} photo={m.photo} /></li>
+//     ))}
+//   </ul>
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface Props {
+  name:      string;
+  role:      string;
+  photo:     string;
+  photoAlt?: string;
+  /** Optionaler LinkedIn-Link – macht die gesamte Karte anklickbar */
+  href?:     string;
+}
+
+const { name, role, photo, photoAlt, href } = Astro.props;
+
+const Tag = href ? "a" : "div";
+---
+
+<article class="team-card">
+  <Tag
+    class="team-card__inner"
+    href={href}
+    target={href ? "_blank" : undefined}
+    rel={href ? "noopener noreferrer" : undefined}
+  >
+    <!-- Profilbild: quadratisches Bild, per CSS kreisförmig -->
+    <div class="team-card__avatar-wrap" aria-hidden="true">
+      <img
+        src={photo}
+        alt={photoAlt ?? `Profilfoto von ${name}`}
+        loading="lazy"
+        decoding="async"
+        width="120"
+        height="120"
+      />
+    </div>
+
+    <div class="team-card__info">
+      <!-- Name: deutlich hervorgehoben -->
+      <p class="team-card__name">{name}</p>
+      <!-- Rolle: kleiner, dezenter -->
+      <p class="team-card__role">{role}</p>
+    </div>
+  </Tag>
+</article>
+
+<style>
+  /* ── Karten-Wrapper ───────────────────────────────────────── */
+  .team-card {
+    /* Keine Hintergrundfarbe hier – erlaubt Verwendung auf
+       beliebigen Hintergründen ohne Anpassung.              */
+    height: 100%;
+  }
+
+  .team-card__inner {
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    text-align:     center;
+    gap:            var(--space-4);
+    padding:        var(--space-6);
+    height:         100%;
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-md);
+    border:         1px solid var(--color-border-subtle);
+    box-shadow:     var(--shadow-card);
+    text-decoration: none;
+    transition:
+      box-shadow var(--transition-fast),
+      transform  var(--transition-fast);
+  }
+
+  /* Hover nur wenn anklickbar (href vorhanden) */
+  a.team-card__inner:hover {
+    box-shadow:  0 6px 24px rgba(0, 82, 233, 0.13);
+    transform:   translateY(-2px);
+    text-decoration: none;
+  }
+
+  a.team-card__inner:focus-visible {
+    outline:    none;
+    box-shadow: var(--focus-ring);
+  }
+
+  /* ── Avatar ───────────────────────────────────────────────── */
+  .team-card__avatar-wrap {
+    width:         120px;
+    height:        120px;
+    border-radius: var(--radius-pill);    /* = 999px → perfekter Kreis */
+    overflow:      hidden;
+    flex-shrink:   0;
+    background:    var(--color-bg-subtle);
+    /* Dezenter Ring aus Brand Blue */
+    box-shadow:    0 0 0 3px var(--color-brand-blue-light);
+  }
+
+  .team-card__avatar-wrap img {
+    width:       100%;
+    height:      100%;
+    object-fit:  cover;
+    display:     block;
+  }
+
+  /* ── Text-Bereich ─────────────────────────────────────────── */
+  .team-card__info {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-1);
+  }
+
+  /* Name: deutlich, Heading-Farbe */
+  .team-card__name {
+    font-family:  var(--font-display);
+    font-weight:  var(--fw-bold);
+    font-size:    var(--fs-body);
+    color:        var(--color-text-heading);
+    line-height:  1.25;
+    margin:       0;
+  }
+
+  /* Rolle: kleiner, dezenter */
+  .team-card__role {
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-medium);
+    color:       var(--color-text-muted);
+    line-height: 1.3;
+    margin:      0;
+  }
+</style>

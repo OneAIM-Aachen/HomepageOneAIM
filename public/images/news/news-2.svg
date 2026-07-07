@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="News-Vorschaubild (Platzhalter)">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B2CE0"/>
+      <stop offset="100%" stop-color="#8D2DF1"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#g)"/>
+  <circle cx="700" cy="50"  r="250" fill="rgba(255,255,255,0.05)"/>
+  <circle cx="100" cy="450" r="180" fill="rgba(255,255,255,0.04)"/>
+  <!-- Star / achievement -->
+  <polygon points="400,120 420,175 480,175 432,210 450,265 400,232 350,265 368,210 320,175 380,175"
+    fill="rgba(255,255,255,0.22)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+  <!-- Confetti dots -->
+  <circle cx="200" cy="150" r="8" fill="rgba(212,0,255,0.45)"/>
+  <circle cx="580" cy="300" r="10" fill="rgba(212,0,255,0.35)"/>
+  <circle cx="650" cy="140" r="6"  fill="rgba(255,255,255,0.40)"/>
+  <circle cx="160" cy="320" r="7"  fill="rgba(255,255,255,0.35)"/>
+  <circle cx="540" cy="380" r="9"  fill="rgba(212,0,255,0.40)"/>
+  <rect x="40" y="360" width="280" height="48" rx="8" fill="rgba(0,0,0,0.20)"/>
+  <text x="60" y="390" font-family="Arial,sans-serif" font-size="16" fill="rgba(255,255,255,0.9)" font-weight="600">Makeathon Summit · München</text>
+</svg>

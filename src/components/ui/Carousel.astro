@@ -1,0 +1,518 @@
+---
+// src/components/ui/Carousel.astro
+//
+// ─────────────────────────────────────────────────────────────────────────────
+// GENERISCHE CAROUSEL-KOMPONENTE
+// Kennt keine fachlichen Inhalte. Alle Daten und Einstellungen kommen
+// ausschließlich über Props. Wiederverwendbar für:
+//   • Partner-Logos    → showLabels={false}  (nur Bild)
+//   • Team-Mitglieder  → showLabels={true}   (Bild + Name + Rolle)
+//   • Testimonials, Projekte, Unterstützer …
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CarouselItem {
+  id:        string;          // Eindeutiger Key
+  name:      string;          // Anzeigename & Fallback-Alt-Text
+  image?:    string;          // Bildpfad (relativ zu /public)
+  imageAlt?: string;          // Alt-Text für Screenreader
+  href?:     string;          // Optionaler Link (öffnet extern)
+  meta?:     string;          // Zweite Zeile: Rolle, Datum, Kategorie …
+}
+
+interface Props {
+  items:             CarouselItem[];
+  ariaLabel:         string;   // Barrierefreie Regions-Beschriftung
+  visibleDesktop?:   number;   // Sichtbare Slides ≥ 1024 px  (Standard: 5)
+  visibleTablet?:    number;   // Sichtbare Slides  640–1023 px (Standard: 3)
+  visibleMobile?:    number;   // Sichtbare Slides  < 640 px    (Standard: 2)
+  autoPlay?:         boolean;  // Automatisches Weiterblättern  (Standard: true)
+  autoPlayInterval?: number;   // ms zwischen den Seiten         (Standard: 4500)
+  showLabels?:       boolean;  // true = Karten-Modus mit Name/Meta
+}
+
+const {
+  items,
+  ariaLabel,
+  visibleDesktop   = 5,
+  visibleTablet    = 3,
+  visibleMobile    = 2,
+  autoPlay         = true,
+  autoPlayInterval = 4500,
+  showLabels       = false,
+} = Astro.props;
+
+// Jede Instanz bekommt eine eindeutige ID damit mehrere Carousels
+// auf einer Seite unabhängig voneinander funktionieren.
+const uid = `cr-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<div
+  class="carousel"
+  id={uid}
+  data-carousel
+  data-vd={visibleDesktop}
+  data-vt={visibleTablet}
+  data-vm={visibleMobile}
+  data-autoplay={String(autoPlay)}
+  data-interval={autoPlayInterval}
+  role="region"
+  aria-label={ariaLabel}
+  aria-roledescription="Karussell"
+  tabindex="0"
+>
+
+  <!-- ── Zeile: [←] [Viewport] [→] ──────────────────────────── -->
+  <div class="carousel__row">
+
+    <button
+      class="carousel__btn carousel__btn--prev"
+      type="button"
+      aria-label="Vorherige Elemente"
+      aria-controls={`${uid}-track`}
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+        <polyline points="15 18 9 12 15 6"
+          fill="none" stroke="currentColor"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <div class="carousel__viewport">
+      <ul
+        class="carousel__track"
+        id={`${uid}-track`}
+        role="list"
+      >
+        {items.map((item, i) => (
+          <li
+            class="carousel__slide"
+            role="listitem"
+            aria-label={`${item.name}, ${i + 1} von ${items.length}`}
+          >
+            {/* Slide-Inhalt: mit oder ohne Link */}
+            {item.href
+              ? (
+                <a
+                  href={item.href}
+                  class:list={['carousel__inner', showLabels && 'carousel__inner--card']}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={item.name}
+                >
+                  {item.image && (
+                    <div class="carousel__img-wrap">
+                      <img src={item.image}
+                           alt={item.imageAlt ?? `${item.name} Logo`}
+                           loading="lazy" decoding="async" />
+                    </div>
+                  )}
+                  {showLabels && (
+                    <div class="carousel__labels">
+                      <span class="carousel__name">{item.name}</span>
+                      {item.meta && <span class="carousel__meta">{item.meta}</span>}
+                    </div>
+                  )}
+                </a>
+              )
+              : (
+                <div class:list={['carousel__inner', showLabels && 'carousel__inner--card']}>
+                  {item.image && (
+                    <div class="carousel__img-wrap">
+                      <img src={item.image}
+                           alt={item.imageAlt ?? `${item.name} Logo`}
+                           loading="lazy" decoding="async" />
+                    </div>
+                  )}
+                  {showLabels && (
+                    <div class="carousel__labels">
+                      <span class="carousel__name">{item.name}</span>
+                      {item.meta && <span class="carousel__meta">{item.meta}</span>}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <button
+      class="carousel__btn carousel__btn--next"
+      type="button"
+      aria-label="Nächste Elemente"
+      aria-controls={`${uid}-track`}
+    >
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+        <polyline points="9 18 15 12 9 6"
+          fill="none" stroke="currentColor"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+  </div><!-- /.carousel__row -->
+
+  <!-- ── Pagination-Punkte (via JS befüllt) ─────────────────── -->
+  <div class="carousel__dots" role="tablist" aria-label="Karussell-Seiten"></div>
+
+</div><!-- /.carousel -->
+
+<style>
+  /* ── Äußerer Wrapper ──────────────────────────────────────── */
+  .carousel {
+    width: 100%;
+    outline: none; /* Fokus-Ring über :focus-visible */
+  }
+
+  .carousel:focus-visible {
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── Zeile: Buttons + Viewport ────────────────────────────── */
+  .carousel__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  /* ── Pfeil-Buttons ────────────────────────────────────────── */
+  .carousel__btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--color-border-subtle);
+    background: var(--color-bg-surface);
+    color: var(--color-brand-blue);
+    cursor: pointer;
+    transition:
+      background     var(--transition-fast),
+      color          var(--transition-fast),
+      border-color   var(--transition-fast),
+      box-shadow     var(--transition-fast);
+  }
+
+  .carousel__btn:hover {
+    background:   var(--color-brand-blue);
+    color:        var(--color-text-on-brand);
+    border-color: var(--color-brand-blue);
+    box-shadow:   0 4px 14px rgba(0, 82, 233, 0.28);
+  }
+
+  .carousel__btn:focus-visible {
+    outline:    none;
+    box-shadow: var(--focus-ring);
+  }
+
+  @media (max-width: 480px) {
+    .carousel__btn { width: 36px; height: 36px; }
+    .carousel__row { gap: var(--space-2); }
+  }
+
+  /* ── Sichtbarer Ausschnitt ────────────────────────────────── */
+  .carousel__viewport {
+    flex: 1;
+    overflow: hidden;
+    /* Padding verhindert, dass Karten-Schatten abgeschnitten werden */
+    padding-block: var(--space-2);
+  }
+
+  /* ── Scrollschiene ────────────────────────────────────────── */
+  .carousel__track {
+    display: flex;
+    list-style: none;
+    margin:  0;
+    padding: 0;
+    /* Transition wird per JS gesetzt (none bei Resize) */
+    will-change: transform;
+  }
+
+  /* ── Einzelner Slide ──────────────────────────────────────── */
+  .carousel__slide {
+    /* flex-basis wird durch JS überschrieben */
+    flex: 0 0 20%;
+    padding-inline: var(--space-3);
+    box-sizing: border-box;
+  }
+
+  /* ── Slide-Inhalt: Logo-Modus (showLabels=false) ──────────── */
+  .carousel__inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    text-decoration: none;
+    border-radius: var(--radius-md);
+  }
+
+  /* ── Slide-Inhalt: Karten-Modus (showLabels=true) ─────────── */
+  .carousel__inner--card {
+    background:     var(--color-bg-surface);
+    border:         1px solid var(--color-border-subtle);
+    box-shadow:     var(--shadow-card);
+    padding-bottom: var(--space-4);
+    transition:
+      box-shadow var(--transition-fast),
+      transform  var(--transition-fast);
+  }
+
+  .carousel__inner--card:hover {
+    box-shadow: 0 6px 24px rgba(0, 82, 233, 0.13);
+    transform:  translateY(-2px);
+  }
+
+  /* ── Bild-Container ───────────────────────────────────────── */
+  .carousel__img-wrap {
+    width: 100%;
+    height: 72px;     /* Einheitliche Höhe → kein Verzerren */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .carousel__img-wrap img {
+    max-width:   100%;
+    max-height:  100%;
+    width:       auto;
+    height:      auto;
+    object-fit:  contain;
+    /* Dezente Entsättigung: alle Logos wirken im Set einheitlicher */
+    filter:      grayscale(20%) opacity(0.80);
+    transition:  filter var(--transition-base), opacity var(--transition-base);
+  }
+
+  /* Hover/Fokus → volle Farbe */
+  .carousel__inner:hover  .carousel__img-wrap img,
+  .carousel__inner:focus-visible .carousel__img-wrap img {
+    filter: grayscale(0%) opacity(1);
+  }
+
+  /* ── Labels (Name + Meta) ─────────────────────────────────── */
+  .carousel__labels {
+    width: 100%;
+    padding-inline: var(--space-3);
+    text-align: center;
+    margin-top: var(--space-2);
+  }
+
+  .carousel__name {
+    display:     block;
+    font-family: var(--font-display);
+    font-weight: var(--fw-semibold);
+    font-size:   var(--fs-body);
+    color:       var(--color-text-heading);
+    line-height: 1.25;
+  }
+
+  .carousel__meta {
+    display:     block;
+    font-size:   var(--fs-small);
+    color:       var(--color-text-muted);
+    margin-top:  var(--space-1);
+    line-height: 1.3;
+  }
+
+  /* ── Pagination-Punkte ────────────────────────────────────── */
+  .carousel__dots {
+    display:         flex;
+    justify-content: center;
+    flex-wrap:       wrap;
+    gap:             var(--space-2);
+    margin-top:      var(--space-6);
+  }
+
+  .carousel__dot {
+    width:         10px;
+    height:        10px;
+    border-radius: var(--radius-pill);
+    border:        none;
+    padding:       0;
+    background:    var(--color-brand-blue-light);
+    cursor:        pointer;
+    transition:
+      background var(--transition-fast),
+      width      var(--transition-fast);
+  }
+
+  .carousel__dot:hover {
+    background: var(--color-brand-blue-dark);
+  }
+
+  /* Aktiver Punkt wird zur kurzen Pille */
+  .carousel__dot--active {
+    background: var(--color-brand-blue);
+    width:      26px;
+  }
+
+  .carousel__dot:focus-visible {
+    outline:    none;
+    box-shadow: var(--focus-ring);
+  }
+</style>
+
+<script>
+  // ─────────────────────────────────────────────────────────────────────────
+  // Carousel-Logik – initialisiert jede Instanz mit [data-carousel].
+  // Keine externen Abhängigkeiten. Funktioniert mit mehreren Carousels
+  // auf einer Seite.
+  // ─────────────────────────────────────────────────────────────────────────
+  function initCarousel(el: HTMLElement): void {
+    // DOM-Referenzen
+    const track   = el.querySelector<HTMLElement>('.carousel__track')!;
+    const slides  = Array.from(el.querySelectorAll<HTMLElement>('.carousel__slide'));
+    const prevBtn = el.querySelector<HTMLButtonElement>('.carousel__btn--prev')!;
+    const nextBtn = el.querySelector<HTMLButtonElement>('.carousel__btn--next')!;
+    const dotsEl  = el.querySelector<HTMLElement>('.carousel__dots')!;
+
+    // Konfiguration aus data-Attributen
+    const autoplay  = el.dataset.autoplay === 'true';
+    const interval  = parseInt(el.dataset.interval ?? '4500', 10);
+
+    let page    = 0;
+    let visible = getVisible();
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    // ── Hilfsfunktionen ─────────────────────────────────────
+
+    function getVisible(): number {
+      const w = window.innerWidth;
+      if (w >= 1024) return +(el.dataset.vd ?? 5);
+      if (w >= 640)  return +(el.dataset.vt ?? 3);
+      return               +(el.dataset.vm ?? 2);
+    }
+
+    function pageCount(): number {
+      return Math.max(1, Math.ceil(slides.length / visible));
+    }
+
+    // Flex-Breite jedes Slides setzen
+    function applyWidths(): void {
+      const pct = `${100 / visible}%`;
+      slides.forEach(s => { s.style.flex = `0 0 ${pct}`; });
+    }
+
+    // Zur Seite `p` navigieren
+    function goTo(p: number, animate = true): void {
+      const total = pageCount();
+      page = ((p % total) + total) % total;     // wrap-around
+
+      const slideW = slides[0]?.offsetWidth ?? 0;
+      const offset = page * visible * slideW;
+
+      track.style.transition = animate
+        ? 'transform 0.48s cubic-bezier(0.4, 0, 0.2, 1)'
+        : 'none';
+      track.style.transform = `translateX(-${offset}px)`;
+
+      syncDots();
+    }
+
+    // ── Pagination-Punkte ──────────────────────────────────
+
+    function buildDots(): void {
+      dotsEl.innerHTML = '';
+      const total = pageCount();
+
+      // Keine Punkte wenn nur eine Seite existiert
+      if (total <= 1) { dotsEl.style.display = 'none'; return; }
+      dotsEl.style.display = '';
+
+      for (let i = 0; i < total; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'carousel__dot';
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-label', `Seite ${i + 1} von ${total}`);
+        btn.setAttribute('aria-selected', String(i === page));
+        if (i === page) btn.classList.add('carousel__dot--active');
+        btn.addEventListener('click', () => { goTo(i); resetTimer(); });
+        dotsEl.appendChild(btn);
+      }
+    }
+
+    function syncDots(): void {
+      dotsEl.querySelectorAll<HTMLButtonElement>('.carousel__dot').forEach((d, i) => {
+        const active = i === page;
+        d.classList.toggle('carousel__dot--active', active);
+        d.setAttribute('aria-selected', String(active));
+      });
+    }
+
+    // ── Auto-Play ──────────────────────────────────────────
+
+    function startTimer(): void {
+      if (!autoplay) return;
+      // Kein Auto-Play bei prefers-reduced-motion
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      stopTimer();
+      timer = setInterval(() => goTo(page + 1), interval);
+    }
+
+    function stopTimer(): void {
+      if (timer !== null) { clearInterval(timer); timer = null; }
+    }
+
+    function resetTimer(): void { stopTimer(); startTimer(); }
+
+    // ── Initialisierung ────────────────────────────────────
+
+    applyWidths();
+    buildDots();
+    goTo(0, false);
+    startTimer();
+
+    // ── Event-Listener ─────────────────────────────────────
+
+    prevBtn.addEventListener('click', () => { goTo(page - 1); resetTimer(); });
+    nextBtn.addEventListener('click', () => { goTo(page + 1); resetTimer(); });
+
+    // Pause bei Hover und Fokus
+    el.addEventListener('mouseenter', stopTimer);
+    el.addEventListener('mouseleave', startTimer);
+    el.addEventListener('focusin',    stopTimer);
+    el.addEventListener('focusout',   startTimer);
+
+    // Touch-Swipe
+    let touchStartX = 0;
+    el.addEventListener('touchstart', e => {
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    el.addEventListener('touchend', e => {
+      const delta = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(delta) > 48) {
+        delta > 0 ? goTo(page + 1) : goTo(page - 1);
+        resetTimer();
+      }
+    }, { passive: true });
+
+    // Tastatur: Pfeiltasten wenn Carousel fokussiert
+    el.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); goTo(page - 1); resetTimer(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goTo(page + 1); resetTimer(); }
+    });
+
+    // Fenstergröße geändert → Slide-Anzahl und Position anpassen
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const newVisible = getVisible();
+        if (newVisible !== visible) {
+          visible = newVisible;
+          applyWidths();
+          buildDots();
+        }
+        // Seite ggf. auf gültigen Wert begrenzen
+        goTo(Math.min(page, pageCount() - 1), false);
+      }, 200);
+    });
+  }
+
+  // Alle Carousel-Instanzen auf der aktuellen Seite initialisieren
+  document.querySelectorAll<HTMLElement>('[data-carousel]').forEach(initCarousel);
+</script>
