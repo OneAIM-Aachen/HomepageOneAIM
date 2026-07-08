@@ -1,38 +1,52 @@
 ---
 // src/pages/[city]/index.astro
-// City-Hub (München & Aachen) – erzeugt aus EINER Datei via getStaticPaths().
-// Inhalt: Hero (über CityLayout) + Intro-Text + Teaser zu AIM Connect/Code/Team.
+//
+// Stadt-Hub (Übersicht) – erzeugt /muenchen und /aachen.
+//
+// showApplicationInfo={true} → Bewerbungsbereich erscheint im Hero
+// der Übersichtsseite (nicht erst bei AIM Connect).
+// Alle Inhalte kommen ausschließlich aus src/data/application.ts.
 
-import CityLayout from "../../layouts/CityLayout.astro";
-import ContentSection from "../../components/sections/ContentSection.astro";
-import ProgramTeasers from "../../components/sections/ProgramTeasers.astro";
+import CityLayout      from "../../layouts/CityLayout.astro";
+import ContentSection  from "../../components/sections/ContentSection.astro";
+import ProgramTeasers  from "../../components/sections/ProgramTeasers.astro";
+
 import { getCityStaticPaths } from "../../data/cityData";
-import type { CityData } from "../../data/cityData";
+import type { CityData }       from "../../data/cityData";
 
 export function getStaticPaths() {
   return getCityStaticPaths();
 }
 
-interface Props {
-  city: CityData;
-}
-
+interface Props { city: CityData }
 const { city } = Astro.props as Props;
 
 const teasers = [
-  { label: "AIM Connect", slug: "aim-connect", description: city.aimConnect.intro },
-  { label: "AIM Code", slug: "aim-code", description: city.aimCode.intro },
   {
-    label: "Team",
-    slug: "team",
+    label:       "AIM Connect",
+    slug:        "aim-connect",
+    description: city.aimConnect.intro,
+  },
+  {
+    label:       "AIM Code",
+    slug:        "aim-code",
+    description: city.aimCode.intro,
+  },
+  {
+    label:       "Team",
+    slug:        "team",
     description: `Lerne das Team hinter OneAIM ${city.displayName} kennen.`,
   },
 ];
 ---
 
-<CityLayout city={city} pageTitle="Übersicht">
+<CityLayout
+  city={city}
+  pageTitle="Übersicht"
+  showApplicationInfo={true}
+>
   <ContentSection heading={`OneAIM in ${city.displayName}`} background="page">
-    {city.introText.map((paragraph) => <p>{paragraph}</p>)}
+    {city.introText.map(p => <p>{p}</p>)}
   </ContentSection>
 
   <ProgramTeasers citySlug={city.slug} teasers={teasers} />

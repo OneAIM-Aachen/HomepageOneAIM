@@ -1,30 +1,67 @@
 ---
 // src/layouts/CityLayout.astro
-// Gemeinsames Layout für alle Standort-Seiten (Hub, AIM Connect, AIM Code,
-// Team). München und Aachen nutzen exakt dasselbe Layout – nur die
-// übergebenen Stadt-Daten unterscheiden sich.
+//
+// Gemeinsames Layout für alle Standort-Seiten (Hub, AIM Connect, AIM Code, Team).
+//
+// BEWERBUNGSBEREICH:
+//   showApplicationInfo={true} → CityLayout schlägt die Daten für den
+//   aktuellen Standort automatisch aus application.ts nach und übergibt
+//   sie an Hero. Kein manueller Daten-Import in den Seiten nötig.
+//
+//   Angepasst wird ausschließlich: src/data/application.ts
 
-import BaseLayout from "./BaseLayout.astro";
-import Hero from "../components/sections/Hero.astro";
-import CityTabs from "../components/navigation/CityTabs.astro";
+import BaseLayout        from "./BaseLayout.astro";
+import Hero              from "../components/sections/Hero.astro";
+import CityTabs          from "../components/navigation/CityTabs.astro";
 import type { CityData } from "../data/cityData";
+import { getApplicationData } from "../data/application";
 
 interface Props {
-  city: CityData;
-  pageTitle: string; // z. B. "AIM Connect", "Team" – wird mit Stadtname kombiniert
-  description?: string;
+  city:                 CityData;
+  pageTitle:            string;
+  description?:         string;
+  /**
+   * Bewerbungsbereich im Hero anzeigen?
+   * Wenn true, schlägt CityLayout die Daten für city.slug automatisch
+   * aus application.ts nach und übergibt sie an den Hero.
+   *
+   * Standard: false → kein Bewerbungsbereich (Hub, AIM Code, Team)
+   */
+  showApplicationInfo?: boolean;
 }
 
-const { city, pageTitle, description } = Astro.props;
+const {
+  city,
+  pageTitle,
+  description,
+  showApplicationInfo = false,
+} = Astro.props;
+
+// Bewerbungsdaten automatisch für den aktuellen Standort ermitteln.
+// Gibt null zurück, wenn showApplicationInfo=false ODER kein Eintrag
+// in application.ts vorhanden → Hero zeigt nichts an (Graceful Degradation).
+const applicationData = showApplicationInfo
+  ? getApplicationData(city.slug)
+  : null;
 ---
 
 <BaseLayout
   title={`${pageTitle} – ${city.displayName}`}
   description={description ?? `${pageTitle} am OneAIM-Standort ${city.displayName}.`}
 >
-  <Hero headline={city.heroHeadline} subtext={city.heroSubtext} />
+  <!--
+    Hero: erhält applicationData nur wenn showApplicationInfo=true.
+    Auf Hub-, Team- und AIM-Code-Seiten bleibt der Hero unverändert.
+  -->
+  <Hero
+    headline={city.heroHeadline}
+    subtext={city.heroSubtext}
+    applicationData={applicationData}
+  />
 
+  <!-- Lokale Stadt-Navigation (Übersicht | AIM Connect | AIM Code | Team) -->
   <CityTabs citySlug={city.slug} />
 
+  <!-- Seiteninhalt -->
   <slot />
 </BaseLayout>

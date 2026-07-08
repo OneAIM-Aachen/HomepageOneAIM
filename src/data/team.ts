@@ -128,7 +128,14 @@ export const teamMembers: TeamMember[] = [
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
   },
-
+{
+    id:       "alex-mladenov",
+    name:     "Alex Mladenov",              // DUMMY – ersetzen
+    role:     "Team Lead Partner Management",
+    photo:    "/images/team/alex-mladenov.jpeg",
+    photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
+    city:     "aachen",
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

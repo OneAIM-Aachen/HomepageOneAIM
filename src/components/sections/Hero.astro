@@ -1,130 +1,296 @@
 ---
 // src/components/sections/Hero.astro
-// Hero-Pattern: Gradient-Hintergrund, Branding-Logo, Headline, optionale
-// Subline, CTA-Buttons als Slot (siehe index.astro für München/Aachen-CTAs).
+//
+// Generische Hero-Sektion – genutzt auf Home (mit Slot-Buttons) und
+// auf Stadt-Seiten (via CityLayout, mit optionalem Bewerbungsbereich).
+//
+// BEWERBUNGSBEREICH:
+//   Wird nur angezeigt, wenn `applicationData` übergeben wird.
+//   Datenquelle: src/data/application.ts – keine Änderung hier nötig.
+//
+//   isOpen = true  → "Our application phase is open until {deadline}!"
+//                    + "Apply now"-Button
+//   isOpen = false → "Applications are currently closed."
+
+import type { ApplicationConfig } from "../../data/application";
 
 interface Props {
-  headline: string;
-  subtext?: string;
+  headline:         string;
+  subtext?:         string;
+  /** Bewerbungsdaten – aus application.ts via CityLayout übergeben */
+  applicationData?: ApplicationConfig | null;
 }
 
-const { headline, subtext } = Astro.props;
+const { headline, subtext, applicationData = null } = Astro.props;
 ---
 
-<section class="hero" aria-label="Intro">
-  <div class="hero__gradient" aria-hidden="true"></div>
-
+<section class="hero" aria-label="Hero-Bereich">
   <div class="container hero__inner">
-    <div class="hero__brand">
-      <svg
-        class="hero__logo-icon"
-        viewBox="0 0 48 40"
-        aria-hidden="true"
-        focusable="false"
-      >
-        <path
-          d="M2 38 L24 4 L46 38"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        ></path>
-        <path
-          d="M24 4 L24 38 L46 38"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        ></path>
-        <circle cx="38" cy="10" r="5" fill="var(--color-accent-violet)"></circle>
-      </svg>
-      <span class="hero__brand-name">OneAIM</span>
-    </div>
 
+    <!-- ── Hauptinhalt ────────────────────────────────── -->
     <h1 class="hero__headline">{headline}</h1>
 
-    {subtext && <p class="hero__subtext">{subtext}</p>}
+    {subtext && (
+      <p class="hero__subtext">{subtext}</p>
+    )}
 
-    <div class="hero__ctas">
-      <slot />
-    </div>
+    <!-- Slot: CTA-Buttons (wird auf der Startseite verwendet) -->
+    {Astro.slots.has("default") && (
+      <div class="hero__actions">
+        <slot />
+      </div>
+    )}
+
+    <!-- ── Bewerbungsbereich ─────────────────────────────
+         Wird nur gerendert, wenn applicationData übergeben wurde.
+         Keine Änderung hier nötig – nur application.ts anpassen.   -->
+    {applicationData !== null && (
+      <aside
+        class="hero__application"
+        aria-label="Bewerbungsinformationen"
+      >
+        {applicationData.isOpen ? (
+          /* ─── Bewerbungsphase offen ────────────────── */
+          <div class="hero__app-open">
+
+            <!-- Status-Indikator -->
+            <div class="hero__app-badge" role="status" aria-live="polite">
+              <span class="hero__app-dot" aria-hidden="true"></span>
+              <span>Applications Open</span>
+            </div>
+
+            <!-- Bewerbungstext mit Frist -->
+            <p class="hero__app-text">
+              Our application phase is open until{" "}
+              <strong>{applicationData.deadline}</strong>!
+            </p>
+
+            <!-- CTA-Button -->
+            <a
+              href={applicationData.link}
+              class="hero__app-btn"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Jetzt bewerben – Bewerbungsschluss: ${applicationData.deadline}. Öffnet in neuem Tab.`}
+            >
+              Apply now
+              <!-- Pfeil-Icon -->
+              <svg
+                viewBox="0 0 16 16"
+                width="14"
+                height="14"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3 8h10M9 4l4 4-4 4"
+                />
+              </svg>
+            </a>
+          </div>
+        ) : (
+          /* ─── Bewerbungsphase geschlossen ──────────── */
+          <p class="hero__app-closed" role="status" aria-live="polite">
+            Applications are currently closed.
+          </p>
+        )}
+      </aside>
+    )}
+
   </div>
 </section>
 
 <style>
+  /* ── Hero-Sektion ─────────────────────────────────── */
   .hero {
-    position: relative;
-    overflow: hidden;
-    padding-block: var(--space-32) var(--space-24);
-    text-align: center;
-  }
-
-  .hero__gradient {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: var(--gradient-hero);
+    background:   var(--gradient-hero);
+    padding-block: var(--space-24);
+    min-height:   55vh;
+    display:      flex;
+    align-items:  center;
   }
 
   .hero__inner {
-    display: flex;
+    display:        flex;
     flex-direction: column;
-    align-items: center;
-    gap: var(--space-6);
+    align-items:    center;
+    gap:            var(--space-4);
+    text-align:     center;
   }
 
-  .hero__brand {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    color: var(--color-brand-blue);
-  }
-
-  .hero__logo-icon {
-    width: 40px;
-    height: 34px;
-  }
-
-  .hero__brand-name {
-    font-family: var(--font-display);
-    font-weight: var(--fw-bold);
-    font-size: 1.5rem;
-  }
-
+  /* ── Headline ─────────────────────────────────────── */
   .hero__headline {
-    color: var(--color-brand-blue);
-    max-width: 18ch;
+    font-size:   var(--fs-display);
+    font-weight: var(--fw-bold);
+    color:       var(--color-brand-blue);
+    line-height: var(--lh-heading);
+    max-width:   820px;
   }
 
+  /* ── Subtext ──────────────────────────────────────── */
   .hero__subtext {
-    font-size: var(--fs-body-lg);
-    color: var(--color-text-heading);
-    max-width: 32ch;
+    font-size:  var(--fs-h3);
+    font-weight: var(--fw-medium);
+    color:      var(--color-brand-blue-dark);
+    max-width:  600px;
+    margin:     0;
   }
 
-  .hero__ctas {
-    display: flex;
-    flex-wrap: wrap;
+  /* ── Slot-Buttons (Startseite) ────────────────────── */
+  .hero__actions {
+    display:         flex;
+    gap:             var(--space-4);
+    flex-wrap:       wrap;
     justify-content: center;
-    gap: var(--space-4);
-    margin-top: var(--space-4);
+    margin-top:      var(--space-4);
   }
 
-  @media (max-width: 480px) {
-    .hero {
-      padding-block: var(--space-24) var(--space-16);
+  /* ── Bewerbungsbereich ────────────────────────────── */
+  .hero__application {
+    margin-top:     var(--space-8);
+    padding:        var(--space-6) var(--space-8);
+    /*
+      Frosted-Glass-Effekt auf dem blauen Gradienten:
+      Weißer Hauch + dezente Konturlinie → visuell abgegrenztes Panel
+      das sich harmonisch in den Hero einfügt.
+    */
+    background:     rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(8px);
+    border:         1px solid rgba(255, 255, 255, 0.26);
+    border-radius:  var(--radius-md);
+    max-width:      480px;
+    width:          100%;
+  }
+
+  /* ── Offene Phase ─────────────────────────────────── */
+  .hero__app-open {
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            var(--space-4);
+  }
+
+  /* Status-Badge mit pulsierendem grünem Punkt */
+  .hero__app-badge {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-2);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color:       rgba(255, 255, 255, 0.95);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  /* Pulsierender grüner Dot */
+  .hero__app-dot {
+    display:       block;
+    width:         10px;
+    height:        10px;
+    border-radius: var(--radius-pill);
+    background:    #34D399;   /* Grün – positiver Status */
+    box-shadow:    0 0 0 0 rgba(52, 211, 153, 0.5);
+    animation:     pulse-dot 2s ease-in-out infinite;
+    flex-shrink:   0;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% {
+      box-shadow: 0 0 0 0   rgba(52, 211, 153, 0.50);
+    }
+    50% {
+      box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__app-dot {
+      animation: none;
+    }
+  }
+
+  /* Bewerbungstext */
+  .hero__app-text {
+    font-size:   var(--fs-body-lg);
+    color:       rgba(255, 255, 255, 0.95);
+    line-height: var(--lh-body);
+    margin:      0;
+  }
+
+  .hero__app-text strong {
+    color:       #ffffff;
+    font-weight: var(--fw-bold);
+  }
+
+  /* ── Apply-Button ─────────────────────────────────── */
+  /*
+    Weißer Button mit Brand-Blau-Text:
+    Beste Lesbarkeit auf dem blauen Gradienten.
+    Folgt derselben Designsprache wie Button.astro
+    (gleicher Radius, gleiches Padding, gleiche Transition).
+  */
+  .hero__app-btn {
+    display:         inline-flex;
+    align-items:     center;
+    gap:             var(--space-2);
+    padding:         var(--space-3) var(--space-8);
+    background:      var(--color-bg-surface);   /* Weiß */
+    color:           var(--color-brand-blue);   /* AIM Blue */
+    border-radius:   var(--radius-sm);
+    font-family:     var(--font-display);
+    font-weight:     var(--fw-bold);
+    font-size:       var(--fs-body);
+    line-height:     1;
+    text-decoration: none;
+    white-space:     nowrap;
+    border:          none;
+    transition:
+      background   var(--transition-fast),
+      color        var(--transition-fast),
+      transform    var(--transition-fast),
+      box-shadow   var(--transition-fast);
+  }
+
+  .hero__app-btn:hover {
+    background:      var(--color-brand-blue-light);  /* helles Blau beim Hover */
+    color:           var(--color-brand-blue-dark);
+    transform:       translateY(-1px);
+    text-decoration: none;
+    box-shadow:      0 6px 20px rgba(255, 255, 255, 0.20);
+  }
+
+  .hero__app-btn:active {
+    transform: translateY(0);
+  }
+
+  .hero__app-btn:focus-visible {
+    outline:    none;
+    box-shadow: var(--focus-ring-on-dark);
+  }
+
+  /* ── Geschlossene Phase ───────────────────────────── */
+  .hero__app-closed {
+    font-size:   var(--fs-body);
+    color:       rgba(255, 255, 255, 0.72);
+    font-style:  italic;
+    margin:      0;
+    text-align:  center;
+  }
+
+  /* ── Responsive ───────────────────────────────────── */
+  @media (max-width: 560px) {
+    .hero__application {
+      padding:    var(--space-4) var(--space-6);
+      max-width:  100%;
     }
 
-    .hero__ctas {
-      flex-direction: column;
-      align-items: stretch;
-      width: 100%;
-    }
-
-    .hero__ctas :global(.btn) {
-      width: 100%;
+    .hero__app-text {
+      font-size: var(--fs-body);
     }
   }
 </style>
