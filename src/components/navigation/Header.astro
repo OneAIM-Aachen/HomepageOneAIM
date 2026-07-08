@@ -26,13 +26,13 @@ function isActive(href: string): boolean {
 
     <!-- Logo -->
     <a href="/" class="site-header__logo" aria-label="OneAIM – Startseite">
-      <svg class="site-header__logo-icon" viewBox="-2 -8 58 62"
-           aria-hidden="true" focusable="false">
-        <path d="M 16 14 L 30 14 L 14 54 L 0 54 Z" fill="#0052E9"/>
-        <path d="M 30 14 L 38 7 L 52 7 L 52 54 L 26 54 Z" fill="#0052E9"/>
-        <circle cx="45" cy="0" r="5.5" fill="none" stroke="#8D2DF1" stroke-width="3.5"/>
-      </svg>
-      <span class="site-header__logo-text">OneAIM</span>
+      <img
+        src="/logo.png"
+        alt="OneAIM Logo"
+        class="site-header__logo-img"
+        height="44"
+        decoding="async"
+      />
     </a>
 
     <!-- Desktop-Navigation -->
@@ -137,18 +137,14 @@ function isActive(href: string): boolean {
     color:       var(--color-brand-blue);
   }
 
-  .site-header__logo:hover { text-decoration: none; }
+  .site-header__logo:hover { text-decoration: none; opacity: 0.88; }
 
-  .site-header__logo-icon {
-    width:  30px;
-    height: 26px;
-  }
-
-  .site-header__logo-text {
-    font-family:  var(--font-display);
-    font-weight:  var(--fw-bold);
-    font-size:    1.25rem;
-    color:        var(--color-brand-blue);
+  .site-header__logo-img {
+    width:      auto;
+    height:     44px;
+    display:    block;
+    object-fit: contain;
+    transition: opacity var(--transition-fast);
   }
 
   /* ── Desktop-Nav ──────────────────────────────────────────── */
@@ -165,8 +161,8 @@ function isActive(href: string): boolean {
   }
 
   .site-header__nav-link {
-    font-size:   var(--fs-small);
-    font-weight: var(--fw-medium);
+    font-size:   1.05rem;
+    font-weight: var(--fw-bold);
     color:       var(--color-brand-blue);
     padding:     var(--space-2) var(--space-1);
     white-space: nowrap;
@@ -227,8 +223,8 @@ function isActive(href: string): boolean {
   .site-header__mobile-link {
     display:       block;
     padding:       var(--space-3) var(--space-1);
-    font-size:     var(--fs-body);
-    font-weight:   var(--fw-medium);
+    font-size:     1.2rem;
+    font-weight:   var(--fw-bold);
     color:         var(--color-brand-blue);
     border-bottom: 1px solid var(--color-border-subtle);
     transition:    color var(--transition-fast);

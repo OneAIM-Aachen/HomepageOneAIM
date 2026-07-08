@@ -1,17 +1,20 @@
 ---
 // src/components/sections/ProgramTeasers.astro
-// Teaser-Grid auf der München/Aachen-Hub-Seite, verlinkt zu den drei
-// Unterseiten. Wiederverwendet für beide Standorte (nur citySlug variiert).
+// Teaser-Grid auf der Übersichtsseite (München/Aachen).
+// Jede Karte zeigt: Bild (oben) + Titel + Beschreibung + Link.
 
 interface Teaser {
-  label: string;
-  slug: string;
+  label:       string;
+  slug:        string;
   description: string;
+  /** Optionaler Bildpfad (relativ zu /public) */
+  image?:      string;
+  imageAlt?:   string;
 }
 
 interface Props {
   citySlug: "muenchen" | "aachen";
-  teasers: Teaser[];
+  teasers:  Teaser[];
 }
 
 const { citySlug, teasers } = Astro.props;
@@ -19,61 +22,131 @@ const { citySlug, teasers } = Astro.props;
 
 <section class="program-teasers" aria-label="Programme und Team">
   <div class="container program-teasers__grid">
-    {
-      teasers.map((teaser) => (
-        <a href={`/${citySlug}/${teaser.slug}`} class="program-teasers__card">
-          <h3>{teaser.label}</h3>
-          <p>{teaser.description}</p>
-          <span class="program-teasers__link" aria-hidden="true">Mehr erfahren →</span>
-        </a>
-      ))
-    }
+    {teasers.map(teaser => (
+      <a
+        href={`/${citySlug}/${teaser.slug}`}
+        class="program-teasers__card"
+        aria-label={teaser.label}
+      >
+        <!-- Bild (wird nur gerendert wenn image übergeben wurde) -->
+        {teaser.image && (
+          <div class="program-teasers__img-wrap">
+            <img
+              src={teaser.image}
+              alt={teaser.imageAlt ?? `${teaser.label} – Vorschaubild`}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        )}
+
+        <!-- Text-Bereich -->
+        <div class="program-teasers__body">
+          <h3 class="program-teasers__title">{teaser.label}</h3>
+          <p  class="program-teasers__desc">{teaser.description}</p>
+          <span class="program-teasers__cta" aria-hidden="true">
+            Mehr erfahren →
+          </span>
+        </div>
+      </a>
+    ))}
   </div>
 </section>
 
 <style>
   .program-teasers {
-    padding-block: var(--space-16) var(--space-24);
-    background: var(--color-bg-page);
+    padding-block: var(--space-8) var(--space-24);
+    background:    var(--color-bg-page);
   }
 
+  /* 3-spaltiges Grid auf Desktop */
   .program-teasers__grid {
-    display: grid;
+    display:               grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-6);
-  }
-
-  .program-teasers__card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-    background: var(--color-bg-surface);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card);
-    padding: var(--space-8);
-    color: var(--color-text-body);
-    transition: transform var(--transition-fast);
-  }
-
-  .program-teasers__card:hover {
-    transform: translateY(-2px);
-    text-decoration: none;
-  }
-
-  .program-teasers__card h3 {
-    color: var(--color-text-heading);
-  }
-
-  .program-teasers__link {
-    margin-top: auto;
-    color: var(--color-brand-blue);
-    font-weight: var(--fw-medium);
-    font-size: var(--fs-small);
+    gap:                   var(--space-6);
   }
 
   @media (max-width: 880px) {
     .program-teasers__grid {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* ── Karte ──────────────────────────────────────── */
+  .program-teasers__card {
+    display:        flex;
+    flex-direction: column;
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-md);
+    box-shadow:     var(--shadow-card);
+    border:         1px solid var(--color-border-subtle);
+    overflow:       hidden;
+    color:          var(--color-text-body);
+    text-decoration: none;
+    transition:
+      transform  var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .program-teasers__card:hover {
+    transform:  translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0, 82, 233, 0.13);
+    text-decoration: none;
+  }
+
+  /* ── Bild ───────────────────────────────────────── */
+  .program-teasers__img-wrap {
+    width:    100%;
+    height:   180px;   /* Einheitliche Bildhöhe in allen Karten */
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .program-teasers__img-wrap img {
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+    display:    block;
+    transition: transform 0.45s ease;
+  }
+
+  .program-teasers__card:hover .program-teasers__img-wrap img {
+    transform: scale(1.04);
+  }
+
+  /* ── Text-Bereich ───────────────────────────────── */
+  .program-teasers__body {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-3);
+    padding:        var(--space-6);
+    flex:           1;   /* wächst, sodass alle Karten gleich hoch sind */
+  }
+
+  .program-teasers__title {
+    color:       var(--color-text-heading);
+    font-size:   var(--fs-h3);
+    font-weight: var(--fw-bold);
+    margin:      0;
+  }
+
+  .program-teasers__desc {
+    color:       var(--color-text-body);
+    font-size:   var(--fs-body);
+    line-height: var(--lh-body);
+    margin:      0;
+    /* Maximal 3 Zeilen, danach Ellipsis */
+    display:            -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow:           hidden;
+  }
+
+  .program-teasers__cta {
+    margin-top:  auto;
+    padding-top: var(--space-2);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-medium);
+    color:       var(--color-brand-blue);
   }
 </style>

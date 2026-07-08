@@ -19,16 +19,28 @@ interface Props {
   subtext?:         string;
   /** Bewerbungsdaten – aus application.ts via CityLayout übergeben */
   applicationData?: ApplicationConfig | null;
+  /** Logo über der Headline anzeigen (nur Startseite) */
+  showLogo?:        boolean;
 }
 
-const { headline, subtext, applicationData = null } = Astro.props;
+const { headline, subtext, applicationData = null, showLogo = false } = Astro.props;
 ---
 
 <section class="hero" aria-label="Hero-Bereich">
   <div class="container hero__inner">
 
     <!-- ── Hauptinhalt ────────────────────────────────── -->
-    <h1 class="hero__headline">{headline}</h1>
+    {showLogo && (
+      <img
+        src="/logo.png"
+        alt="OneAIM Logo"
+        class="hero__logo"
+        decoding="async"
+        loading="eager"
+      />
+    )}
+
+    <h1 class:list={["hero__headline", showLogo && "hero__headline--with-logo"]}>{headline}</h1>
 
     {subtext && (
       <p class="hero__subtext">{subtext}</p>
@@ -123,6 +135,16 @@ const { headline, subtext, applicationData = null } = Astro.props;
     text-align:     center;
   }
 
+  /* ── Logo (Startseite) ───────────────────────────── */
+  .hero__logo {
+    /* ~35% der Seitenbreite, nie breiter als 448px, nie schmaler als 140px */
+    width:      35vw;
+    max-width:  448px;
+    min-width:  140px;
+    height:     auto;
+    object-fit: contain;
+  }
+
   /* ── Headline ─────────────────────────────────────── */
   .hero__headline {
     font-size:   var(--fs-display);
@@ -130,6 +152,11 @@ const { headline, subtext, applicationData = null } = Astro.props;
     color:       var(--color-brand-blue);
     line-height: var(--lh-heading);
     max-width:   820px;
+  }
+
+  /* Wenn Logo sichtbar: Headline etwas kleiner */
+  .hero__headline--with-logo {
+    font-size: var(--fs-h1);
   }
 
   /* ── Subtext ──────────────────────────────────────── */
