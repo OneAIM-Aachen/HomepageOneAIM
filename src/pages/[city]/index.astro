@@ -26,22 +26,19 @@ const teasers = [
     label:       "AIM Connect",
     slug:        "aim-connect",
     description: city.aimConnect.intro,
-    image:       "/images/teasers/aim-connect.svg",
-    imageAlt:    "AIM Connect – Vernetzung im HealthTech-Ökosystem",
+    image:       city.teaserImages.aimConnect,
   },
   {
     label:       "AIM Code",
     slug:        "aim-code",
     description: city.aimCode.intro,
-    image:       "/images/teasers/aim-code.svg",
-    imageAlt:    "AIM Code – Programmieren für Healthcare",
+    image:       city.teaserImages.aimCode,
   },
   {
     label:       "Team",
     slug:        "team",
     description: `Lerne das Team hinter OneAIM ${city.displayName} kennen.`,
-    image:       "/images/teasers/team.svg",
-    imageAlt:    `Das Team von OneAIM ${city.displayName}`,
+    image:       city.teaserImages.team,
   },
 ];
 ---
@@ -51,9 +48,73 @@ const teasers = [
   pageTitle="Übersicht"
   showApplicationInfo={true}
 >
+  <!-- Instagram-Button: oben rechts, stadtspezifischer Link aus cityData.ts -->
+  <div class="city-social">
+    <a
+      href={city.instagram}
+      class="city-social__btn"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`OneAIM ${city.displayName} auf Instagram (öffnet in neuem Tab)`}
+    >
+      <!-- Instagram-Icon -->
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"
+          fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="12" cy="12" r="4"
+          fill="none" stroke="currentColor" stroke-width="2"/>
+        <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/>
+      </svg>
+      Instagram
+    </a>
+  </div>
+
   <ContentSection heading={`OneAIM in ${city.displayName}`} background="page">
     {city.introText.map(p => <p>{p}</p>)}
   </ContentSection>
 
   <ProgramTeasers citySlug={city.slug} teasers={teasers} />
 </CityLayout>
+
+<style>
+  /* Instagram-Button: rechtsbündig, direkt unter den CityTabs */
+  .city-social {
+    display:          flex;
+    justify-content:  flex-end;
+    padding:          var(--space-4) var(--container-padding);
+    max-width:        var(--container-max);
+    margin-inline:    auto;
+    background:       var(--color-bg-page);
+  }
+
+  .city-social__btn {
+    display:         inline-flex;
+    align-items:     center;
+    gap:             var(--space-2);
+    padding:         var(--space-2) var(--space-4);
+    border-radius:   var(--radius-pill);
+    border:          1.5px solid var(--color-border-subtle);
+    background:      var(--color-bg-surface);
+    color:           var(--color-text-heading);
+    font-family:     var(--font-display);
+    font-size:       var(--fs-small);
+    font-weight:     var(--fw-medium);
+    text-decoration: none;
+    transition:
+      background    var(--transition-fast),
+      border-color  var(--transition-fast),
+      color         var(--transition-fast);
+  }
+
+  .city-social__btn:hover {
+    background:      var(--color-brand-blue);
+    border-color:    var(--color-brand-blue);
+    color:           var(--color-text-on-brand);
+    text-decoration: none;
+  }
+
+  .city-social__btn:focus-visible {
+    outline:    none;
+    box-shadow: var(--focus-ring);
+  }
+</style>

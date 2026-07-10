@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" role="img" aria-label="Floy – Platzhalter-Logo">
-  <title>Floy</title>
-  <path d="M 20 20 Q 20 60 20 60 L 60 60" fill="none" stroke="#1A1A1A" stroke-width="5" stroke-linecap="round"/>
-  <text x="118" y="44" font-family="Georgia,serif" font-size="28" font-weight="400"
-    fill="#1A1A1A" text-anchor="middle" dominant-baseline="middle" letter-spacing="2">floy</text>
-</svg>

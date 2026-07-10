@@ -15,7 +15,7 @@ export const connectAachenEvents: TimelineEvent[] = [
     title:       "AIM Connect Aachen – Launch Event",                       // DUMMY
     date:        "2026-02-08",
     description: "Das offizielle Launch-Event des neuen OneAIM-Standorts in Aachen. Studierende aus Medizin, Technik und Wirtschaft kommen zum ersten Mal zusammen und lernen das HealthTech-Ökosystem der Region kennen.",
-    image:       "/images/events/event-launch.svg",
+    image:       "/images/events/aachenKickoff2026.jpg",
     imageAlt:    "Launch Event AIM Connect Aachen (Platzhalter)",
     location:    "Aachen",
     category:    "Kick-Off",
