@@ -7,17 +7,18 @@
 //                        (Kreativität/Innovation, laut Guide immer als Duo)
 
 interface Props {
-  href: string;
-  variant?: "primary" | "secondary";
+  href:      string;
+  variant?:  "primary" | "secondary";
   external?: boolean;
+  class?:    string;
 }
 
-const { href, variant = "primary", external = false } = Astro.props as Props;
+const { href, variant = "primary", external = false, class: className } = Astro.props as Props;
 ---
 
 <a
   href={href}
-  class={`btn btn--${variant}`}
+  class:list={[`btn btn--${variant}`, className]}
   target={external ? "_blank" : undefined}
   rel={external ? "noopener noreferrer" : undefined}
 >
@@ -86,5 +87,18 @@ const { href, variant = "primary", external = false } = Astro.props as Props;
 
   .btn--secondary:hover {
     opacity: 0.88;
+  }
+
+  /* ── Startseiten-Hero-Buttons (München / Aachen) ──────────────────
+     Größer und leicht transparent. Nur diese zwei Buttons sind betroffen.
+     Padding und Schriftgröße hier anpassen – wirkt sofort.             */
+  .btn.hero-city-btn {
+    padding:   var(--space-4) var(--space-12);   /* ← Größe */
+    font-size: var(--fs-body-lg);               /* ← Schrift */
+    opacity:   0.82;                            /* ← Transparenz (0–1) */
+  }
+
+  .btn.hero-city-btn:hover {
+    opacity: 1;
   }
 </style>

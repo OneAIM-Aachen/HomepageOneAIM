@@ -24,6 +24,9 @@ import type { CityData }       from "../../data/cityData";
 // einer neuen Stadt etwas geändert werden.
 import { connectMunichEvents } from "../../data/connect-munich";
 import { connectAachenEvents } from "../../data/connect-aachen";
+import FAQSection              from "../../components/sections/FAQSection.astro";
+import { getFAQ }              from "../../data/faq";
+import type { CityKey }        from "../../data/faq";
 
 export function getStaticPaths() {
   return getCityStaticPaths();
@@ -38,6 +41,7 @@ const eventMap: Record<string, typeof connectMunichEvents> = {
   aachen:   connectAachenEvents,
 };
 const timelineEvents = eventMap[city.slug] ?? [];
+const faqItems = getFAQ("aimConnect", city.slug as CityKey);
 ---
 
 <CityLayout city={city} pageTitle="AIM Connect">
@@ -60,12 +64,19 @@ const timelineEvents = eventMap[city.slug] ?? [];
     </div>
   </section>
 
-  <!-- ③ Timeline – direkt unterhalb der Einleitung, vor anderen Sektionen -->
+  <!-- ③ Timeline –direkt unterhalb der Einleitung -->
   <Timeline
     events={timelineEvents}
     heading="Timeline"
     sortOrder="asc"
     background="subtle"
+  />
+
+  <!-- ④ FAQ -->
+  <FAQSection
+    items={faqItems}
+    heading="FAQ"
+    background="page"
   />
 
 </CityLayout>

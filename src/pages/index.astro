@@ -30,8 +30,8 @@ import Button            from "../components/ui/Button.astro";
     subtext="Advancing Technology in Healthcare"
     showLogo={true}
   >
-    <Button href="/muenchen" variant="primary">München</Button>
-    <Button href="/aachen"   variant="secondary">Aachen</Button>
+    <Button href="/muenchen" variant="primary"   class="hero-city-btn">München</Button>
+    <Button href="/aachen"   variant="secondary" class="hero-city-btn">Aachen</Button>
   </Hero>
 
   <!-- ② Sponsoren/Partner-Karussell – direkt unter dem Hero -->
@@ -63,3 +63,18 @@ import Button            from "../components/ui/Button.astro";
   <ApproachSection />
 
 </BaseLayout>
+
+<style>
+  /* Startseiten-Hero-Buttons: größer + leicht transparent.
+     Nur diese zwei Buttons sind betroffen – alle anderen Buttons
+     der Website bleiben unverändert. */
+  :global(.hero-city-btn) {
+    padding:   var(--space-6) var(--space-16);   /* größer als Standard */
+    font-size: var(--fs-body-lg);                /* größere Schrift      */
+    opacity:   0.82;                             /* leicht transparent   */
+  }
+
+  :global(.hero-city-btn:hover) {
+    opacity: 1;   /* beim Hover: voll sichtbar */
+  }
+</style>

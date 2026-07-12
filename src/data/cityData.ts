@@ -76,7 +76,7 @@ export const cityData: Record<CitySlug, CityData> = {
     instagram: "https://www.instagram.com/oneaim.munich",
     teaserImages: {
       aimConnect: "/images/teasers/aim-connect.svg",
-      aimCode:    "/images/teasers/aim-code.svg",
+      aimCode:    "/images/teasers/programming_course.jpg",
       team:       "/images/teasers/team.svg",
     },
   },
@@ -123,9 +123,9 @@ export const cityData: Record<CitySlug, CityData> = {
     team: [],
     instagram: "https://www.instagram.com/oneaim.aachen",
     teaserImages: {
-      aimConnect: "/images/teasers/aim-connect.svg",
-      aimCode:    "/images/teasers/aim-code.svg",
-      team:       "/images/teasers/team.svg",
+      aimConnect: "/images/teasers/aachenKickoff2026.jpg",
+      aimCode:    "/images/teasers/programming_course.jpg",
+      team:       "/images/teasers/team-aachen.jpg",
     },
   },
 };

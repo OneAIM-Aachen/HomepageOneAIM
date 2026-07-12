@@ -1,110 +1,125 @@
 ---
 // src/pages/[city]/aim-code.astro
-// AIM Code – erzeugt aus EINER Datei für München & Aachen.
+// AIM Code – erzeugt /muenchen/aim-code und /aachen/aim-code.
 
-import CityLayout from "../../layouts/CityLayout.astro";
+import CityLayout     from "../../layouts/CityLayout.astro";
 import ContentSection from "../../components/sections/ContentSection.astro";
-import IconCard from "../../components/cards/IconCard.astro";
+import IconCard       from "../../components/cards/IconCard.astro";
+import FAQSection     from "../../components/sections/FAQSection.astro";
+import { getFAQ }     from "../../data/faq";
+import type { CityKey } from "../../data/faq";
+
 import { getCityStaticPaths } from "../../data/cityData";
-import type { CityData } from "../../data/cityData";
+import type { CityData }       from "../../data/cityData";
 
 export function getStaticPaths() {
   return getCityStaticPaths();
 }
 
-interface Props {
-  city: CityData;
-}
-
+interface Props { city: CityData }
 const { city } = Astro.props as Props;
+
+const faqItems = getFAQ("aimCode", city.slug as CityKey);
 ---
 
 <CityLayout city={city} pageTitle="AIM Code">
-  <ContentSection heading="Empowering the Future of" headingAccent="Tech-Driven Healthcare" background="page">
+
+  <!-- ① Einleitung -->
+  <ContentSection
+    heading="Empowering the Future of"
+    headingAccent="Tech-Driven Healthcare"
+    background="page"
+  >
     <p>{city.aimCode.intro}</p>
   </ContentSection>
 
+  <!-- ② Why AIM Code – Karten -->
   <section class="aim-code-why" aria-label="Why AIM Code">
     <div class="container">
       <h2 class="aim-code-why__heading">
         Why <span class="aim-code-why__accent">AIM Code</span>?
       </h2>
       <div class="aim-code-why__grid">
-        {city.aimCode.whyCards.map((card) => <IconCard title={card.title} bullets={card.bullets} />)}
+        {city.aimCode.whyCards.map(card => (
+          <IconCard title={card.title} bullets={card.bullets} />
+        ))}
       </div>
     </div>
   </section>
 
+  <!-- ③ Programme (DataLab / CodeLab) -->
   <section class="aim-code-programs" aria-label="Unsere Programme">
     <div class="container">
       <h2 class="aim-code-programs__heading">Our programs</h2>
       <div class="aim-code-programs__grid">
-        {
-          city.aimCode.programs.map((program) => (
-            <div class="aim-code-programs__card">
-              <h3>{program.title}</h3>
-              <p>{program.description}</p>
-            </div>
-          ))
-        }
+        {city.aimCode.programs.map(program => (
+          <div class="aim-code-programs__card">
+            <h3>{program.title}</h3>
+            <p>{program.description}</p>
+          </div>
+        ))}
       </div>
     </div>
   </section>
+
+  <!-- ④ FAQ -->
+  <FAQSection
+    items={faqItems}
+    heading="FAQ"
+    background="subtle"
+  />
+
 </CityLayout>
 
 <style>
   .aim-code-why {
     padding-block: var(--space-8) var(--space-16);
-    background: var(--color-bg-page);
+    background:    var(--color-bg-page);
   }
 
   .aim-code-why__heading {
-    text-align: center;
+    text-align:    center;
     margin-bottom: var(--space-8);
   }
 
-  .aim-code-why__accent {
-    color: var(--color-brand-blue);
-  }
+  .aim-code-why__accent { color: var(--color-brand-blue); }
 
   .aim-code-why__grid {
-    display: grid;
+    display:               grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-6);
+    gap:                   var(--space-6);
   }
 
   .aim-code-programs {
     padding-block: var(--space-16) var(--space-24);
-    background: var(--color-bg-subtle);
+    background:    var(--color-bg-subtle);
   }
 
   .aim-code-programs__heading {
-    text-align: center;
+    text-align:    center;
     margin-bottom: var(--space-8);
   }
 
   .aim-code-programs__grid {
-    display: grid;
+    display:               grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-6);
+    gap:                   var(--space-6);
   }
 
   .aim-code-programs__card {
-    background: var(--color-bg-surface);
+    background:    var(--color-bg-surface);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card);
-    padding: var(--space-8);
-    text-align: center;
+    box-shadow:    var(--shadow-card);
+    padding:       var(--space-8);
+    text-align:    center;
   }
 
   .aim-code-programs__card h3 {
-    color: var(--color-text-heading);
+    color:         var(--color-text-heading);
     margin-bottom: var(--space-3);
   }
 
-  .aim-code-programs__card p {
-    color: var(--color-text-body);
-  }
+  .aim-code-programs__card p { color: var(--color-text-body); }
 
   @media (max-width: 760px) {
     .aim-code-why__grid,

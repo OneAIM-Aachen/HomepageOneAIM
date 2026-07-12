@@ -1,0 +1,179 @@
+---
+// src/components/sections/FAQSection.astro
+//
+// Generische FAQ-Sektion mit Akkordeon.
+// Erhält alle Fragen über Props – kennt keine Programme oder Städte.
+// Nutzt natives <details>/<summary> – kein JavaScript nötig,
+// vollständig barrierefrei, funktioniert auch ohne JS.
+//
+// NEUE FRAGE ERGÄNZEN: ausschließlich in src/data/faq.ts
+
+import type { FAQItem } from "../../data/faq";
+
+interface Props {
+  items:       FAQItem[];
+  heading?:    string;
+  background?: "page" | "subtle" | "surface";
+}
+
+const {
+  items,
+  heading    = "FAQ",
+  background = "subtle",
+} = Astro.props;
+---
+
+<section
+  class={`faq-section faq-section--${background}`}
+  aria-labelledby="faq-heading"
+>
+  <div class="container faq-section__inner">
+
+    <h2 id="faq-heading" class="faq-section__heading">{heading}</h2>
+
+    {items.length === 0 ? (
+      <p class="faq-section__empty">Keine FAQ-Einträge vorhanden.</p>
+    ) : (
+      <dl class="faq-list">
+        {items.map((item, i) => (
+          <details class="faq-item" name="faq-group">
+            <summary class="faq-item__question">
+              <span>{item.question}</span>
+              <!-- Pfeil-Icon dreht sich beim Öffnen via CSS -->
+              <svg
+                class="faq-item__icon"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <polyline
+                  points="6 9 12 15 18 9"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </summary>
+
+            <div class="faq-item__answer">
+              <p>{item.answer}</p>
+            </div>
+          </details>
+        ))}
+      </dl>
+    )}
+
+  </div>
+</section>
+
+<style>
+  /* ── Section ──────────────────────────────────────── */
+  .faq-section {
+    padding-block: var(--space-16) var(--space-24);
+  }
+
+  .faq-section--page    { background: var(--color-bg-page);    }
+  .faq-section--subtle  { background: var(--color-bg-subtle);  }
+  .faq-section--surface { background: var(--color-bg-surface); }
+
+  .faq-section__inner {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+    max-width:      860px;
+  }
+
+  .faq-section__heading {
+    text-align: center;
+    color:      var(--color-text-heading);
+  }
+
+  .faq-section__empty {
+    color:     var(--color-text-muted);
+    text-align: center;
+  }
+
+  /* ── Fragen-Liste ─────────────────────────────────── */
+  .faq-list {
+    display:        flex;
+    flex-direction: column;
+    gap:            0;
+    margin:         0;
+    padding:        0;
+  }
+
+  /* ── Einzelnes FAQ-Element ────────────────────────── */
+  .faq-item {
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .faq-item:first-of-type {
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  /* Pfeil dreht sich wenn geöffnet */
+  .faq-item[open] .faq-item__icon {
+    transform: rotate(180deg);
+  }
+
+  /* ── Frage (summary) ──────────────────────────────── */
+  .faq-item__question {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             var(--space-4);
+    padding:         var(--space-5) 0;
+    cursor:          pointer;
+    list-style:      none;   /* Standard-Dreieck entfernen */
+    color:           var(--color-text-heading);
+    font-family:     var(--font-display);
+    font-weight:     var(--fw-semibold);
+    font-size:       var(--fs-body);
+    line-height:     1.4;
+    transition:      color var(--transition-fast);
+    user-select:     none;
+  }
+
+  /* Standard-Marker in allen Browsern entfernen */
+  .faq-item__question::-webkit-details-marker { display: none; }
+  .faq-item__question::marker                 { display: none; }
+
+  .faq-item__question:hover {
+    color: var(--color-brand-blue);
+  }
+
+  .faq-item[open] .faq-item__question {
+    color: var(--color-brand-blue);
+  }
+
+  /* ── Pfeil-Icon ───────────────────────────────────── */
+  .faq-item__icon {
+    flex-shrink:  0;
+    color:        var(--color-brand-blue);
+    transition:   transform var(--transition-base);
+  }
+
+  /* ── Antwort ──────────────────────────────────────── */
+  .faq-item__answer {
+    padding-bottom: var(--space-5);
+    padding-right:  var(--space-8);
+  }
+
+  .faq-item__answer p {
+    font-size:   var(--fs-body);
+    color:       var(--color-text-body);
+    line-height: var(--lh-body);
+    margin:      0;
+  }
+
+  /* Fokus-Ring für Tastaturnavigation */
+  .faq-item__question:focus-visible {
+    outline:       none;
+    box-shadow:    var(--focus-ring);
+    border-radius: var(--radius-sm);
+  }
+</style>

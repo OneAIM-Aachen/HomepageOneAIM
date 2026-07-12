@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-label="Publikation (Platzhalter)">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a3fa8"/>
+      <stop offset="100%" stop-color="#232ACF"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="480" fill="url(#g)"/>
+  <circle cx="680" cy="60" r="240" fill="rgba(255,255,255,0.05)"/>
+  <!-- Dokument-Icon -->
+  <rect x="280" y="120" width="240" height="300" rx="10" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+  <rect x="308" y="160" width="184" height="12" rx="6" fill="rgba(255,255,255,0.30)"/>
+  <rect x="308" y="188" width="160" height="10" rx="5" fill="rgba(255,255,255,0.20)"/>
+  <rect x="308" y="212" width="184" height="10" rx="5" fill="rgba(255,255,255,0.20)"/>
+  <rect x="308" y="236" width="140" height="10" rx="5" fill="rgba(255,255,255,0.18)"/>
+  <rect x="308" y="272" width="184" height="10" rx="5" fill="rgba(255,255,255,0.16)"/>
+  <rect x="308" y="296" width="120" height="10" rx="5" fill="rgba(255,255,255,0.16)"/>
+  <rect x="308" y="320" width="170" height="10" rx="5" fill="rgba(255,255,255,0.14)"/>
+  <rect x="308" y="344" width="100" height="10" rx="5" fill="rgba(255,255,255,0.14)"/>
+</svg>
