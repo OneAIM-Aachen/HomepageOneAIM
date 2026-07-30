@@ -20,7 +20,7 @@ const rest     = all.slice(1);             // restliche als Kacheln
 
 <BaseLayout
   title="Publications"
-  description="Publikationen und Berichte rund um OneAIM, AIM Connect und AIM Code."
+  description="Publications and reports related to OneAIM, AIM Connect, and AIM Code."
 >
 
   <!-- ── Seiten-Kopf ─────────────────────────────────── -->
@@ -28,17 +28,13 @@ const rest     = all.slice(1);             // restliche als Kacheln
     <div class="container pub-header__inner">
       <h1 id="pub-page-heading">Publications</h1>
       <p class="pub-header__sub">
-        Publikationen, Berichte und Lernmaterialien aus der Arbeit von OneAIM.
+        Publications and reports related to OneAIM, AIM Connect, and AIM Code.
       </p>
     </div>
   </section>
 
   <div class="pub-content">
     <div class="container">
-
-      <DummyNotice
-        text="Alle Publikationen sind Platzhalterinhalte – vor Go-Live durch echte Quellen ersetzen (src/data/publicationsData.ts)."
-      />
 
       <!-- ── Featured: neueste Publikation ──────────────── -->
       {featured && (
@@ -72,7 +68,7 @@ const rest     = all.slice(1);             // restliche als Kacheln
       <!-- ── Ältere Publikationen als Kacheln ────────────── -->
       {rest.length > 0 && (
         <section class="pub-list-section" aria-label="Weitere Publikationen">
-          <h2 class="pub-list-section__heading">Weitere Publikationen</h2>
+          <h2 class="pub-list-section__heading">Further Publications</h2>
 
           <ul class="pub-list">
             {rest.map(pub => (

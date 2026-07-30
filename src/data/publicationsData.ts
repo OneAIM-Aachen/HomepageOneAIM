@@ -26,7 +26,7 @@ export const publications: Publication[] = [
     title:       "The first OneAIM book is out now!",
     authors:     ["L. Hartmann", "J. Weber"],
     year:        2026,
-    description: "Eine Analyse, wie interdisziplinäre Studierendenprogramme den Transfer von Forschungsergebnissen in die klinische Anwendung beschleunigen können.",
+    description: "An analysis of how interdisciplinary student programs can accelerate the transfer of research findings into clinical practice.",
     image:       "/images/publications/oneAimBook1.jpeg",
     imageAlt:    "Publikation: Studierendeninitiativen und MedTech-Forschung (Platzhalter)",
   },
@@ -35,18 +35,9 @@ export const publications: Publication[] = [
     title:       "Maschinelles Lernen in der medizinischen Bildgebung: Ein Einstieg für Studierende",
     authors:     ["S. Bauer", "F. Schmidt", "M. Lindner"],
     year:        2025,
-    description: "Begleitmaterial aus dem AIM Code Bootcamp zu den Grundlagen von Bildklassifikation und Diagnoseunterstützung mittels KI.",
+    description: "Supplementary material from the AIM Code Bootcamp on the fundamentals of image classification and AI-assisted diagnosis.",
     image:       "/images/publications/pub-2.svg",
     imageAlt:    "Publikation: Maschinelles Lernen in der Bildgebung (Platzhalter)",
-  },
-  {
-    id:          "healthtech-netzwerk-2025",
-    title:       "Erfahrungsbericht: Aufbau eines studentischen HealthTech-Netzwerks in zwei Städten",
-    authors:     ["T. Klein", "A. Vogel"],
-    year:        2025,
-    description: "Reflexion über Herausforderungen und Erfolge beim Aufbau von AIM Connect an einem zweiten Hochschulstandort.",
-    image:       "/images/publications/pub-3.svg",
-    imageAlt:    "Publikation: HealthTech-Netzwerk Erfahrungsbericht (Platzhalter)",
   },
 ];
 

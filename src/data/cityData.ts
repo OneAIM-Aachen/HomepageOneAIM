@@ -35,15 +35,15 @@ export interface CityData {
 export const cityData: Record<CitySlug, CityData> = {
   muenchen: {
     slug:        "muenchen",
-    displayName: "München",
-    heroHeadline: "AIM in München",
-    heroSubtext:  "Wo OneAIM seinen Ursprung hat – mitten im Münchner HealthTech-Ökosystem.",
+    displayName: "Munich",
+    heroHeadline: "AIM in Munich",
+    heroSubtext:  "The origin of OneAIM!",
     introText: [
-      "München ist der Gründungsstandort von OneAIM. Hier verbinden wir Studierende aus Medizin, Technik und Wirtschaft mit Kliniken, Forschungseinrichtungen und Start-ups der Region.",
-      "Über AIM Connect und AIM Code erhalten Teilnehmende direkten Zugang zu Mentoring, praxisnahen Projekten und einem wachsenden Alumni-Netzwerk.",
+      "Munich is where OneAIM was founded. Here, we connect students from the fields of medicine, engineering, and business with hospitals, research institutions, and startups in the region.",
+      "Through AIM Connect and AIM Code, participants gain direct access to mentoring, hands-on projects, and a growing alumni network."
     ],
     aimConnect: {
-      intro: "AIM Connect München ist ein selektives 10-wöchiges Programm, das Studierende aus medizinischen, technischen und wirtschaftlichen Fachrichtungen mit dem HealthTech-Ökosystem in München vernetzt.",
+      intro: "AIM Connect Munich is a selective 10-week program that connects students from medical, technical, and business disciplines with the HealthTech ecosystem in Munich.",
       cards: [
         {
           title: "Scope",
@@ -62,7 +62,7 @@ export const cityData: Record<CitySlug, CityData> = {
       ],
     },
     aimCode: {
-      intro: "AIM Code München ist der Einstieg in praxisnahes Programmieren für die Gesundheitstechnologie von morgen.",
+      intro: "AIM Code Munich is your gateway to hands-on programming for the healthcare technology of tomorrow.",
       whyCards: [
         { title: "Real-World Applications", bullets: [{ label: "Praxisbezug", text: "Lernen anhand medizinischer Datenanalyse, KI-Diagnostik und prädiktiver Modelle." }] },
         { title: "Hands-On Learning", bullets: [{ label: "Praxiserfahrung", text: "Python, KI-Entwicklung und Machine Learning anhand realer Healthcare-Use-Cases." }] },
@@ -85,13 +85,13 @@ export const cityData: Record<CitySlug, CityData> = {
     slug:        "aachen",
     displayName: "Aachen",
     heroHeadline: "AIM in Aachen",
-    heroSubtext:  "Der neue OneAIM-Standort – Technik, Medizin und Innovation im Rheinland.",
+    heroSubtext:  "In 2025, OneAIM has finally arrived in Aachen!",
     introText: [
-      "Aachen ist der jüngste Standort von OneAIM und bringt die Initiative in eine der führenden Technikregionen Deutschlands.",
-      "Mit AIM Connect und AIM Code entsteht hier eine neue Community aus Studierenden, die MedTech-Innovation aktiv mitgestalten wollen.",
+      "Aachen is OneAIM's newest location and brings the initiative to one of Germany's leading technology regions.",
+      "With AIM Connect and AIM Code, a new community of students is emerging here who want to actively help shape medtech innovation.",
     ],
     aimConnect: {
-      intro: "AIM Connect Aachen vernetzt Studierende aus Medizin, Technik und Wirtschaft mit dem regionalen HealthTech-Ökosystem rund um RWTH Aachen und die Uniklinik.",
+      intro: "AIM Connect Aachen connects students in medicine, engineering, and business with the regional HealthTech ecosystem centered around RWTH Aachen University and the University Hospital.",
       cards: [
         {
           title: "Scope",
@@ -110,7 +110,7 @@ export const cityData: Record<CitySlug, CityData> = {
       ],
     },
     aimCode: {
-      intro: "AIM Code Aachen bringt praxisnahes Programmieren für die Gesundheitstechnologie an den Campus.",
+      intro: "AIM Code Aachen brings hands-on programming for health technology to the campus.",
       whyCards: [
         { title: "Real-World Applications", bullets: [{ label: "Praxisbezug", text: "Aufgaben orientieren sich an echten Fragestellungen aus Medizintechnik und Diagnostik." }] },
         { title: "Hands-On Learning", bullets: [{ label: "Praxiserfahrung", text: "Programmieren lernen anhand realer Datensätze aus dem Gesundheitswesen." }] },

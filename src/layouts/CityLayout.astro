@@ -1,33 +1,32 @@
 ---
 // src/layouts/CityLayout.astro
 //
-// Gemeinsames Layout für alle Standort-Seiten (Hub, AIM Connect, AIM Code, Team).
+// Gemeinsames Layout für alle Standort-Seiten.
 //
 // BEWERBUNGSBEREICH:
-//   showApplicationInfo={true} → CityLayout schlägt die Daten für den
-//   aktuellen Standort automatisch aus application.ts nach und übergibt
-//   sie an Hero. Kein manueller Daten-Import in den Seiten nötig.
-//
-//   Angepasst wird ausschließlich: src/data/application.ts
+//   showApplicationInfo={true} + program="aimConnect" oder "aimCode"
+//   → lädt automatisch die passende Konfiguration aus application.ts
+//   → Nur application.ts muss für Änderungen angefasst werden
 
-import BaseLayout        from "./BaseLayout.astro";
-import Hero              from "../components/sections/Hero.astro";
-import CityTabs          from "../components/navigation/CityTabs.astro";
-import type { CityData } from "../data/cityData";
+import BaseLayout          from "./BaseLayout.astro";
+import Hero                from "../components/sections/Hero.astro";
+import CityTabs            from "../components/navigation/CityTabs.astro";
+import type { CityData }   from "../data/cityData";
 import { getApplicationData } from "../data/application";
+import type { ProgramKey } from "../data/application";
 
 interface Props {
   city:                 CityData;
   pageTitle:            string;
   description?:         string;
-  /**
-   * Bewerbungsbereich im Hero anzeigen?
-   * Wenn true, schlägt CityLayout die Daten für city.slug automatisch
-   * aus application.ts nach und übergibt sie an den Hero.
-   *
-   * Standard: false → kein Bewerbungsbereich (Hub, AIM Code, Team)
-   */
+  /** Bewerbungsbereich im Hero anzeigen? */
   showApplicationInfo?: boolean;
+  /**
+   * Welches Programm soll angezeigt werden?
+   * "aimConnect" (Standard) oder "aimCode"
+   * Nur relevant wenn showApplicationInfo={true}
+   */
+  program?:             ProgramKey;
 }
 
 const {
@@ -35,13 +34,11 @@ const {
   pageTitle,
   description,
   showApplicationInfo = false,
+  program             = "aimConnect",
 } = Astro.props;
 
-// Bewerbungsdaten automatisch für den aktuellen Standort ermitteln.
-// Gibt null zurück, wenn showApplicationInfo=false ODER kein Eintrag
-// in application.ts vorhanden → Hero zeigt nichts an (Graceful Degradation).
 const applicationData = showApplicationInfo
-  ? getApplicationData(city.slug)
+  ? getApplicationData(city.slug, program)
   : null;
 ---
 
@@ -49,19 +46,13 @@ const applicationData = showApplicationInfo
   title={`${pageTitle} – ${city.displayName}`}
   description={description ?? `${pageTitle} am OneAIM-Standort ${city.displayName}.`}
 >
-  <!--
-    Hero: erhält applicationData nur wenn showApplicationInfo=true.
-    Auf Hub-, Team- und AIM-Code-Seiten bleibt der Hero unverändert.
-  -->
   <Hero
     headline={city.heroHeadline}
     subtext={city.heroSubtext}
     applicationData={applicationData}
   />
 
-  <!-- Lokale Stadt-Navigation (Übersicht | AIM Connect | AIM Code | Team) -->
   <CityTabs citySlug={city.slug} />
 
-  <!-- Seiteninhalt -->
   <slot />
 </BaseLayout>

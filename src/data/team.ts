@@ -84,7 +84,7 @@ export const teamMembers: TeamMember[] = [
   {
     id:       "eric-hoelpes",
     name:     "Eric Hölpes",            // DUMMY – ersetzen
-    role:     "Team Lead Social Media",
+    role:     "Team Lead | Social Media",
     photo:    "/images/team/eric-hoelpes.png",
     photoAlt: "Profilfoto Tobias Klein (Platzhalter)",
     city:     "aachen",
@@ -92,7 +92,7 @@ export const teamMembers: TeamMember[] = [
   {
     id:       "david-forster",
     name:     "David Forster",              // DUMMY – ersetzen
-    role:     "Team Lead Make-A-Thon",
+    role:     "Team Lead | Make-A-Thon",
     photo:    "/images/team/david-forster.png",
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
@@ -100,7 +100,7 @@ export const teamMembers: TeamMember[] = [
   {
     id:       "sebastian-ha",
     name:     "Sebastian Ha",              // DUMMY – ersetzen
-    role:     "Team Lead AIM Code",
+    role:     "Team Lead | AIM Code",
     photo:    "/images/team/sebastian-ha.png",
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
@@ -108,14 +108,31 @@ export const teamMembers: TeamMember[] = [
   {
     id:       "aliya-zwiens",
     name:     "Aliya Zwiens",              // DUMMY – ersetzen
-    role:     "Team Lead Application Management",
+    role:     "Team Lead | Application Management",
     photo:    "/images/team/aliya-zwiens.png",
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
-  },{
+  },
+  {
+    id:       "yujin-song",
+    name:     "Yujin Song",              // DUMMY – ersetzen
+    role:     "Teamlead | Kickoff Weekend",
+    photo:    "/images/team/Yujin_Song.png",
+    photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
+    city:     "aachen",
+  },
+  {
+    id:       "alex-mladenov",
+    name:     "Alex Mladenov",              // DUMMY – ersetzen
+    role:     "Team Lead | Partner Management",
+    photo:    "/images/team/alex-mladenov.jpeg",
+    photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
+    city:     "aachen",
+  },
+  {
     id:       "sven-mattus",
     name:     "Sven Mattus",              // DUMMY – ersetzen
-    role:     "",
+    role:     "Advisor",
     photo:    "/images/team/sven-mattus.png",
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
@@ -123,19 +140,20 @@ export const teamMembers: TeamMember[] = [
   {
     id:       "huang-lin",
     name:     "Huang Lin",              // DUMMY – ersetzen
-    role:     "",
+    role:     "Advisor",
     photo:    "/images/team/huang-lin.png",
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
   },
-{
-    id:       "alex-mladenov",
-    name:     "Alex Mladenov",              // DUMMY – ersetzen
-    role:     "Team Lead Partner Management",
-    photo:    "/images/team/alex-mladenov.jpeg",
+  {
+    id:       "anton-dimroth",
+    name:     "Dr. Anton Dimroth",              // DUMMY – ersetzen
+    role:     "Advisor",
+    photo:    "/images/team/dimroth_090.jpg",
     photoAlt: "Profilfoto Anna Vogel (Platzhalter)",
     city:     "aachen",
   },
+  
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

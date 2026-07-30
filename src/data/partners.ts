@@ -102,4 +102,11 @@ export const partners: Partner[] = [
     logoAlt: "TÜV SÜD AG – Platzhalter-Logo",
     website: "https://www.tuvsud.com",
   },
+  {
+    id: "csi-aachen",
+    name: "CSI Aachen",
+    logo: "/images/partners/csi_logo.svg",
+    logoAlt: "CSI Aachen – Platzhalter-Logo",
+    website: "https://care4innovation.de/",
+  },
 ];
