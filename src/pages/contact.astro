@@ -1,160 +1,184 @@
 ---
 // src/pages/contact.astro
-// Kontaktformular (Dummy, ohne Backend) + Kontaktinformationen (Platzhalter).
+//
+// Dedizierte Kontaktseite.
+// Zeigt die E-Mail-Adressen der einzelnen Standorte.
+//
+// E-MAIL-ADRESSEN ÄNDERN:
+// Die Kontaktdaten der Standorte stehen direkt unten im locations-Array.
+// Einfach die jeweilige email-Adresse anpassen – keine Komponente nötig.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
-import ContentSection from "../components/sections/ContentSection.astro";
-import FormField from "../components/ui/FormField.astro";
-import Button from "../components/ui/Button.astro";
-import DummyNotice from "../components/ui/DummyNotice.astro";
+
+const locations = [
+  {
+    city:        "München",
+    slug:        "muenchen",
+    email:       "muenchen@platzhalter-oneaim.de",   // ← vor Go-Live ersetzen
+    description: "Für alle Fragen rund um OneAIM München, AIM Connect und AIM Code am Standort München.",
+  },
+  {
+    city:        "Aachen",
+    slug:        "aachen",
+    email:       "aachen@platzhalter-oneaim.de",      // ← vor Go-Live ersetzen
+    description: "Für alle Fragen rund um OneAIM Aachen, AIM Connect und AIM Code am Standort Aachen.",
+  },
+];
 ---
 
-<BaseLayout title="Contact Us" description="Kontaktiere OneAIM in München und Aachen.">
-  <ContentSection heading="Contact Us" background="page">
-    <p>Fragen zu unseren Programmen, Partnerschaften oder zur Initiative? Schreib uns gerne.</p>
-  </ContentSection>
+<BaseLayout
+  title="Contact Us"
+  description="Kontaktiere OneAIM – Emailadressen für München und Aachen."
+>
+  <!-- Kopfbereich -->
+  <section class="contact-header" aria-labelledby="contact-page-heading">
+    <div class="container contact-header__inner">
+      <h1 id="contact-page-heading">Contact Us</h1>
+      <p class="contact-header__sub">
+        Du hast eine Frage oder möchtest mit uns in Kontakt treten?
+        Schreib uns direkt an den Standort, der dir am nächsten ist.
+      </p>
+    </div>
+  </section>
 
-  <section class="contact-section" aria-label="Kontaktformular und Kontaktinformationen">
-    <div class="container contact-section__grid">
-      <div class="contact-section__form-col">
-        <DummyNotice text="Dieses Formular ist aktuell nicht mit einem Backend verbunden (Demo-Verhalten beim Absenden)." />
+  <!-- Standort-Karten -->
+  <section class="contact-locations" aria-label="Kontaktadressen der Standorte">
+    <div class="container contact-locations__grid">
+      {locations.map(loc => (
+        <article class="contact-card">
+          <!-- Standort-Überschrift -->
+          <h2 class="contact-card__city">{loc.city}</h2>
+          <p class="contact-card__desc">{loc.description}</p>
 
-        <form id="contact-form" class="contact-form" novalidate>
-          <FormField id="contact-name" name="name" label="Name" required />
-          <FormField id="contact-email" name="email" type="email" label="E-Mail-Adresse" required />
-          <FormField id="contact-message" name="message" type="textarea" label="Nachricht" required />
+          <!-- E-Mail als klickbarer Link -->
+          <a
+            href={`mailto:${loc.email}`}
+            class="contact-card__email"
+            aria-label={`E-Mail an OneAIM ${loc.city} senden`}
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18"
+                 aria-hidden="true" focusable="false">
+              <path fill="none" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round"
+                    d="M2.5 5.5h15v10h-15zM2.5 5.5l7.5 6 7.5-6"/>
+            </svg>
+            {loc.email}
+          </a>
 
-          <Button href="#" variant="primary">
-            <span style="pointer-events: none;">Nachricht senden</span>
-          </Button>
-
-          <!-- Platzhalter für Erfolgsmeldung: wird per JS sichtbar gemacht.
-               In Produktion: nur nach erfolgreicher Backend-Antwort anzeigen. -->
-          <p id="contact-success" class="contact-form__message contact-form__message--success" role="status" aria-live="polite" hidden>
-            Danke für deine Nachricht! (Platzhalter – in Produktion: echte Bestätigung nach Server-Antwort.)
-          </p>
-
-          <!-- Platzhalter für Fehlermeldung: aktuell nicht aktiv geschaltet.
-               In Produktion: bei fehlgeschlagenem Request einblenden. -->
-          <p id="contact-error" class="contact-form__message contact-form__message--error" role="alert" aria-live="assertive" hidden>
-            Etwas ist schiefgelaufen. Bitte versuche es später erneut. (Platzhalter)
-          </p>
-        </form>
-      </div>
-
-      <aside class="contact-section__info-col" aria-label="Kontaktinformationen">
-        <h2>Kontaktinformationen</h2>
-        <DummyNotice text="Alle folgenden Angaben sind Platzhalter und müssen vor Veröffentlichung ersetzt werden." />
-
-        <dl class="contact-info">
-          <div class="contact-info__item">
-            <dt>E-Mail</dt>
-            <dd>kontakt@platzhalter-domain.de</dd>
-          </div>
-          <div class="contact-info__item">
-            <dt>LinkedIn</dt>
-            <dd><a href="https://www.linkedin.com/company/PLATZHALTER" target="_blank" rel="noopener noreferrer">linkedin.com/company/PLATZHALTER</a></dd>
-          </div>
-          <div class="contact-info__item">
-            <dt>Standort München</dt>
-            <dd>Musterstraße 1, 80331 München (Platzhalter)</dd>
-          </div>
-          <div class="contact-info__item">
-            <dt>Standort Aachen</dt>
-            <dd>Beispielweg 2, 52062 Aachen (Platzhalter)</dd>
-          </div>
-        </dl>
-      </aside>
+          <!-- Link zur Stadtseite -->
+          <a href={`/${loc.slug}`} class="contact-card__link">
+            Zur {loc.city}-Seite →
+          </a>
+        </article>
+      ))}
     </div>
   </section>
 </BaseLayout>
 
 <style>
-  .contact-section {
-    padding-block: var(--space-8) var(--space-24);
-    background: var(--color-bg-page);
+  /* ── Kopfbereich ────────────────────────────────────── */
+  .contact-header {
+    background:    var(--color-bg-subtle);
+    padding-block: var(--space-16) var(--space-12);
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
-  .contact-section__grid {
-    display: grid;
-    grid-template-columns: 1.3fr 1fr;
-    gap: var(--space-12);
-    align-items: start;
-  }
-
-  .contact-section__form-col,
-  .contact-section__info-col {
-    display: flex;
+  .contact-header__inner {
+    display:        flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap:            var(--space-3);
   }
 
-  .contact-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    background: var(--color-bg-surface);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card);
-    padding: var(--space-8);
+  .contact-header__inner h1 { font-size: var(--fs-h1); }
+
+  .contact-header__sub {
+    font-size: var(--fs-body-lg);
+    color:     var(--color-text-muted);
+    max-width: 560px;
+    margin:    0;
   }
 
-  .contact-form__message {
-    padding: var(--space-3) var(--space-4);
-    border-radius: var(--radius-sm);
-    font-size: var(--fs-small);
+  /* ── Standort-Grid ──────────────────────────────────── */
+  .contact-locations {
+    background:    var(--color-bg-page);
+    padding-block: var(--space-12) var(--space-24);
   }
 
-  .contact-form__message--success {
-    background: #dcfce7;
-    color: #166534;
+  .contact-locations__grid {
+    display:               grid;
+    grid-template-columns: 1fr 1fr;
+    gap:                   var(--space-6);
   }
 
-  .contact-form__message--error {
-    background: #fee2e2;
-    color: #991b1b;
-  }
-
-  .contact-section__info-col h2 {
-    font-size: var(--fs-h3);
-  }
-
-  .contact-info {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    margin: 0;
-  }
-
-  .contact-info__item dt {
-    font-size: var(--fs-small);
-    font-weight: var(--fw-bold);
-    color: var(--color-text-heading);
-  }
-
-  .contact-info__item dd {
-    margin: 0;
-    color: var(--color-text-body);
-  }
-
-  @media (max-width: 880px) {
-    .contact-section__grid {
+  @media (max-width: 640px) {
+    .contact-locations__grid {
       grid-template-columns: 1fr;
     }
   }
+
+  /* ── Einzelne Kontaktkarte ──────────────────────────── */
+  .contact-card {
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-md);
+    border:         1px solid var(--color-border-subtle);
+    box-shadow:     var(--shadow-card);
+    padding:        var(--space-8);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-4);
+  }
+
+  .contact-card__city {
+    font-size:   var(--fs-h2);
+    font-weight: var(--fw-bold);
+    color:       var(--color-brand-blue);
+    margin:      0;
+  }
+
+  .contact-card__desc {
+    font-size:   var(--fs-body);
+    color:       var(--color-text-body);
+    line-height: var(--lh-body);
+    margin:      0;
+  }
+
+  /* E-Mail-Button */
+  .contact-card__email {
+    display:         inline-flex;
+    align-items:     center;
+    gap:             var(--space-3);
+    padding:         var(--space-3) var(--space-6);
+    background:      var(--color-brand-blue);
+    color:           var(--color-text-on-brand);
+    border-radius:   var(--radius-sm);
+    font-family:     var(--font-display);
+    font-weight:     var(--fw-medium);
+    font-size:       var(--fs-body);
+    text-decoration: none;
+    align-self:      flex-start;
+    transition:
+      background var(--transition-fast),
+      transform  var(--transition-fast);
+  }
+
+  .contact-card__email:hover {
+    background:      var(--color-brand-blue-dark);
+    transform:       translateY(-1px);
+    text-decoration: none;
+  }
+
+  .contact-card__email:focus-visible {
+    outline:    none;
+    box-shadow: var(--focus-ring);
+  }
+
+  /* Link zur Stadtseite */
+  .contact-card__link {
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-medium);
+    color:       var(--color-brand-blue);
+    margin-top:  auto;
+  }
+
+  .contact-card__link:hover { text-decoration: underline; }
 </style>
-
-<script>
-  // Demo-Verhalten ohne Backend: simuliert eine erfolgreiche Übermittlung.
-  // In Produktion: echten Request senden und success/error je nach
-  // Antwort umschalten statt immer "success" zu zeigen.
-  const form = document.getElementById("contact-form");
-  const success = document.getElementById("contact-success");
-  const error = document.getElementById("contact-error");
-
-  form?.addEventListener("submit", (event) => {
-    event.preventDefault();
-    error?.setAttribute("hidden", "");
-    success?.removeAttribute("hidden");
-  });
-</script>
