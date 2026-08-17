@@ -1,14 +1,12 @@
 ---
 // src/components/navigation/Footer.astro
-// Globaler Footer.
-// Newsletter-CTA-Block trägt id="contact" für direkten Anker-Zugriff.
-// Der "Contact Us"-Link in der Fußzeile verweist auf /contact.
 
 const year = new Date().getFullYear();
 
 const footerLinks = [
-  { label: "Contact Us", href: "/contact",                             external: false },
-  { label: "Impressum",  href: "/impressum",                           external: false },
+  { label: "Contact Us",    href: "/contact",      external: false },
+  { label: "Datenschutz",   href: "/datenschutz",  external: false },
+  { label: "Impressum",     href: "/impressum",    external: false },
   {
     label: "LinkedIn",
     href:  "https://www.linkedin.com/company/oneaim",
@@ -19,11 +17,7 @@ const footerLinks = [
 
 <footer class="site-footer">
 
-  <section
-    id="contact"
-    class="site-footer__cta"
-    aria-labelledby="contact-heading"
-  >
+  <section id="contact" class="site-footer__cta" aria-labelledby="contact-heading">
     <div class="container site-footer__cta-inner">
       <h2 id="contact-heading">Stay Connected</h2>
       <p class="site-footer__cta-sub">
@@ -145,12 +139,8 @@ const footerLinks = [
     transition:    background var(--transition-fast);
   }
 
-  .site-footer__submit:hover { background: var(--color-accent-purple-dark); }
-
-  .site-footer__submit:focus-visible {
-    outline:    none;
-    box-shadow: var(--focus-ring-on-dark);
-  }
+  .site-footer__submit:hover        { background: var(--color-accent-purple-dark); }
+  .site-footer__submit:focus-visible { outline: none; box-shadow: var(--focus-ring-on-dark); }
 
   @media (min-width: 560px) {
     .site-footer__form {
@@ -185,10 +175,7 @@ const footerLinks = [
     transition: color var(--transition-fast);
   }
 
-  .site-footer__links a:hover {
-    color:           var(--color-brand-blue);
-    text-decoration: none;
-  }
+  .site-footer__links a:hover { color: var(--color-brand-blue); text-decoration: none; }
 
   .site-footer__copyright {
     font-size: var(--fs-caption);
