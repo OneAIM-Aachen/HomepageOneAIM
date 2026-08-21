@@ -47,23 +47,33 @@ const missionCards = [
 
 <section class="mission-section" aria-labelledby="mission-heading">
   <div class="container">
+    <div class="mission-panel">
     <h2 id="mission-heading" class="mission-section__heading">Our Mission</h2>
 
     <div class="mission-section__grid">
       {missionCards.map((card) => <IconCard title={card.title} bullets={card.bullets} iconPath={card.iconPath} />)}
+    </div>
     </div>
   </div>
 </section>
 
 <style>
   .mission-section {
-    padding-block: var(--space-24);
+    padding-block: var(--space-12) var(--space-24);
+    background: var(--color-bg-surface);
+  }
+
+  .mission-panel {
     background: var(--color-bg-subtle);
+    border-radius: 28px;
+    padding: var(--space-16) var(--space-12);
+    box-shadow: 0 18px 44px rgba(35, 42, 207, 0.10);
   }
 
   .mission-section__heading {
     text-align: center;
     margin-bottom: var(--space-12);
+    color: var(--color-brand-blue-dark);
   }
 
   .mission-section__grid {

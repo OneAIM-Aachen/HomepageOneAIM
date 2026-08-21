@@ -1,0 +1,237 @@
+---
+// src/pages/programs/[program].astro
+// Eine Seite je Programm – erzeugt aus src/data/programs.ts.
+// Neues Programm dort ergänzen, die Seite entsteht automatisch.
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Button from "../../components/ui/Button.astro";
+import { programs, type Program } from "../../data/programs";
+
+export function getStaticPaths() {
+  return programs.map(program => ({
+    params: { program: program.slug },
+    props: { program },
+  }));
+}
+
+interface Props { program: Program }
+const { program } = Astro.props as Props;
+
+const cityLabels: Record<string, string> = {
+  munich: "Munich",
+  aachen: "Aachen",
+};
+
+// Weitere Programme für die Leiste am Seitenende.
+const others = programs.filter(p => p.slug !== program.slug);
+---
+
+<BaseLayout
+  title={program.name}
+  description={program.intro.slice(0, 155)}
+>
+  <article class="program">
+    <header class="container program__head">
+      <p class="program__overline">Programs</p>
+      <h1 class="program__title">{program.name}</h1>
+      {program.badge && <span class="program__badge">{program.badge}</span>}
+      <p class="program__intro">{program.intro}</p>
+    </header>
+
+    {program.image && (
+      <div class="container">
+        <div class="program__media">
+          <img
+            src={program.image}
+            alt={program.imageAlt ?? ""}
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      </div>
+    )}
+
+    <section class="container program__section" aria-labelledby="highlights-heading">
+      <h2 id="highlights-heading" class="program__section-heading">What to expect</h2>
+      <ul class="program__highlights">
+        {program.highlights.map(h => (
+          <li class="program__highlight">
+            <h3>{h.title}</h3>
+            <p>{h.text}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="container program__section" aria-labelledby="cities-heading">
+      <h2 id="cities-heading" class="program__section-heading">In your city</h2>
+      <p class="program__note">
+        Every chapter runs {program.name} itself, on the shared OneAIM blueprint:
+        the format is the same everywhere, while partners, projects and dates are
+        local. The city pages have the details for each location.
+      </p>
+      {program.citySlugs?.length ? (
+        <div class="program__actions">
+          {program.citySlugs.map(city => (
+            <Button href={`/${city}`} variant="secondary">
+              {cityLabels[city] ?? city}
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <p class="program__note program__note--muted">
+          City pages for this program are coming soon. In the meantime, get in touch
+          and we will point you to the next dates.
+        </p>
+      )}
+      <div class="program__actions">
+        <Button href="/contact" variant="primary">Contact us</Button>
+      </div>
+    </section>
+
+    <section class="container program__section" aria-labelledby="others-heading">
+      <h2 id="others-heading" class="program__section-heading">Other programs</h2>
+      <ul class="program__others">
+        {others.map(p => (
+          <li>
+            <a href={`/programs/${p.slug}`}>
+              <span class="program__others-name">{p.name}</span>
+              <span class="program__others-text">{p.text}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .program {
+    background:    var(--color-bg-surface);
+    padding-block: var(--space-16) var(--space-24);
+  }
+
+  .program__head {
+    display:        flex;
+    flex-direction: column;
+    align-items:    flex-start;
+    gap:            var(--space-4);
+    max-width:      760px;
+    margin-bottom:  var(--space-12);
+  }
+
+  .program__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .program__title { font-size: var(--fs-display); }
+
+  .program__badge {
+    font-size:      12px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color:          var(--color-brand-blue);
+    background:     #E5EDFF;
+    border-radius:  var(--radius-pill);
+    padding:        5px 12px;
+  }
+
+  .program__intro {
+    font-size: var(--fs-body-lg);
+    max-width: 62ch;
+  }
+
+  .program__media {
+    border-radius: var(--radius-lg);
+    overflow:      hidden;
+    box-shadow:    0 8px 32px rgba(35, 42, 207, 0.08);
+    height:        clamp(240px, 34vw, 420px);
+    margin-bottom: var(--space-16);
+  }
+
+  .program__media img {
+    width:           100%;
+    height:          100%;
+    object-fit:      cover;
+    object-position: center 60%;
+  }
+
+  .program__section + .program__section { margin-top: var(--space-16); }
+
+  .program__section-heading {
+    font-size:      var(--fs-h2);
+    margin-bottom:  var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom:  1px solid var(--color-border-subtle);
+  }
+
+  .program__highlights {
+    display:               grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap:                   var(--space-6);
+  }
+
+  .program__highlight {
+    background:    var(--color-bg-surface);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow:    var(--shadow-card);
+    padding:       var(--space-6);
+  }
+
+  .program__highlight h3 { font-size: var(--fs-h3); margin-bottom: var(--space-2); }
+  .program__highlight p  { font-size: var(--fs-body); }
+
+  .program__note { max-width: 62ch; }
+  .program__note--muted { color: var(--color-text-muted); }
+
+  .program__actions {
+    display:   flex;
+    flex-wrap: wrap;
+    gap:       var(--space-4);
+    margin-top: var(--space-6);
+  }
+
+  .program__others {
+    display:               grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap:                   var(--space-4);
+  }
+
+  .program__others a {
+    display:         flex;
+    flex-direction:  column;
+    gap:             var(--space-2);
+    height:          100%;
+    padding:         var(--space-6);
+    border:          1px solid var(--color-border-subtle);
+    border-radius:   var(--radius-lg);
+    background:      #F7F9FE;
+    text-decoration: none;
+    transition:      box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .program__others a:hover {
+    box-shadow:      var(--shadow-lift);
+    transform:       translateY(-2px);
+    text-decoration: none;
+  }
+
+  .program__others-name {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size:   var(--fs-h3);
+    color:       var(--color-text-heading);
+  }
+
+  .program__others-text {
+    font-size:   var(--fs-small);
+    line-height: var(--lh-body);
+    color:       var(--color-text-body);
+  }
+</style>

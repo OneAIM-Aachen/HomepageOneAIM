@@ -1,0 +1,624 @@
+---
+// src/components/sections/CityBlueprint.astro
+//
+// Blaupause für JEDE standortspezifische Seite.
+//
+// Oberer Teil  = Entwurf 15A ("Photo hero + application card inside"):
+//   Foto über die volle Breite, Verlauf von links, Stadtname links,
+//   Uni-Logo und Instagram als Chips, rechts die Bewerbungskarte.
+//   Universität, Instagram und Bewerbungen stehen damit IM Hero –
+//   die früheren getrennten Bänder dafür entfallen.
+// Unterer Teil = Entwurf 12A, unverändert.
+//
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  ZUSTAND: Gerüst ohne Inhalte.                                           ║
+// ║  Alle Texte stehen als Platzhalter in eckigen Klammern, alle Bilder als  ║
+// ║  gestrichelte Ablageflächen. Gefüllt wird über den Eintrag des Standorts ║
+// ║  in src/data/cityData.ts (empfohlen) oder per Props – nichts an dieser   ║
+// ║  Datei muss dafür geändert werden.                                       ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+//
+// Reihenfolge der Bänder:
+//   1. Hero (15A)      – Foto, Stadtname, Uni-Logo, Instagram, Bewerbungskarte
+//   2. The chapter     – "Rooted in [City]" (Entwurf 2a, City History)
+//   3. Programs        – Volles Programm-Panel (Entwurf 6a, eigene Komponente)
+//   4. Team            – Scroll-Reihen (Entwurf 3a, eigene Komponente)
+//   5. News            – füllt sich automatisch aus newsData.ts (siehe citySlug)
+
+import CityProgramsPanel from "./CityProgramsPanel.astro";
+import CityTeamCarousel from "./CityTeamCarousel.astro";
+import { getNewsByCity } from "../../data/newsData";
+import { cityData, type CitySlug } from "../../data/cityData";
+import {
+  getFeaturedApplication,
+  getNextUpcoming,
+  getStatus,
+  getProgramName,
+  getApplicationTitle,
+} from "../../data/applications";
+
+interface Row { label: string; value: string }
+
+interface Application {
+  /** "open" = grüner Punkt, "upcoming" = grauer Punkt */
+  status: "open" | "upcoming";
+  statusLabel: string;
+  program: string;
+  term: string;
+  rows: Row[];
+  ctaLabel: string;
+  ctaHref?: string;
+}
+
+interface Upcoming { text: string }
+interface NewsCard { title: string; date: string; image?: string; href?: string }
+
+interface Props {
+  /** Anzeigename des Standorts – ersetzt [City] in allen Überschriften */
+  city?: string;
+  /**
+   * Slug des Standorts ("munich" | "aachen" | "frankfurt").
+   * Ist er gesetzt, füllen sich automatisch:
+   *   • die Bewerbungskarte im Hero aus src/data/applications.ts
+   *   • die "Coming up"-Zeile mit der nächsten kommenden Runde
+   *   • das News-Band aus src/data/newsData.ts
+   * Die Props `application`, `upcoming` und `news` überschreiben das.
+   */
+  citySlug?: CitySlug;
+
+  // ── Hero (15A) ──────────────────────────────────────────────
+  heroImage?: string;
+  heroImageAlt?: string;
+  /** Logo der Universität – erscheint als weißer Chip im Hero */
+  universityLogo?: string;
+  /** Name der Universität – Alt-Text des Logos bzw. Ersatz ohne Logo */
+  university?: string;
+  instagram?: string;
+  instagramHref?: string;
+  /** Die eine hervorgehobene Bewerbung im Hero */
+  application?: Application;
+  /** Hinweiszeile darunter auf das nächste Programm */
+  upcoming?: Upcoming;
+
+  // ── Weitere Bänder ──────────────────────────────────────────
+  /** Gründungsjahr des Chapters, z. B. 2025 */
+  foundedYear?: number | string;
+  /** Gründende Hochschule(n) als Anzeigetext, z. B. "RWTH Aachen" */
+  universities?: string;
+  /**
+   * 1–2 freie Sätze: wie das Chapter entstand, was es heute macht,
+   * wichtige lokale Partner. Der Satz davor ist fest verdrahtet und
+   * für alle Standorte gleich (Entwurf 3a).
+   */
+  story?: string;
+  introImage?: string;
+  introImageAlt?: string;
+  teamHref?: string;
+  news?: NewsCard[];
+  newsHref?: string;
+  contactHref?: string;
+}
+
+const props = Astro.props as Props;
+const { citySlug, application, upcoming, teamHref, news } = props;
+const newsHref    = props.newsHref    ?? "/news";
+const contactHref = props.contactHref ?? "/contact";
+
+// ── Standort-Datenbank als zweite Schicht ───────────────────────────────
+// Jedes Feld löst sich in dieser Reihenfolge auf:
+//   explizite Prop → Eintrag in cityData.ts → eckiger Platzhalter.
+// So füllt sich die Seite von selbst, sobald der Eintrag in der
+// Standort-Datenbank gepflegt ist – Props bleiben als Override möglich.
+const db = citySlug ? cityData[citySlug] : undefined;
+
+const city           = props.city           ?? db?.displayName    ?? "[City]";
+const heroImage      = props.heroImage      ?? db?.heroImage;
+const heroImageAlt   = props.heroImageAlt   ?? db?.heroImageAlt   ?? "";
+const universityLogo = props.universityLogo ?? db?.universityLogo;
+const university     = props.university     ?? db?.university     ?? "[University name]";
+const instagram      = props.instagram      ?? db?.instagram      ?? "@oneaim.[city]";
+const instagramHref  = props.instagramHref  ?? db?.instagramHref;
+const foundedYear    = props.foundedYear    ?? db?.foundedYear    ?? "[year]";
+const universities   = props.universities   ?? db?.universities   ?? "[university/-ies]";
+const story          = props.story          ?? db?.story;
+const introImage     = props.introImage     ?? db?.introImage;
+const introImageAlt  = props.introImageAlt  ?? db?.introImageAlt  ?? "";
+
+// ── Bewerbungen ─────────────────────────────────────────────────────────
+// Reihenfolge wie beim News-Band: explizite Prop → Daten zum Standort →
+// Platzhalter. Der Status kommt aus den Datumsfeldern, nicht aus einem Flag.
+
+const dateFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+});
+const monthFmt = new Intl.DateTimeFormat("en-GB", { month: "long" });
+
+const featured = citySlug ? getFeaturedApplication(citySlug) : undefined;
+const nextUp   = citySlug ? getNextUpcoming(citySlug) : undefined;
+
+const resolvedApplication = application ?? (featured
+  ? {
+      status:      getStatus(featured),
+      statusLabel: getStatus(featured) === "open" ? "Applications open" : "Applications not yet open",
+      title:       getApplicationTitle(featured),
+      rows: [
+        { label: "Deadline", value: dateFmt.format(new Date(featured.deadline)) },
+        ...(featured.startsAt ? [{ label: "Start", value: dateFmt.format(new Date(featured.startsAt)) }] : []),
+        ...(featured.spots    ? [{ label: "Spots", value: String(featured.spots) }] : []),
+      ],
+      ctaLabel: getStatus(featured) === "open" ? "Apply now →" : "Opens soon",
+      ctaHref:  featured.applyUrl,
+    }
+  : {
+      status: "open" as const,
+      statusLabel: "Applications open",
+      title: "[Program] [City] – [Term]",
+      rows: [
+        { label: "Deadline", value: "[Date]" },
+        { label: "Start",    value: "[Date]" },
+        { label: "Spots",    value: "[N]"    },
+      ],
+      ctaLabel: "Apply now →",
+    });
+
+// "Coming up" nur zeigen, wenn es eine andere Runde als die hervorgehobene gibt.
+const resolvedUpcoming = upcoming ?? (nextUp && nextUp.id !== featured?.id
+  ? {
+      text: `${getProgramName(nextUp)} opens ${monthFmt.format(new Date(nextUp.opensAt))}`,
+    }
+  : citySlug
+    ? undefined
+    : { text: "[Program 2] opens [Month]" });
+
+// News automatisch aus newsData.ts ziehen, sobald ein citySlug vorliegt.
+// Reihenfolge: explizit übergebene `news` → passende Beiträge zum Standort
+// → Platzhalter (solange es zu diesem Standort noch nichts gibt).
+const cityNews = citySlug ? getNewsByCity(citySlug, 2) : [];
+
+const newsDateFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+});
+
+const resolvedNews = news ?? (cityNews.length
+  ? cityNews.map(n => ({
+      title: n.title,
+      date:  newsDateFmt.format(new Date(n.date)),
+      image: n.image,
+      href:  `/news/${n.id}`,
+    }))
+  : [
+      { title: "[Latest news headline from this chapter]", date: "[Date]" },
+      { title: "[Second news headline]",                   date: "[Date]" },
+    ]);
+---
+
+<section class="bp" aria-label={`OneAIM ${city}`}>
+  <div class="container">
+    <div class="bp__panel">
+
+      <!-- ① Hero (Entwurf 15A) -->
+      <header class="bp__hero">
+        {heroImage
+          ? <img class="bp__hero-img" src={heroImage} alt={heroImageAlt} loading="eager" decoding="async" />
+          : <div class="bp__slot bp__slot--hero">Hero photo: chapter event</div>}
+        <div class="bp__hero-scrim" aria-hidden="true"></div>
+
+        <div class="bp__hero-inner">
+          <div class="bp__hero-copy">
+            <p class="bp__hero-overline">OneAIM Chapter</p>
+            <h1 class="bp__hero-title">{city}</h1>
+
+            <div class="bp__chips">
+              <span class="bp__chip bp__chip--logo">
+                {universityLogo
+                  ? <img src={universityLogo} alt={university} loading="lazy" decoding="async" />
+                  : <span class="bp__slot bp__slot--logo">University logo</span>}
+              </span>
+
+              <a class="bp__chip bp__chip--ig" href={instagramHref ?? "#"}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+                {instagram}
+              </a>
+            </div>
+          </div>
+
+          <div class="bp__app">
+            <div class={`bp__status bp__status--${resolvedApplication.status}`}>
+              <span class="bp__dot" aria-hidden="true"></span>
+              <span>{resolvedApplication.statusLabel}</span>
+            </div>
+            <h2 class="bp__app-title">{resolvedApplication.title}</h2>
+            <dl class="bp__rows">
+              {resolvedApplication.rows.map(r => (
+                <div class="bp__row">
+                  <dt>{r.label}</dt>
+                  <dd>{r.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <a class="bp__btn" href={resolvedApplication.ctaHref ?? contactHref}>{resolvedApplication.ctaLabel}</a>
+
+            {resolvedUpcoming && (
+              <div class="bp__upcoming">
+                <span><strong>Coming up:</strong> {resolvedUpcoming.text}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <!-- ② The chapter (Entwurf 2a: "Tight split") -->
+      <section class="bp__intro" aria-labelledby="bp-intro">
+        <div class="bp__intro-copy">
+          <p class="bp__overline">About us</p>
+          <h2 id="bp-intro" class="bp__intro-heading">
+            Rooted in {city}, part of something bigger
+          </h2>
+          <p class="bp__intro-text">
+            OneAIM {city} was founded in {foundedYear} by students of {universities}{" "}
+            who wanted to bring medicine and technology closer together.{" "}
+            {story ?? "[1–2 sentences: how the chapter started, what it runs today, key local partners]"}
+          </p>
+        </div>
+        <div class="bp__intro-media">
+          {introImage
+            ? <img src={introImage} alt={introImageAlt} loading="lazy" decoding="async" />
+            : <div class="bp__slot">Team photo of the {city} chapter</div>}
+        </div>
+      </section>
+
+      <!-- ③ Programme vor Ort (Entwurf 6a: "Full Connect panel" –
+           Programm-Pills, Struktur, Semester-Timeline, Partner) -->
+      <CityProgramsPanel city={city} citySlug={citySlug} contactHref={contactHref} />
+
+      <!-- ④ Team (Entwurf 3a, City Team Options: zwei Scroll-Reihen) -->
+      <CityTeamCarousel city={city} citySlug={citySlug} teamHref={teamHref} />
+
+      <!-- ⑤ News -->
+      <section class="bp__news" aria-labelledby="bp-news">
+        <div class="bp__news-head">
+          <h2 id="bp-news">News from {city}</h2>
+          <a class="bp__more" href={newsHref}>All news →</a>
+        </div>
+        <div class="bp__news-grid">
+          {resolvedNews.map(n => (
+            <a class="bp__news-card" href={n.href ?? newsHref}>
+              <span class="bp__news-thumb">
+                {n.image
+                  ? <img src={n.image} alt="" loading="lazy" decoding="async" />
+                  : <span class="bp__slot">Photo</span>}
+              </span>
+              <span class="bp__news-body">
+                <span class="bp__news-title">{n.title}</span>
+                <span class="bp__news-date">{n.date}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .bp { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+
+  .bp__panel {
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 8px 32px rgba(35, 42, 207, 0.08);
+    overflow:       hidden;
+    display:        flex;
+    flex-direction: column;
+  }
+
+  .bp__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  /* Ablagefläche für noch fehlende Bilder – bewusst sichtbar. */
+  .bp__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           100%;
+    height:          100%;
+    padding:         var(--space-4);
+    text-align:      center;
+    font-size:       var(--fs-small);
+    font-weight:     var(--fw-semibold);
+    color:           var(--color-text-muted);
+    background:      #F7F9FE;
+    border:          2px dashed var(--color-border-subtle);
+    border-radius:   var(--radius-md);
+  }
+
+  /* Wie das Foto absolut liegen, sonst nimmt die Ablagefläche Platz im
+     Flex-Fluss ein und schiebt den Hero-Inhalt aus dem Band heraus. */
+  .bp__slot--hero {
+    position:      absolute;
+    inset:         0;
+    border-radius: 0;
+    border:        none;
+  }
+  .bp__slot--circle { border-radius: 50%; }
+  .bp__slot--logo   { font-size: 11px; padding: 0; border-width: 1px; border-radius: var(--radius-sm); }
+
+  /* ── ① Hero (15A) ─────────────────────────────────────────── */
+  .bp__hero {
+    position:   relative;
+    display:    flex;
+    min-height: 520px;
+    background: #0b1024;
+  }
+
+  .bp__hero-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+  }
+
+  /* Verlauf von links: die linke Seite trägt Text, rechts bleibt das
+     Foto sichtbar – dort liegt die helle Bewerbungskarte darüber. */
+  .bp__hero-scrim {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(
+      to right,
+      rgba(6, 10, 30, 0.82) 0%,
+      rgba(6, 10, 30, 0.45) 55%,
+      rgba(6, 10, 30, 0.15) 100%
+    );
+  }
+
+  .bp__hero-inner {
+    position:              relative;
+    display:               grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap:                   clamp(var(--space-8), 4vw, 48px);
+    align-items:           center;
+    width:                 100%;
+    padding:               clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 64px);
+  }
+
+  .bp__hero-copy { display: flex; flex-direction: column; gap: var(--space-4); }
+
+  .bp__hero-overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-brand-blue-light);
+  }
+
+  .bp__hero-title {
+    font-size:   clamp(2.6rem, 1.6rem + 4vw, 3.75rem);
+    line-height: 1;
+    color:       var(--color-text-on-dark);
+  }
+
+  .bp__chips {
+    display:    flex;
+    gap:        10px;
+    flex-wrap:  wrap;
+    margin-top: 6px;
+  }
+
+  .bp__chip {
+    display:         flex;
+    align-items:     center;
+    gap:             8px;
+    white-space:     nowrap;
+    border-radius:   var(--radius-pill);
+    text-decoration: none;
+    transition:      background var(--transition-fast);
+  }
+
+  .bp__chip--logo {
+    background: rgba(255, 255, 255, 0.92);
+    padding:    8px 20px;
+  }
+
+  .bp__chip--logo img { height: 26px; width: auto; max-width: 130px; object-fit: contain; }
+  .bp__chip--logo .bp__slot { width: 130px; height: 26px; }
+
+  .bp__chip--ig {
+    font-size:               13px;
+    font-weight:             var(--fw-bold);
+    color:                   var(--color-text-on-dark);
+    background:              rgba(255, 255, 255, 0.16);
+    backdrop-filter:         blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border:                  1px solid rgba(255, 255, 255, 0.3);
+    padding:                 8px 18px;
+  }
+
+  .bp__chip--ig:hover { background: rgba(255, 255, 255, 0.28); text-decoration: none; }
+
+  /* Bewerbungskarte im Hero */
+  .bp__app {
+    display:        flex;
+    flex-direction: column;
+    gap:            14px;
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 20px 48px rgba(6, 10, 30, 0.35);
+    padding:        clamp(var(--space-6), 2.5vw, 36px);
+  }
+
+  .bp__status {
+    display:        flex;
+    align-items:    center;
+    gap:            10px;
+    font-size:      13px;
+    font-weight:    800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .bp__dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .bp__status--open          { color: #1fbf75; }
+  .bp__status--open .bp__dot { background: #1fbf75; box-shadow: 0 0 0 4px rgba(31, 191, 117, 0.2); }
+
+  .bp__status--upcoming          { color: var(--color-text-muted); }
+  .bp__status--upcoming .bp__dot { background: #a6adc2; }
+
+  .bp__app-title { font-size: 22px; }
+
+  .bp__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+  .bp__row  { display: flex; justify-content: space-between; gap: var(--space-4); }
+  .bp__row dt { font-size: 14px; color: var(--color-text-muted); }
+  .bp__row dd { font-size: 14px; font-weight: 800; color: var(--color-text-heading); margin: 0; }
+
+  /* Hinweis auf das nächste Programm */
+  .bp__upcoming {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             12px;
+    flex-wrap:       wrap;
+    background:      #F7F9FE;
+    border:          1px dashed #c3c9d9;
+    border-radius:   14px;
+    padding:         12px 16px;
+    margin-top:      6px;
+    font-size:       12px;
+    line-height:     1.4;
+    color:           var(--color-text-muted);
+  }
+
+  .bp__upcoming strong { color: var(--color-text-body); }
+
+  /* ── ② The chapter ────────────────────────────────────────── */
+  .bp__intro {
+    display:               grid;
+    grid-template-columns: 1.1fr minmax(0, 1fr);
+    gap:                   clamp(var(--space-8), 4vw, 56px);
+    align-items:           center;
+    padding:               clamp(var(--space-10, 40px), 4.5vw, 56px) clamp(var(--space-6), 5vw, 64px);
+  }
+
+  .bp__intro-copy { display: flex; flex-direction: column; gap: var(--space-4); }
+
+  .bp__intro-heading {
+    font-size:      clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+    line-height:    1.15;
+    letter-spacing: -0.5px;
+  }
+
+  .bp__intro-text { font-size: var(--fs-body); line-height: 1.6; }
+
+  .bp__intro-media { height: 300px; border-radius: 16px; overflow: hidden; }
+  .bp__intro-media img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* ── ③ Programme ──────────────────────────────────────────── */
+  .bp__more { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); }
+
+  /* ── ⑤ News ───────────────────────────────────────────────── */
+  .bp__news {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-6);
+    padding:        clamp(var(--space-12), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+  }
+
+  .bp__news-head {
+    display:         flex;
+    align-items:     flex-end;
+    justify-content: space-between;
+    gap:             var(--space-8);
+    flex-wrap:       wrap;
+  }
+
+  .bp__news-head h2 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.125rem); }
+
+  .bp__news-grid {
+    display:               grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap:                   var(--space-6);
+  }
+
+  .bp__news-card {
+    display:               grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap:                   20px;
+    align-items:           center;
+    padding:               20px 24px;
+    border:                1px solid var(--color-border-subtle);
+    border-radius:         var(--radius-md);
+    text-decoration:       none;
+    transition:            box-shadow var(--transition-base);
+  }
+
+  .bp__news-card:hover { box-shadow: 0 8px 24px rgba(35, 42, 207, 0.12); text-decoration: none; }
+
+  .bp__news-thumb { display: block; height: 80px; border-radius: 10px; overflow: hidden; }
+  .bp__news-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .bp__news-body { display: flex; flex-direction: column; gap: 4px; }
+  .bp__news-title { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: 16px; color: var(--color-text-heading); }
+  .bp__news-date  { font-size: 13px; color: var(--color-text-muted); }
+
+  /* ── Buttons ──────────────────────────────────────────────── */
+  .bp__btn {
+    white-space:     nowrap;
+    text-align:      center;
+    font-family:     var(--font-display);
+    font-size:       15px;
+    font-weight:     var(--fw-bold);
+    color:           var(--color-text-on-brand);
+    background:      var(--color-brand-blue);
+    border:          2px solid transparent;
+    border-radius:   var(--radius-pill);
+    padding:         13px 28px;
+    text-decoration: none;
+    transition:      background var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .bp__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+
+  .bp__btn--outline {
+    color:        var(--color-brand-blue);
+    background:   transparent;
+    border-color: var(--color-brand-blue);
+  }
+
+  .bp__btn--outline:hover { background: #E5EDFF; }
+
+  .bp__btn--sm { font-size: 14px; padding: 10px 26px; }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 940px) {
+    /* Bewerbungskarte unter den Text statt daneben. Der Verlauf läuft
+       dann nach oben statt nach links, sonst stünde der Text auf dem
+       hellen Teil des Fotos. */
+    .bp__hero-inner { grid-template-columns: minmax(0, 1fr); }
+
+    .bp__hero-scrim {
+      background: linear-gradient(
+        to top,
+        rgba(6, 10, 30, 0.85) 0%,
+        rgba(6, 10, 30, 0.6) 55%,
+        rgba(6, 10, 30, 0.3) 100%
+      );
+    }
+
+    .bp__intro { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  @media (max-width: 560px) {
+    .bp__news-card  { grid-template-columns: minmax(0, 1fr); }
+    .bp__news-thumb { height: 140px; }
+    .bp__btn        { white-space: normal; }
+    .bp__upcoming   { justify-content: flex-start; }
+  }
+</style>

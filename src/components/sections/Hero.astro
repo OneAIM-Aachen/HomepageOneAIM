@@ -6,12 +6,20 @@
 // ::before / ::after CSS-Pseudoelemente.
 // Farben bleiben vollständig identisch – nur die Bewegung ist neu.
 
-import type { ApplicationConfig } from "../../data/application";
 
 interface Props {
   headline:         string;
   subtext?:         string;
-  applicationData?: ApplicationConfig | null;
+  /**
+   * Aufbereitete Bewerbungsdaten. Kommen aus CityLayout, das sie aus
+   * src/data/applications.ts holt – Hero selbst kennt die Datenbank nicht.
+   */
+  applicationData?: {
+    status:   "open" | "upcoming" | "closed";
+    deadline: string;
+    opensAt:  string;
+    link:     string;
+  } | null;
   showLogo?:        boolean;
 }
 
@@ -61,7 +69,7 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
     <!-- Bewerbungsbereich (AIM Connect / Übersicht) -->
     {applicationData !== null && (
       <aside class="hero__application" aria-label="Bewerbungsinformationen">
-        {applicationData.isOpen ? (
+        {applicationData.status === "open" ? (
           <div class="hero__app-open">
             <div class="hero__app-badge" role="status" aria-live="polite">
               <span class="hero__app-dot" aria-hidden="true"></span>
@@ -87,6 +95,10 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
               </svg>
             </a>
           </div>
+        ) : applicationData.status === "upcoming" ? (
+          <p class="hero__app-closed" role="status" aria-live="polite">
+            Applications open on <strong>{applicationData.opensAt}</strong>.
+          </p>
         ) : (
           <p class="hero__app-closed" role="status" aria-live="polite">
             Applications are currently closed.

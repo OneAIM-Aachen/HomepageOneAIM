@@ -3,82 +3,39 @@
 //
 // Startseite von OneAIM.
 //
-// Reihenfolge der Sections (entspricht exakt dem Flowchart):
-//   1. Hero            – Headline, Logo, CTA München / Aachen
-//   2. PartnersSection – Karussell mit Sponsoren/Partnern  ← NEU (ersetzt LogoGallery)
-//   3. ContentSection  – Einleitungstext (Introduction)
-//   4. MissionSection  – "Our Mission" Card-Grid
-//   5. ApproachSection – "Our Approach" zweispaltig
+// Reihenfolge der Sections:
+//   1. MapHero         – DACH-Karte mit Standort-Pins, Headline, CTAs
+//   2. PartnersSection – Logo-Laufband (Auswahl aus partners.ts)
+//   3. WhatIsOneAIM    – Foto + Scrim, "What is OneAIM?"
+//   4. ProgramsBento   – Bento-Raster aller Programme
+//   5. JoinSection     – Abschluss-Banner "Sounds interesting?"
 
 import BaseLayout        from "../layouts/BaseLayout.astro";
-import Hero              from "../components/sections/Hero.astro";
+import MapHero           from "../components/sections/MapHero.astro";
 import PartnersSection   from "../components/sections/PartnersSection.astro";
-import ContentSection    from "../components/sections/ContentSection.astro";
-import MissionSection    from "../components/sections/MissionSection.astro";
-import ApproachSection   from "../components/sections/ApproachSection.astro";
-import Button            from "../components/ui/Button.astro";
+import WhatIsOneAIM      from "../components/sections/WhatIsOneAIM.astro";
+import ProgramsBento     from "../components/sections/ProgramsBento.astro";
+import JoinSection       from "../components/sections/JoinSection.astro";
 // LogoGallery wurde bewusst entfernt – ersetzt durch PartnersSection mit Karussell.
 ---
 
 <BaseLayout
   title="Home"
-  description="OneAIM – Germany's first student-led interdisciplinary initiative in MedTech. Aktiv in München und Aachen."
+  description="OneAIM – Germany's first student-led interdisciplinary initiative in MedTech. Active in Munich, Aachen and Frankfurt."
 >
   <!-- ① Hero: Headline, Branding, CTA-Buttons -->
-  <Hero
-    headline="AIM high with us"
-    subtext="Advancing Technology in Healthcare"
-    showLogo={true}
-  >
-    <Button href="/muenchen" variant="primary"   class="hero-city-btn">München</Button>
-    <Button href="/aachen"   variant="secondary" class="hero-city-btn">Aachen</Button>
-  </Hero>
+  <MapHero />
 
   <!-- ② Sponsoren/Partner-Karussell – direkt unter dem Hero -->
   <PartnersSection />
 
-  <!-- ③ Introduction – Wer sind wir? -->
-  <ContentSection
-    heading="Germany's First Student-Led"
-    headingAccent="Interdisciplinary Initiative in MedTech"
-    background="page"
-  >
-    <p>
-      OneAIM (AI in Medicine) is Europe’s biggest student-led initiative dedicated to 
-      transforming healthcare through the power of technology and innovation. Our mission 
-      is to empower students with the skills, knowledge, and entrepreneurial mindset needed 
-      to drive advancements in MedTech. We provide a platform rich with resources, networking 
-      opportunities, and collaborative projects, all aimed at shaping the future of healthcare.
-    </p>
-    <p>
-      Located in Munich and Aachen, we bridge the academic and professional gap in the MedTech landscape by 
-      uniting over 500+ students from diverse fields – technology, medicine, engineering, and beyond. 
-      Through initiatives like our AIM Connect & AIM Innovate programs, CodeLab courses and exclusive 
-      events, we offer hands-on experiences and real-world insights. Our goal is to equip students to 
-      innovate and tackle significant health challenges, creating a vibrant community that dreams big 
-      and AIMs high!
-    </p>
-  </ContentSection>
+  <!-- ③ Introduction – Wer sind wir? (Entwurf 2A: Foto + Scrim) -->
+  <WhatIsOneAIM />
 
-  <!-- ④ Mission – 2×2 Card-Grid -->
-  <MissionSection />
+  <!-- ④ Programme – Bento-Mosaik (Entwurf 4A) -->
+  <ProgramsBento />
 
-  <!-- ⑤ Approach – zweispaltig -->
-  <ApproachSection />
+  <!-- ⑤ Abschluss-Banner: Wege zu OneAIM (Entwurf 9A) -->
+  <JoinSection />
 
 </BaseLayout>
-
-<style>
-  /* Startseiten-Hero-Buttons: größer + leicht transparent.
-     Nur diese zwei Buttons sind betroffen – alle anderen Buttons
-     der Website bleiben unverändert. */
-  :global(.hero-city-btn) {
-    padding:   var(--space-6) var(--space-16);   /* größer als Standard */
-    font-size: var(--fs-body-lg);                /* größere Schrift      */
-    opacity:   0.82;                             /* leicht transparent   */
-  }
-
-  :global(.hero-city-btn:hover) {
-    opacity: 1;   /* beim Hover: voll sichtbar */
-  }
-</style>

@@ -1,0 +1,280 @@
+---
+// src/components/sections/CityTeamCarousel.astro
+//
+// Team-Sektion der Standortseiten – Umsetzung von Entwurf 3a
+// ("City Team Options.dc.html", "Lead row + team row, arrow scrolling").
+//
+// EINE horizontal scrollende Reihe mit allen Mitgliedern (President und
+// Team Leads nicht abgetrennt – sie stehen vorn und tragen ihre Rolle in
+// der Beschreibung; die President-Karte bleibt blau). Pfeiltasten scrollen
+// die Reihe; beim Überfahren einer Person erscheint ein LinkedIn-Overlay
+// (nur wenn ein Link hinterlegt ist).
+//
+// Rollenzeile unter dem Namen:
+//   President  → "President | <Team>"
+//   Team Lead  → "Team Lead | <Team>"
+//   sonst      → "<Team>"
+//
+// Datenquelle ist src/data/teamData.ts: ist `citySlug` gesetzt, füllt
+// sich die Reihe automatisch (President zuerst, dann Team Leads, dann
+// alle übrigen). Solange die Datenbank für den Standort leer ist, bleiben
+// die Platzhalter-Karten stehen. `members` überschreibt die Datenbank.
+
+import { getLeadsByCity, getMembersByCity } from "../../data/teamData";
+import type { TeamMember as DbMember } from "../../data/teamData";
+import type { CitySlug } from "../../data/cityData";
+
+interface CardMember {
+  name: string;
+  /** Angezeigte Zeile unter dem Namen – das Team der Person */
+  position: string;
+  photo?: string;
+  linkedin?: string;
+  president?: boolean;
+}
+
+interface Props {
+  city?: string;
+  citySlug?: CitySlug;
+  /** Optionaler Link zur separaten Teamseite */
+  teamHref?: string;
+  members?: CardMember[];
+}
+
+const {
+  city = "[City]",
+  citySlug,
+  teamHref,
+  members,
+} = Astro.props as Props;
+
+// Rollenzeile aus den Flags ableiten – "Team Lead | AIM Connect" usw.
+// Ein gesetztes `position`-Feld in der Datenbank überschreibt die Ableitung.
+const roleLine = (m: DbMember): string =>
+  m.position
+  ?? (m.president ? `President | ${m.team}`
+    : m.teamLead ? `Team Lead | ${m.team}`
+    : m.team);
+
+const fromDb = (m: DbMember): CardMember => ({
+  name:      m.name,
+  position:  roleLine(m),
+  photo:     m.photo,
+  linkedin:  m.linkedIn,
+  president: m.president,
+});
+
+// Reihenfolge: President, dann Team Leads, dann alle übrigen.
+const dbAll = citySlug
+  ? [...getLeadsByCity(citySlug), ...getMembersByCity(citySlug)].map(fromDb)
+  : [];
+
+// Props → Datenbank → Platzhalter (solange die Datenbank leer ist)
+const resolvedMembers = members ?? (dbAll.length ? dbAll : [
+  { name: "[Name]", position: "President | [Team]", president: true },
+  { name: "[Name]", position: "Team Lead | [Team]" },
+  { name: "[Name]", position: "Team Lead | [Team]" },
+  ...Array.from({ length: 7 }, () => ({ name: "[Name]", position: "[Team]" })),
+]);
+---
+
+<section class="ctc" aria-labelledby="ctc-heading">
+  <div class="ctc__head">
+    <div>
+      <p class="ctc__overline">Our team</p>
+      <h2 id="ctc-heading">The people behind OneAIM {city}</h2>
+    </div>
+    <div class="ctc__head-actions">
+      {teamHref && <a class="ctc__all" href={teamHref}>Full team →</a>}
+      <div class="ctc__nav">
+        <button type="button" class="ctc__nav-btn" data-nav="prev" data-row="team" aria-label="Scroll team back">←</button>
+        <button type="button" class="ctc__nav-btn" data-nav="next" data-row="team" aria-label="Scroll team forward">→</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctc__block">
+    <div class="ctc__scroll" data-scroll="team" tabindex="0">
+      {resolvedMembers.map(m => (
+        <div class={`ctc__lead ${m.president ? "ctc__lead--president" : ""}`}>
+          {m.linkedin && (
+            <a class="ctc__overlay" href={m.linkedin} target="_blank" rel="noopener noreferrer"
+               aria-label={`${m.name} on LinkedIn`}>
+              <span class="ctc__in">in</span>
+            </a>
+          )}
+          {m.photo
+            ? <img class="ctc__lead-photo" src={m.photo} alt="" loading="lazy" decoding="async" />
+            : <span class="ctc__lead-photo ctc__slot">Portrait</span>}
+          <div>
+            <p class="ctc__lead-name">{m.name}</p>
+            <p class="ctc__lead-role">{m.position}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var root = document.currentScript.closest(".ctc");
+      if (!root) return;
+      [].slice.call(root.querySelectorAll("[data-nav]")).forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var row = root.querySelector('[data-scroll="' + btn.getAttribute("data-row") + '"]');
+          if (!row) return;
+          var dir = btn.getAttribute("data-nav") === "next" ? 1 : -1;
+          // Etwa eine Bildschirmbreite der Reihe, damit Karten nicht
+          // halb angeschnitten stehen bleiben.
+          row.scrollBy({ left: dir * row.clientWidth * 0.8, behavior: "smooth" });
+        });
+      });
+    })();
+  </script>
+</section>
+
+<style>
+  .ctc {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+    padding:        clamp(var(--space-12), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+    background:     var(--color-bg-surface);
+  }
+
+  .ctc__head {
+    display:         flex;
+    align-items:     flex-end;
+    justify-content: space-between;
+    gap:             var(--space-8);
+    flex-wrap:       wrap;
+  }
+
+  .ctc__head h2 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem); letter-spacing: -0.5px; }
+
+  .ctc__overline {
+    font-size:      13px;
+    font-weight:    800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+    margin-bottom:  var(--space-2);
+  }
+
+  .ctc__all { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); white-space: nowrap; }
+
+  .ctc__block { display: flex; flex-direction: column; gap: var(--space-4); }
+
+  .ctc__head-actions { display: flex; align-items: center; gap: var(--space-6); }
+
+  .ctc__nav { display: flex; gap: 8px; }
+
+  .ctc__nav-btn {
+    width:           40px;
+    height:          40px;
+    border-radius:   50%;
+    border:          1px solid #DEE3ED;
+    background:      var(--color-bg-surface);
+    color:           var(--color-text-heading);
+    font-size:       16px;
+    font-weight:     800;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    transition:      border-color var(--transition-fast), color var(--transition-fast);
+  }
+
+  .ctc__nav-btn:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
+
+  /* Scrollende Reihe – Scrollbar versteckt, Tastatur behält Zugriff */
+  .ctc__scroll {
+    display:         flex;
+    gap:             20px;
+    overflow-x:      auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom:  4px;
+  }
+
+  .ctc__scroll::-webkit-scrollbar { display: none; }
+
+  .ctc__scroll:focus-visible {
+    outline:       none;
+    box-shadow:    var(--focus-ring);
+    border-radius: var(--radius-md);
+  }
+
+  .ctc__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       11px;
+    font-weight:     var(--fw-semibold);
+    color:           var(--color-text-muted);
+    background:      #F7F9FE;
+    border:          2px dashed var(--color-border-subtle);
+  }
+
+  /* ── Lead-Karten ──────────────────────────────────────────── */
+  .ctc__lead {
+    position:       relative;
+    flex:           0 0 220px;
+    background:     #EDF2FF;
+    border-radius:  20px;
+    padding:        18px 16px 20px;
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            12px;
+    text-align:     center;
+  }
+
+  .ctc__lead-photo {
+    width:         140px;
+    height:        140px;
+    border-radius: 50%;
+    object-fit:    cover;
+    background:    var(--color-bg-surface);
+  }
+
+  .ctc__lead-name { font-size: 17px; font-weight: 800; color: var(--color-brand-blue-dark); }
+  .ctc__lead-role { font-size: 12px; font-weight: var(--fw-bold); color: var(--color-brand-blue); margin-top: 3px; }
+
+  .ctc__lead--president { background: var(--color-brand-blue); }
+  .ctc__lead--president .ctc__lead-photo { border: 4px solid rgba(255, 255, 255, 0.4); }
+  .ctc__lead--president .ctc__lead-name { color: var(--color-text-on-dark); }
+  .ctc__lead--president .ctc__lead-role { color: #A6BEFF; }
+  .ctc__lead--president .ctc__slot { background: rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.75); border-color: rgba(255, 255, 255, 0.4); }
+
+  /* ── LinkedIn-Overlay ─────────────────────────────────────── */
+  .ctc__overlay {
+    position:        absolute;
+    inset:           0;
+    z-index:         1;
+    border-radius:   20px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    opacity:         0;
+    background:      rgba(0, 82, 233, 0.45);
+    text-decoration: none;
+    transition:      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ctc__overlay:hover,
+  .ctc__overlay:focus-visible { opacity: 1; text-decoration: none; }
+
+  .ctc__in {
+    width:           44px;
+    height:          44px;
+    border-radius:   10px;
+    background:      var(--color-bg-surface);
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       20px;
+    font-weight:     800;
+    font-family:     var(--font-display);
+  }
+</style>

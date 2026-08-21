@@ -1,0 +1,209 @@
+---
+// src/pages/publications/[publication].astro
+// Detailseite je Publikation – erzeugt aus src/data/publicationsData.ts.
+// Neue Publikation dort ergänzen, die Seite entsteht automatisch.
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSortedPublications, type Publication } from "../../data/publicationsData";
+
+export function getStaticPaths() {
+  const all = getSortedPublications();
+  return all.map(item => ({
+    params: { publication: item.id },
+    props:  { item, others: all.filter(p => p.id !== item.id) },
+  }));
+}
+
+interface Props { item: Publication; others: Publication[] }
+const { item, others } = Astro.props as Props;
+
+const paragraphs = item.body ?? [item.description];
+---
+
+<BaseLayout title={item.title} description={item.description}>
+  <article class="pub">
+    <div class="container">
+      <a class="pub__back" href="/publications">← All publications</a>
+
+      <div class="pub__top">
+        <div class="pub__cover">
+          <img src={item.image} alt={item.imageAlt ?? ""} loading="eager" decoding="async" />
+        </div>
+
+        <div class="pub__intro">
+          <p class="pub__kind">{item.kind ?? "Publication"} · {item.year}</p>
+          <h1 class="pub__title">{item.title}</h1>
+          <p class="pub__authors">{item.authors.join(", ")}</p>
+          <p class="pub__desc">{item.description}</p>
+          {item.link && (
+            <a class="pub__btn" href={item.link.href} target="_blank" rel="noopener noreferrer">
+              {item.link.label} →
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div class="pub__body">
+        {paragraphs.map(par => <p>{par}</p>)}
+      </div>
+
+      {others.length > 0 && (
+        <section class="pub__more" aria-labelledby="more-pubs">
+          <h2 id="more-pubs">More publications</h2>
+          <ul>
+            {others.map(o => (
+              <li>
+                <a href={`/publications/${o.id}`}>
+                  <span class="pub__more-year">{o.year}</span>
+                  <span class="pub__more-title">{o.title}</span>
+                  <span class="pub__more-authors">{o.authors.join(", ")}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .pub {
+    background:    var(--color-bg-surface);
+    padding-block: var(--space-8) var(--space-24);
+  }
+
+  .pub__back {
+    display:       inline-block;
+    margin-bottom: var(--space-8);
+    font-size:     var(--fs-small);
+    font-weight:   var(--fw-semibold);
+    color:         var(--color-brand-blue);
+  }
+
+  .pub__top {
+    display:               grid;
+    grid-template-columns: 280px 1fr;
+    gap:                   clamp(var(--space-8), 4vw, 56px);
+    align-items:           start;
+    margin-bottom:         var(--space-16);
+  }
+
+  .pub__cover {
+    border-radius: var(--radius-lg);
+    overflow:      hidden;
+    box-shadow:    0 20px 48px rgba(35, 42, 207, 0.22);
+  }
+
+  .pub__cover img { width: 100%; display: block; }
+
+  .pub__intro {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-4);
+    align-items:    flex-start;
+  }
+
+  .pub__kind {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .pub__title {
+    font-size:      clamp(1.8rem, 1.2rem + 2.2vw, 2.6rem);
+    line-height:    1.12;
+    letter-spacing: -0.01em;
+  }
+
+  .pub__authors {
+    font-size:   var(--fs-body);
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-body);
+  }
+
+  .pub__desc {
+    font-size:   var(--fs-body-lg);
+    line-height: 1.7;
+    max-width:   62ch;
+  }
+
+  .pub__btn {
+    font-family:     var(--font-display);
+    font-size:       14px;
+    font-weight:     var(--fw-bold);
+    color:           var(--color-text-on-brand);
+    background:      var(--color-brand-blue);
+    border-radius:   var(--radius-pill);
+    padding:         12px 28px;
+    text-decoration: none;
+    transition:      background var(--transition-fast);
+  }
+
+  .pub__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+
+  .pub__body {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-6);
+    max-width:      68ch;
+  }
+
+  .pub__body p { font-size: var(--fs-body-lg); line-height: 1.75; }
+
+  /* ── Weitere Publikationen ────────────────────────────────── */
+  .pub__more {
+    margin-top:  var(--space-16);
+    padding-top: var(--space-8);
+    border-top:  1px solid var(--color-border-subtle);
+  }
+
+  .pub__more h2 { font-size: var(--fs-h3); margin-bottom: var(--space-6); }
+
+  .pub__more ul {
+    display:               grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap:                   var(--space-4);
+  }
+
+  .pub__more a {
+    display:         flex;
+    flex-direction:  column;
+    gap:             var(--space-1);
+    height:          100%;
+    padding:         var(--space-6);
+    border:          1px solid var(--color-border-subtle);
+    border-radius:   var(--radius-lg);
+    background:      #F7F9FE;
+    text-decoration: none;
+    transition:      box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .pub__more a:hover {
+    box-shadow:      var(--shadow-lift);
+    transform:       translateY(-2px);
+    text-decoration: none;
+  }
+
+  .pub__more-year {
+    font-size:   var(--fs-small);
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+  }
+
+  .pub__more-title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size:   var(--fs-body);
+    color:       var(--color-text-heading);
+  }
+
+  .pub__more-authors { font-size: var(--fs-small); color: var(--color-text-muted); }
+
+  @media (max-width: 760px) {
+    .pub__top  { grid-template-columns: 1fr; }
+    .pub__cover { max-width: 240px; }
+  }
+</style>

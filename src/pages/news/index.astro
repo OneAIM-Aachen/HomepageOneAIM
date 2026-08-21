@@ -1,128 +1,428 @@
 ---
 // src/pages/news/index.astro
 //
-// News-Übersichtsseite.
-// Beiträge kommen aus src/data/newsData.ts (Dummy-Daten).
-// Sortierung: automatisch nach Datum, neueste zuerst (via getSortedNews()).
-// Neue Beiträge: Eintrag in newsData.ts ergänzen + Bild in public/images/news/.
+// News-Übersicht – Umsetzung von Entwurf 6A aus dem Claude-Design-Projekt
+// ("What is OneAIM Options.dc.html", Abschnitt 6A).
+//
+// Aufbau:
+//   1. Kopf + Filterleiste (Alle / Städte / Programme)
+//   2. Aufmacher: der neueste Beitrag, groß mit Foto
+//   3. Raster: die drei folgenden Beiträge
+//   4. "Older news": alle weiteren als kompakte Zeilenliste
+//
+// Neue Beiträge werden ausschließlich in src/data/newsData.ts gepflegt –
+// diese Datei muss dafür nicht angefasst werden.
 
-import BaseLayout    from "../../layouts/BaseLayout.astro";
-import NewsCard      from "../../components/cards/NewsCard.astro";
-import DummyNotice   from "../../components/ui/DummyNotice.astro";
-import { getSortedNews } from "../../data/newsData";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSortedNews, getNewsYears } from "../../data/newsData";
+import { locationItems } from "../../components/navigation/navData";
+import { programs } from "../../data/programs";
 
-// Automatisch sortiert: neueste zuerst – keine manuelle Reihenfolge nötig
 const news = getSortedNews();
+const [featured, ...rest] = news;
+const recent  = rest.slice(0, 3);
+const archive = rest.slice(3);
+const years   = getNewsYears();
+
+// Nur für die Beschriftung der Stadt-Chips auf den Karten. Die Städte
+// kommen aus navData.locationItems, damit ein Standort überall gleich heißt.
+const cityFilters = locationItems.map(item => ({
+  slug:  item.href.replace(/^\//, ""),
+  label: item.label,
+}));
+
+// Nur noch für die Beschriftung der Programm-Chips auf den Karten –
+// die Filterleiste enthält bewusst keine Programme mehr.
+const programFilters = programs.map(p => ({ slug: p.slug, label: p.name }));
+
+// Anzeigenamen für die Chips auf den Karten
+const cityLabel = new Map(cityFilters.map(c => [c.slug, c.label]));
+const programLabel = new Map(programFilters.map(p => [p.slug, p.label]));
+
+// Englische Datumsformate – die Seite ist durchgehend englisch.
+const dateFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+});
+const dateShort = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "short", year: "numeric",
+});
+
 ---
 
 <BaseLayout
   title="News"
-  description="Aktuelle News, Events und Ankündigungen von OneAIM aus München und Aachen."
+  description="News, events and announcements from OneAIM across all our chapters."
 >
+  <section class="news">
+    <div class="container news__panel">
 
-  <!-- ── Seiten-Kopf ────────────────────────────────────────── -->
-  <section class="news-header" aria-labelledby="news-page-heading">
-    <div class="container news-header__inner">
-      <h1 id="news-page-heading">News</h1>
-      <p class="news-header__sub">
-        Updates on OneAIM's programs, events, and partnerships –
-        from Munich and Aachen.
-      </p>
-    </div>
-  </section>
+      <!-- ① Kopf + Filter -->
+      <header class="news__head">
+        <p class="news__overline">Stay up to date</p>
+        <h1 class="news__title">News</h1>
+      </header>
 
-  <!-- ── News-Liste ─────────────────────────────────────────── -->
-  <section class="news-list-section" aria-label="News-Beiträge">
-    <div class="container">
+      <!-- ② Aufmacher -->
+      {featured && (
+        <a class="news__featured" href={`/news/${featured.id}`}>
+          {featured.image && (
+            <img class="news__featured-bg" src={featured.image}
+                 alt={featured.imageAlt ?? ""} loading="eager" decoding="async" />
+          )}
+          <span class="news__featured-scrim" aria-hidden="true"></span>
+          <span class="news__featured-body">
+            <span class="news__chips">
+              {featured.cities?.map(c => (
+                <span class="news__tag news__tag--glass">{cityLabel.get(c) ?? c}</span>
+              ))}
+              {featured.programs?.map(p => (
+                <span class="news__tag news__tag--glass">{programLabel.get(p) ?? p}</span>
+              ))}
+            </span>
+            <span class="news__featured-title">{featured.title}</span>
+            <span class="news__featured-excerpt">{featured.excerpt}</span>
+            <span class="news__featured-date">{dateFmt.format(new Date(featured.date))}</span>
+          </span>
+        </a>
+      )}
 
-      <!-- Platzhalter-Hinweis -->
+      <!-- ③ Raster der nächsten drei -->
+      {recent.length > 0 && (
+        <ul class="news__grid">
+          {recent.map(item => (
+            <li>
+              <a class="news__card" href={`/news/${item.id}`}>
+                <span class="news__card-media">
+                  {item.image
+                    ? <img src={item.image} alt={item.imageAlt ?? ""} loading="lazy" decoding="async" />
+                    : <span class="news__card-placeholder" aria-hidden="true"></span>}
+                </span>
+                <span class="news__card-body">
+                  <span class="news__chips">
+                    {item.cities?.map(c => (
+                      <span class="news__tag news__tag--city">{cityLabel.get(c) ?? c}</span>
+                    ))}
+                    {item.programs?.map(p => (
+                      <span class="news__tag news__tag--program">{programLabel.get(p) ?? p}</span>
+                    ))}
+                    {item.tags?.map(t => <span class="news__tag news__tag--other">{t}</span>)}
+                  </span>
+                  <span class="news__card-title">{item.title}</span>
+                  <span class="news__card-date">{dateFmt.format(new Date(item.date))}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
 
-      <!-- Automatisch nach Datum sortierte Beitragsliste -->
-      {news.length > 0
-        ? (
-          <ul class="news-list" aria-label={`${news.length} News-Beiträge`}>
-            {news.map(item => (
-              <li>
-                <NewsCard
-                  title={item.title}
-                  date={item.date}
-                  excerpt={item.excerpt}
-                  image={item.image}
-                  imageAlt={item.imageAlt}
-                  tags={item.tags}
-                  variant="horizontal"
-                  isDummy={true}
-                />
+      <!-- ④ Archiv -->
+      {archive.length > 0 && (
+        <section class="news__archive" aria-labelledby="archive-heading">
+          <div class="news__archive-head">
+            <h2 id="archive-heading">Older news</h2>
+            {years.length > 1 && (
+              <label class="news__year">
+                <span class="visually-hidden">Filter by year</span>
+                <select id="news-year" autocomplete="off">
+                  <option value="all">All years</option>
+                  {years.map(y => <option value={String(y)}>{y}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+
+          <ul class="news__archive-list">
+            {archive.map(item => (
+              <li data-year={item.date.slice(0, 4)}>
+                <a class="news__row" href={`/news/${item.id}`}>
+                  <span class="news__row-date">{dateShort.format(new Date(item.date))}</span>
+                  <span class="news__row-title">{item.title}</span>
+                  <span class="news__chips">
+                    {item.cities?.map(c => (
+                      <span class="news__tag news__tag--city">{cityLabel.get(c) ?? c}</span>
+                    ))}
+                    {item.programs?.map(p => (
+                      <span class="news__tag news__tag--program">{programLabel.get(p) ?? p}</span>
+                    ))}
+                  </span>
+                </a>
               </li>
             ))}
           </ul>
-        )
-        : (
-          <p class="news-empty">
-            Aktuell sind keine News-Beiträge vorhanden.
-            Einträge können in <code>src/data/newsData.ts</code> ergänzt werden.
-          </p>
-        )
-      }
+        </section>
+      )}
 
+      <p class="news__empty" id="news-empty" hidden>No articles from this year.</p>
     </div>
   </section>
 
+  <script is:inline>
+    (function () {
+      // Einziger Filter auf dieser Seite: das Jahr, und der wirkt nur auf
+      // die Liste "Older news". Aufmacher und Karten-Raster bleiben immer
+      // sichtbar.
+      var year  = document.getElementById("news-year");
+      var empty = document.getElementById("news-empty");
+      if (!year) return;
+
+      var rows = [].slice.call(document.querySelectorAll("[data-year]"));
+
+      year.addEventListener("change", function () {
+        var selected = year.value;
+        var shown = 0;
+
+        rows.forEach(function (row) {
+          var show = selected === "all" || row.getAttribute("data-year") === selected;
+          row.hidden = !show;
+          if (show) shown++;
+        });
+
+        if (empty) empty.hidden = shown !== 0;
+      });
+    })();
+  </script>
 </BaseLayout>
 
 <style>
-  /* ── Seiten-Kopf ──────────────────────────────────────────── */
-  .news-header {
-    background:    var(--color-bg-subtle);
-    padding-block: var(--space-16) var(--space-12);
-    border-bottom: 1px solid var(--color-border-subtle);
+  .news {
+    background:    var(--color-bg-page);
+    padding-block: var(--space-12) var(--space-24);
   }
 
-  .news-header__inner {
+  .news__panel {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-12);
+  }
+
+  /* ── Kopf ─────────────────────────────────────────────────── */
+  .news__head {
     display:        flex;
     flex-direction: column;
     gap:            var(--space-3);
   }
 
-  .news-header__inner h1 {
-    font-size: var(--fs-h1);
+  .news__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
   }
 
-  .news-header__sub {
-    font-size:  var(--fs-body-lg);
-    color:      var(--color-text-muted);
-    max-width:  560px;
-    margin:     0;
+  .news__title {
+    font-size:      clamp(2.2rem, 1.4rem + 3vw, 3.25rem);
+    line-height:    1.05;
+    letter-spacing: -0.01em;
   }
 
-  /* ── Listen-Bereich ───────────────────────────────────────── */
-  .news-list-section {
-    background:   var(--color-bg-page);
-    padding-block: var(--space-8) var(--space-24);
+  /* ── Aufmacher ────────────────────────────────────────────── */
+  .news__featured {
+    position:        relative;
+    display:         block;
+    overflow:        hidden;
+    border-radius:   24px;
+    height:          clamp(320px, 34vw, 420px);
+    text-decoration: none;
+    background:      #0b1024;
+    transition:      box-shadow var(--transition-base);
   }
 
-  /* ── Kartenliste ──────────────────────────────────────────── */
-  .news-list {
-    list-style:     none;
-    margin:         var(--space-8) 0 0;
-    padding:        0;
+  .news__featured:hover {
+    box-shadow:      0 16px 40px rgba(35, 42, 207, 0.2);
+    text-decoration: none;
+  }
+
+  .news__featured-bg {
+    position:        absolute;
+    inset:           0;
+    width:           100%;
+    height:          100%;
+    object-fit:      cover;
+    object-position: center 60%;
+  }
+
+  .news__featured-scrim {
+    position: absolute;
+    inset:    0;
+    background: linear-gradient(
+      to top,
+      rgba(6, 10, 30, 0.88) 0%,
+      rgba(6, 10, 30, 0.45) 55%,
+      rgba(6, 10, 30, 0.05) 100%
+    );
+  }
+
+  .news__featured-body {
+    position:       absolute;
+    left:           clamp(var(--space-6), 4vw, 48px);
+    right:          clamp(var(--space-6), 4vw, 48px);
+    bottom:         clamp(var(--space-6), 3vw, 40px);
     display:        flex;
     flex-direction: column;
-    gap:            var(--space-6);
+    gap:            var(--space-3);
+    max-width:      720px;
   }
 
-  /* ── Leer-Zustand ─────────────────────────────────────────── */
-  .news-empty {
-    margin-top: var(--space-8);
-    color:      var(--color-text-muted);
-    font-size:  var(--fs-body);
+  .news__featured-title {
+    font-family:  var(--font-display);
+    font-weight:  800;
+    font-size:    clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+    line-height:  1.15;
+    color:        var(--color-text-on-dark);
   }
 
-  .news-empty code {
-    font-size:     0.9em;
-    background:    var(--color-bg-subtle);
-    border-radius: var(--radius-sm);
-    padding:       2px 6px;
-    color:         var(--color-brand-blue-dark);
+  .news__featured-excerpt {
+    font-size:   var(--fs-body);
+    line-height: 1.6;
+    color:       rgba(255, 255, 255, 0.88);
+  }
+
+  .news__featured-date {
+    font-size:   13px;
+    font-weight: var(--fw-semibold);
+    color:       rgba(255, 255, 255, 0.7);
+  }
+
+  /* ── Chips auf Karten ─────────────────────────────────────── */
+  .news__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .news__tag {
+    white-space:   nowrap;
+    font-size:     11px;
+    font-weight:   var(--fw-bold);
+    border-radius: var(--radius-pill);
+    padding:       4px 10px;
+  }
+
+  .news__tag--glass {
+    font-size:            12px;
+    color:                var(--color-text-on-dark);
+    background:           rgba(255, 255, 255, 0.18);
+    backdrop-filter:      blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding:              5px 12px;
+  }
+
+  .news__tag--city    { color: var(--color-brand-blue);      background: #E5EDFF; }
+  .news__tag--program { color: var(--color-accent-purple);   background: #F1E5FE; }
+  .news__tag--other   { color: var(--color-brand-blue-dark); background: var(--color-brand-blue-light); }
+
+  /* ── Raster ───────────────────────────────────────────────── */
+  .news__grid {
+    display:               grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:                   var(--space-6);
+  }
+
+  .news__card {
+    display:         flex;
+    flex-direction:  column;
+    height:          100%;
+    overflow:        hidden;
+    background:      var(--color-bg-surface);
+    border:          1px solid var(--color-border-subtle);
+    border-radius:   var(--radius-lg);
+    text-decoration: none;
+    transition:      box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .news__card:hover {
+    box-shadow:      0 12px 32px rgba(35, 42, 207, 0.14);
+    transform:       translateY(-2px);
+    text-decoration: none;
+  }
+
+  .news__card-media { display: block; height: 180px; }
+
+  .news__card-media img {
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+  }
+
+  .news__card-placeholder {
+    display:    block;
+    height:     100%;
+    background: linear-gradient(135deg, #EEF3FF, #C9D8FF);
+  }
+
+  .news__card-body {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-2);
+    padding:        24px 26px 28px;
+  }
+
+  .news__card-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size:   19px;
+    line-height: 1.3;
+    color:       var(--color-text-heading);
+  }
+
+  .news__card-date { font-size: 13px; color: var(--color-text-muted); }
+
+  /* ── Archiv ───────────────────────────────────────────────── */
+  .news__archive-head {
+    display:         flex;
+    align-items:     baseline;
+    justify-content: space-between;
+    gap:             var(--space-8);
+    border-bottom:   2px solid var(--color-text-heading);
+    padding-bottom:  14px;
+    margin-bottom:   var(--space-2);
+  }
+
+  .news__archive-head h2 { font-size: 24px; }
+
+  .news__year select {
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   var(--fw-bold);
+    color:         var(--color-brand-blue);
+    background:    transparent;
+    border:        none;
+    cursor:        pointer;
+  }
+
+  .news__row {
+    display:               grid;
+    grid-template-columns: 110px 1fr auto;
+    gap:                   28px;
+    align-items:           center;
+    padding:               20px 4px;
+    border-bottom:         1px solid var(--color-border-subtle);
+    text-decoration:       none;
+    transition:            background var(--transition-fast);
+  }
+
+  .news__row:hover { background: #F7F9FE; text-decoration: none; }
+
+  .news__row-date {
+    font-size:   13px;
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-muted);
+  }
+
+  .news__row-title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size:   17px;
+    color:       var(--color-text-heading);
+  }
+
+  .news__empty { color: var(--color-text-muted); }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .news__grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 620px) {
+    .news__grid { grid-template-columns: 1fr; }
+    .news__row  { grid-template-columns: 1fr; gap: var(--space-2); }
   }
 </style>

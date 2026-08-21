@@ -15,9 +15,15 @@ const currentPath = new URL(Astro.request.url).pathname;
 
 function isActive(href: string): boolean {
   // Hash-Links (#...) sind nie "aktiv" im Sinne der aktuellen Seite
-  if (href.startsWith("#")) return false;
+  if (!href || href.startsWith("#")) return false;
   if (href === "/") return currentPath === "/";
   return currentPath === href || currentPath.startsWith(href + "/");
+}
+
+// Ein Gruppeneintrag ("Locations") gilt als aktiv, sobald einer seiner
+// Untereinträge die aktuelle Seite ist.
+function isGroupActive(item: { children?: { href: string }[] }): boolean {
+  return (item.children ?? []).some(child => isActive(child.href));
 }
 ---
 
@@ -38,7 +44,37 @@ function isActive(href: string): boolean {
     <!-- Desktop-Navigation -->
     <nav class="site-header__nav" aria-label="Hauptnavigation">
       <ul class="site-header__nav-list">
-        {navItems.map(item => (
+        {navItems.map(item => item.children ? (
+          <li class="site-header__dropdown">
+            <button
+              type="button"
+              class="site-header__nav-link site-header__dropdown-toggle"
+              aria-expanded="false"
+              aria-haspopup="true"
+              data-group={item.label}
+              data-current={isGroupActive(item) ? "true" : undefined}
+            >
+              {item.label}
+              <svg class="site-header__caret" viewBox="0 0 12 12" width="10" height="10"
+                   aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M1.5 4l4.5 4.5L10.5 4H1.5z"/>
+              </svg>
+            </button>
+            <ul class="site-header__dropdown-menu">
+              {item.children.map(child => (
+                <li>
+                  <a
+                    href={child.href}
+                    class="site-header__dropdown-link"
+                    aria-current={isActive(child.href) ? "page" : undefined}
+                  >
+                    {child.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ) : (
           <li>
             <a
               href={item.href}
@@ -93,7 +129,26 @@ function isActive(href: string): boolean {
     hidden
   >
     <ul class="site-header__mobile-list">
-      {navItems.map(item => (
+      {navItems.map(item => item.children ? (
+        <li>
+          {/* Kein Dropdown im Mobilmenü: die Standorte stehen direkt
+              untereinander, das spart einen zusätzlichen Tap. */}
+          <span class="site-header__mobile-group">{item.label}</span>
+          <ul>
+            {item.children.map(child => (
+              <li>
+                <a
+                  href={child.href}
+                  class="site-header__mobile-link site-header__mobile-link--child"
+                  aria-current={isActive(child.href) ? "page" : undefined}
+                >
+                  {child.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </li>
+      ) : (
         <li>
           <a
             href={item.href}
@@ -161,22 +216,94 @@ function isActive(href: string): boolean {
   }
 
   .site-header__nav-link {
-    font-size:   1.05rem;
-    font-weight: var(--fw-bold);
-    color:       var(--color-brand-blue);
+    font-size:   15px;
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-heading);
     padding:     var(--space-2) var(--space-1);
     white-space: nowrap;
     transition:  color var(--transition-fast);
   }
 
-  .site-header__nav-link:hover { text-decoration: underline; }
+  .site-header__nav-link:hover { color: var(--color-brand-blue); text-decoration: none; }
 
   .site-header__nav-link[aria-current="page"] {
-    color:                   var(--color-text-heading);
-    text-decoration:         underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset:   4px;
+    color: var(--color-brand-blue);
   }
+
+  /* ── Locations-Dropdown ───────────────────────────────────────
+     Öffnet bei Hover, bei Tastaturfokus (:focus-within) und per
+     Klick (.is-open, gesetzt vom Script). Der Klick-Pfad ist für
+     Touch-Geräte nötig, die kein Hover kennen.                    */
+  .site-header__dropdown { position: relative; }
+
+  .site-header__dropdown-toggle {
+    display:     inline-flex;
+    align-items: center;
+    gap:         6px;
+    background:  none;
+    border:      none;
+    font-family: var(--font-display);
+  }
+
+  .site-header__dropdown-toggle[data-current="true"] { color: var(--color-brand-blue); }
+
+  .site-header__caret {
+    transition: transform var(--transition-fast);
+  }
+
+  .site-header__dropdown:hover .site-header__caret,
+  .site-header__dropdown:focus-within .site-header__caret,
+  .site-header__dropdown.is-open .site-header__caret {
+    transform: rotate(180deg);
+  }
+
+  .site-header__dropdown-menu {
+    position:      absolute;
+    top:           100%;
+    left:          50%;
+    transform:     translateX(-50%) translateY(-4px);
+    min-width:     180px;
+    /* Der Abstand liegt als padding INNEN, damit zwischen Button und
+       Menü keine Lücke entsteht, über der der Hover abreißt. */
+    margin-top:    0;
+    padding:       var(--space-2);
+    background:    var(--color-bg-surface);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow:    var(--shadow-lift);
+    opacity:       0;
+    visibility:    hidden;
+    transition:    opacity var(--transition-fast), transform var(--transition-fast),
+                   visibility var(--transition-fast);
+    z-index:       10;
+  }
+
+  .site-header__dropdown:hover .site-header__dropdown-menu,
+  .site-header__dropdown:focus-within .site-header__dropdown-menu,
+  .site-header__dropdown.is-open .site-header__dropdown-menu {
+    opacity:    1;
+    visibility: visible;
+    transform:  translateX(-50%) translateY(0);
+  }
+
+  .site-header__dropdown-link {
+    display:       block;
+    padding:       var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    font-size:     15px;
+    font-weight:   var(--fw-semibold);
+    color:         var(--color-text-heading);
+    white-space:   nowrap;
+    transition:    background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .site-header__dropdown-link:hover {
+    background:      #F7F9FE;
+    color:           var(--color-brand-blue);
+    text-decoration: none;
+  }
+
+  .site-header__dropdown-link[aria-current="page"] { color: var(--color-brand-blue); }
 
   /* ── Aktionen (Icon + Burger) ─────────────────────────────── */
   .site-header__actions {
@@ -234,6 +361,18 @@ function isActive(href: string): boolean {
     color: var(--color-text-heading);
   }
 
+  .site-header__mobile-group {
+    display:        block;
+    padding:        var(--space-3) var(--space-1) var(--space-1);
+    font-size:      var(--fs-small);
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color:          var(--color-text-muted);
+  }
+
+  .site-header__mobile-link--child { padding-left: var(--space-4); }
+
   /* ── Responsive ───────────────────────────────────────────── */
   @media (max-width: 880px) {
     .site-header__nav       { display: none; }
@@ -248,6 +387,49 @@ function isActive(href: string): boolean {
 <script>
   const toggle    = document.getElementById("menu-toggle");
   const mobileNav = document.getElementById("mobile-nav");
+
+  // ── Locations-Dropdown ─────────────────────────────────────
+  //
+  // Hover und Tastaturfokus erledigt CSS. Hier kommt nur der Klick-Pfad
+  // dazu: Touch-Geräte kennen kein Hover, dort wäre das Menü sonst nicht
+  // erreichbar.
+
+  const dropdowns = Array.from(
+    document.querySelectorAll<HTMLElement>(".site-header__dropdown")
+  );
+
+  function closeDropdowns(except?: HTMLElement) {
+    dropdowns.forEach(d => {
+      if (d === except) return;
+      d.classList.remove("is-open");
+      d.querySelector(".site-header__dropdown-toggle")
+        ?.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  dropdowns.forEach(dropdown => {
+    const trigger = dropdown.querySelector(".site-header__dropdown-toggle");
+
+    trigger?.addEventListener("click", () => {
+      const isOpen = dropdown.classList.toggle("is-open");
+      trigger.setAttribute("aria-expanded", String(isOpen));
+      closeDropdowns(dropdown);
+    });
+
+    // Verlässt der Fokus die Gruppe per Tab, schließt sie wieder.
+    dropdown.addEventListener("focusout", event => {
+      const next = event.relatedTarget as Node | null;
+      if (next && dropdown.contains(next)) return;
+      dropdown.classList.remove("is-open");
+      trigger?.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  // Klick irgendwo sonst schließt offene Dropdowns.
+  document.addEventListener("click", event => {
+    const target = event.target as Node;
+    if (!dropdowns.some(d => d.contains(target))) closeDropdowns();
+  });
 
   // ── Burger-Toggle ──────────────────────────────────────────
 
@@ -287,9 +469,11 @@ function isActive(href: string): boolean {
   // ── Escape-Taste schließt Menü ─────────────────────────────
 
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && toggle?.getAttribute("aria-expanded") === "true") {
+    if (e.key !== "Escape") return;
+    if (toggle?.getAttribute("aria-expanded") === "true") {
       closeMenu();
       toggle?.focus();   // Fokus zurück auf den Toggle-Button
     }
+    closeDropdowns();
   });
 </script>

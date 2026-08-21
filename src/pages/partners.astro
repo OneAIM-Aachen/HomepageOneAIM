@@ -1,0 +1,461 @@
+---
+// src/pages/partners.astro
+// Vollständige Übersicht aller Partner und Sponsoren.
+//
+// Die Seite generiert sich komplett aus src/data/partners.ts – wer dort einen
+// Eintrag ergänzt, erscheint automatisch hier UND im Laufband auf der
+// Startseite (PartnersSection.astro). Hier ist nichts anzupassen.
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { sponsors, partnersOnly } from "../data/partners";
+
+// Sponsoren zuerst, danach die Partner. Leere Gruppen werden übersprungen,
+// damit die Seite auch funktioniert, wenn eine Kategorie (noch) leer ist.
+const groups = [
+  {
+    heading: "Sponsors",
+    description:
+      "Sponsors support OneAIM financially. Their funding is what makes our " +
+      "programs and events possible.",
+    items: sponsors,
+  },
+  {
+    heading: "Partners",
+    description:
+      "Partners are the startups, companies, research groups, clinics and other " +
+      "institutions we run our programs with. In cooperation with them we host " +
+      "our visits and workshops.",
+    items: partnersOnly,
+  },
+].filter(g => g.items.length > 0);
+---
+
+<BaseLayout
+  title="Partners & Sponsors"
+  description="All organisations supporting OneAIM: universities, clinics, companies and initiatives across the MedTech field."
+>
+  <section class="partners-page">
+    <div class="container partners-page__intro">
+      <p class="partners-page__overline">Our Partners &amp; Sponsors</p>
+      <h1 class="partners-page__heading">
+        The organisations behind <span class="text-accent">OneAIM</span>
+      </h1>
+      <p class="partners-page__lead">
+        As a student-led initiative, we appreciate any support that helps advance
+        our mission of providing free education in the MedTech field.
+      </p>
+    </div>
+
+    <!-- Toolbar: Suche, Sortierung, Darstellung.
+         hidden bis das Script übernimmt – ohne JavaScript wären die
+         Bedienelemente wirkungslos, die Liste selbst bleibt vollständig. -->
+    <div class="container partners-toolbar" id="partners-toolbar" hidden>
+      <div class="partners-toolbar__search">
+        <label class="visually-hidden" for="partner-search">Search partners and sponsors</label>
+        <input
+          type="search"
+          id="partner-search"
+          placeholder="Search by name…"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="partners-toolbar__controls">
+        <label class="partners-toolbar__field">
+          <span>Sort</span>
+          <select id="partner-sort" autocomplete="off">
+            <option value="default">Featured</option>
+            <option value="asc">Name A–Z</option>
+            <option value="desc">Name Z–A</option>
+          </select>
+        </label>
+
+        <div class="partners-toolbar__view" role="group" aria-label="View">
+          <button type="button" data-view="grid" aria-pressed="true">Grid</button>
+          <button type="button" data-view="list" aria-pressed="false">List</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="container partners-page__status" id="partner-status" role="status" aria-live="polite"></p>
+
+    {groups.map(group => (
+      <div class="container partners-page__group" data-group>
+        <div class="partners-page__group-head">
+          <h2 class="partners-page__group-heading">{group.heading}</h2>
+          <p class="partners-page__group-desc">{group.description}</p>
+        </div>
+        <ul class="partners-page__grid" data-grid>
+          {group.items.map((p, i) => (
+            <li class="partners-page__card" data-name={p.name} data-index={i}>
+              {p.website ? (
+                <a href={p.website} target="_blank" rel="noopener noreferrer">
+                  <span class="partners-page__logo">
+                    <img
+                      src={p.logo}
+                      alt={p.logoAlt ?? `${p.name} Logo`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </span>
+                  <span class="partners-page__name">{p.name}</span>
+                </a>
+              ) : (
+                <div>
+                  <span class="partners-page__logo">
+                    <img
+                      src={p.logo}
+                      alt={p.logoAlt ?? `${p.name} Logo`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </span>
+                  <span class="partners-page__name">{p.name}</span>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+        <p class="partners-page__empty" hidden>No matches in this category.</p>
+      </div>
+    ))}
+  </section>
+
+  <script is:inline>
+    (function () {
+      var toolbar = document.getElementById("partners-toolbar");
+      var search  = document.getElementById("partner-search");
+      var sort    = document.getElementById("partner-sort");
+      var status  = document.getElementById("partner-status");
+      if (!toolbar || !search || !sort) return;
+
+      var groups = [].slice.call(document.querySelectorAll("[data-group]"));
+      var views  = [].slice.call(toolbar.querySelectorAll("[data-view]"));
+
+      // Erst jetzt einblenden: ab hier sind die Bedienelemente funktionsfähig.
+      toolbar.hidden = false;
+
+      // Diakritika-tolerant vergleichen: "tuv" findet "TÜV SÜD",
+      // "universite" findet "Université de Montréal".
+      function norm(s) {
+        return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+      }
+
+      function collator() {
+        // localeCompare mit de-DE sortiert Umlaute korrekt (Ü wie U),
+        // numeric für Namen mit Ziffern.
+        return new Intl.Collator("de-DE", { sensitivity: "base", numeric: true });
+      }
+
+      function apply() {
+        var q = norm(search.value.trim());
+        var mode = sort.value;
+        var cmp = collator();
+        var total = 0;
+
+        groups.forEach(function (group) {
+          var grid  = group.querySelector("[data-grid]");
+          var empty = group.querySelector(".partners-page__empty");
+          var cards = [].slice.call(grid.children);
+          var shown = 0;
+
+          cards.forEach(function (card) {
+            var match = !q || norm(card.getAttribute("data-name")).indexOf(q) !== -1;
+            card.hidden = !match;
+            if (match) shown++;
+          });
+
+          // Sortierung: DOM-Reihenfolge ändern, damit sie in Grid- und
+          // Listenansicht gleichermaßen greift.
+          var ordered = cards.slice().sort(function (a, b) {
+            if (mode === "default") {
+              return a.getAttribute("data-index") - b.getAttribute("data-index");
+            }
+            var r = cmp.compare(a.getAttribute("data-name"), b.getAttribute("data-name"));
+            return mode === "desc" ? -r : r;
+          });
+          ordered.forEach(function (card) { grid.appendChild(card); });
+
+          // Gruppe mit 0 Treffern: Raster weg, Hinweis rein. Die Überschrift
+          // bleibt stehen, damit die Kategorien nicht wegspringen.
+          grid.hidden  = shown === 0;
+          empty.hidden = shown !== 0;
+          total += shown;
+        });
+
+        if (status) {
+          status.textContent = q
+            ? total + (total === 1 ? " match" : " matches") + ' for "' + search.value.trim() + '"'
+            : "";
+        }
+      }
+
+      function setView(view) {
+        groups.forEach(function (group) {
+          group.querySelector("[data-grid]")
+            .classList.toggle("partners-page__grid--list", view === "list");
+        });
+        views.forEach(function (b) {
+          b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === view));
+        });
+      }
+
+      search.addEventListener("input", apply);
+      sort.addEventListener("change", apply);
+      views.forEach(function (b) {
+        b.addEventListener("click", function () { setView(b.getAttribute("data-view")); });
+      });
+
+      // Escape leert das Suchfeld.
+      search.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && search.value) { search.value = ""; apply(); }
+      });
+
+      apply();
+    })();
+  </script>
+</BaseLayout>
+
+<style>
+  .partners-page {
+    background:     var(--color-bg-surface);
+    padding-block:  var(--space-16) var(--space-24);
+  }
+
+  .partners-page__intro {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-4);
+    align-items:    center;
+    text-align:     center;
+    margin-bottom:  var(--space-16);
+  }
+
+  .partners-page__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .partners-page__heading {
+    font-size: var(--fs-display);
+    max-width: 22ch;
+  }
+
+  .partners-page__lead {
+    max-width: 52ch;
+    color:     var(--color-text-muted);
+  }
+
+  /* ── Toolbar ──────────────────────────────────────────────── */
+  .partners-toolbar {
+    display:         flex;
+    flex-wrap:       wrap;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             var(--space-4);
+    margin-bottom:   var(--space-8);
+  }
+
+  .partners-toolbar__search { flex: 1 1 260px; }
+
+  .partners-toolbar__search input {
+    width:         100%;
+    padding:       var(--space-3) var(--space-6);
+    font-family:   var(--font-body);
+    font-size:     var(--fs-body);
+    color:         var(--color-text-heading);
+    background:    var(--color-bg-surface);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    transition:    border-color var(--transition-fast);
+  }
+
+  .partners-toolbar__search input:hover { border-color: rgba(0, 82, 233, 0.35); }
+
+  .partners-toolbar__search input:focus-visible {
+    outline:      none;
+    border-color: var(--color-brand-blue);
+    box-shadow:   var(--focus-ring);
+  }
+
+  .partners-toolbar__controls {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-6);
+    flex-wrap:   wrap;
+  }
+
+  .partners-toolbar__field {
+    display:     inline-flex;
+    align-items: center;
+    gap:         var(--space-2);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-muted);
+  }
+
+  .partners-toolbar__field select {
+    padding:       var(--space-2) var(--space-4);
+    font-family:   var(--font-body);
+    font-size:     var(--fs-small);
+    font-weight:   var(--fw-semibold);
+    color:         var(--color-text-heading);
+    background:    var(--color-bg-surface);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    cursor:        pointer;
+  }
+
+  /* Segmentierter Umschalter Grid / List */
+  .partners-toolbar__view {
+    display:       inline-flex;
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    overflow:      hidden;
+  }
+
+  .partners-toolbar__view button {
+    padding:     var(--space-2) var(--space-4);
+    font-family: var(--font-display);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-muted);
+    background:  transparent;
+    border:      none;
+    transition:  background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .partners-toolbar__view button:hover { color: var(--color-brand-blue); }
+
+  .partners-toolbar__view button[aria-pressed="true"] {
+    background: var(--color-brand-blue);
+    color:      var(--color-text-on-brand);
+  }
+
+  .partners-page__status {
+    min-height:    1.5em;
+    margin-bottom: var(--space-4);
+    font-size:     var(--fs-small);
+    color:         var(--color-text-muted);
+  }
+
+  .partners-page__empty {
+    font-size: var(--fs-body);
+    color:     var(--color-text-muted);
+  }
+
+  /* ── Gruppen (Sponsors / Partners) ────────────────────────── */
+  .partners-page__group + .partners-page__group {
+    margin-top: var(--space-24);
+  }
+
+  .partners-page__group-head {
+    margin-bottom:  var(--space-8);
+    padding-bottom: var(--space-4);
+    border-bottom:  1px solid var(--color-border-subtle);
+  }
+
+  .partners-page__group-heading { font-size: var(--fs-h2); }
+
+  /* Volle Containerbreite – der Text bricht erst am Seitenrand um und
+     skaliert damit mit dem Viewport, statt früh bei fester Breite. */
+  .partners-page__group-desc {
+    margin-top:  var(--space-2);
+    font-size:   var(--fs-body);
+    line-height: var(--lh-body);
+    color:       var(--color-text-muted);
+  }
+
+  /* ── Raster ───────────────────────────────────────────────────
+     auto-fill: die Spaltenzahl ergibt sich aus der Breite, damit
+     neue Partner ohne Layout-Anpassung einfach anschließen.      */
+  .partners-page__grid {
+    display:               grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap:                   var(--space-6);
+  }
+
+  .partners-page__card {
+    background:    var(--color-bg-surface);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow:    var(--shadow-card);
+    transition:    box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .partners-page__card:hover {
+    box-shadow: var(--shadow-lift);
+    transform:  translateY(-2px);
+  }
+
+  /* Gilt für die <a>- wie die <div>-Variante (Partner ohne Website). */
+  .partners-page__card > * {
+    display:         flex;
+    flex-direction:  column;
+    align-items:     center;
+    gap:             var(--space-4);
+    padding:         var(--space-8) var(--space-6);
+    height:          100%;
+    text-decoration: none;
+  }
+
+  .partners-page__card a:hover { text-decoration: none; }
+
+  .partners-page__logo {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    height:          72px;
+  }
+
+  .partners-page__logo img {
+    max-height: 72px;
+    max-width:  100%;
+    width:      auto;
+    object-fit: contain;
+  }
+
+  .partners-page__name {
+    font-family: var(--font-display);
+    font-weight: var(--fw-semibold);
+    font-size:   var(--fs-small);
+    color:       var(--color-text-heading);
+    text-align:  center;
+  }
+
+  /* ── Listenansicht ────────────────────────────────────────────
+     Eine Spalte, Logo und Name nebeneinander. Nur Layout – es wird
+     dieselbe Karte umgeschaltet, kein zweites Markup.            */
+  .partners-page__grid--list {
+    grid-template-columns: 1fr;
+    gap:                   var(--space-3);
+  }
+
+  .partners-page__grid--list .partners-page__card:hover {
+    transform: none;
+  }
+
+  .partners-page__grid--list .partners-page__card > * {
+    flex-direction: row;
+    align-items:    center;
+    gap:            var(--space-6);
+    padding:        var(--space-4) var(--space-6);
+  }
+
+  .partners-page__grid--list .partners-page__logo {
+    flex:   0 0 120px;
+    height: 44px;
+  }
+
+  .partners-page__grid--list .partners-page__logo img {
+    max-height: 44px;
+  }
+
+  .partners-page__grid--list .partners-page__name {
+    text-align: left;
+    font-size:  var(--fs-body);
+  }
+</style>

@@ -1,0 +1,874 @@
+---
+// src/components/sections/CityProgramsPanel.astro
+//
+// "Our programs in [City]" – Umsetzung von Entwurf 6a
+// ("City Past Programs Options.dc.html", "Full Connect panel").
+//
+// Aufbau:
+//   • Programm-Pills (Aim Connect / Aim Code / Aim Educate) schalten Panels um
+//   • Aim Connect: Intro + Foto → "Three key components" (nummerierte Leiste)
+//     → Semester-Timeline mit Umschalter "Upcoming batch" / "How the last
+//     year went" → Kostenkarte → "Already on board"-Partnerwahl → Apply
+//   • Die Partnerwahl zeigt LOGOS als Buttons und blättert automatisch
+//     durch die Partner (alle 4 s). Ein Klick wählt manuell und stoppt
+//     das Blättern; bei prefers-reduced-motion läuft es gar nicht erst.
+//   • Aim Code / Aim Educate: Intro + "Last semester"-Rückblick + CTA + Foto
+//
+// ZUSTAND: Gerüst. Stadtspezifische Fakten (Termine, Partner, Gebühr) stehen
+// als [Platzhalter] bzw. kommen – wo vorhanden – aus src/data/applications.ts
+// (Bewerbungsöffnung und -frist für Aim Connect). Die erklärenden Programm-
+// texte sind bewusst fest: sie sind an allen Standorten gleich.
+//
+// Interaktivität ist reines Inline-JS (hidden-Attribute) – kein Framework.
+
+import { getApplicationFor, getTermLabel } from "../../data/applications";
+import type { CitySlug } from "../../data/cityData";
+
+interface TimelineRow {
+  date: string;
+  title: string;
+  text: string;
+  /** "hollow" = Bewerbungsschritt, "filled" = Termin, "accent" = Höhepunkt */
+  dot?: "hollow" | "filled" | "accent";
+  /** Zeigt den "Fixed"-Chip hinter dem Titel */
+  fixed?: boolean;
+  /** Partnerzeilen unter dem Eintrag (Name + optional Person/Rolle) */
+  partners?: { name: string; detail?: string; logo?: string }[];
+}
+
+interface SecuredPartner {
+  name: string;
+  text: string;
+  /** Weiße Chips in der Detailkarte, z. B. ["OP visit", "Week 4", "Dr. X · Position"] */
+  chips?: string[];
+  logo?: string;
+}
+
+interface Props {
+  city?: string;
+  citySlug?: CitySlug;
+  contactHref?: string;
+  applyHref?: string;
+  /** Rückblick-Timeline "How the last year went" */
+  pastTimeline?: TimelineRow[];
+  /** Feste Termine des kommenden Semesters (nach den Bewerbungsschritten) */
+  upcomingEvents?: TimelineRow[];
+  fee?: { amount: string; note: string; includes: string[] };
+  securedPartners?: SecuredPartner[];
+  codeRecap?: { term: string; text: string };
+  educateRecap?: { term: string; text: string };
+}
+
+const {
+  city        = "[City]",
+  citySlug,
+  contactHref = "/contact",
+  applyHref,
+
+  pastTimeline = [
+    { date: "[Date]", dot: "filled", title: "Kickoff Weekend", text: "[One line about the kickoff.]",
+      partners: [
+        { name: "[Partner 1]", detail: "[Name · Position]" },
+        { name: "[Partner 2]", detail: "[Name · Position]" },
+        { name: "[Partner 3]", detail: "[Name · Position]" },
+      ] },
+    { date: "[Week 1]", dot: "filled", title: "[Expert talk: topic]", text: "[One line about the talk.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "[Week 2]", dot: "filled", title: "[Lab visit: topic]", text: "[One line about the visit.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "[Week 3]", dot: "filled", title: "[Workshop: topic]", text: "[One line about the workshop.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "[Week 4]", dot: "filled", title: "[Clinic visit]", text: "[One line about the visit.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "[Week 5]", dot: "filled", title: "[Company visit: partner]", text: "[One line about the visit.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "[Week 6]", dot: "filled", title: "[Startup evening]", text: "[One line about the evening.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "[Date]", dot: "accent", title: "Make-A-Thon & Summit", text: "48-hour hackathon, [n] prototype teams, closing summit.",
+      partners: [{ name: "[Host & sponsor partners]" }] },
+  ],
+
+  upcomingEvents = [
+    { date: "[24–26 Oct]", dot: "filled", fixed: true, title: "Kickoff Weekend", text: "Meet the cohort: team building and intro talks." },
+    { date: "[Week 1–8]", dot: "filled", title: "Partner visits & workshops", text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups." },
+    { date: "[06–08 Feb]", dot: "accent", fixed: true, title: "Make-A-Thon", text: "48-hour build weekend. Your team turns its project into a prototype." },
+    { date: "[20 Feb]", dot: "accent", fixed: true, title: "Summit", text: "The closing event: final pitches in front of partners and guests." },
+  ],
+
+  fee = {
+    amount: "50 €",
+    note: "Participation fee, due only after a positive interview and your invitation to the batch.",
+    includes: [
+      "Accommodation for 2 nights in [location]",
+      "All partner visits",
+      "All other material costs",
+    ],
+  },
+
+  securedPartners = [1, 2, 3, 4, 5].map(n => ({
+    name: `[Partner ${n}]`,
+    text: "[1–2 sentences: who this partner is and what participants will experience with them.]",
+    chips: ["[Visit type]", "[Week]", "[Name · Position]"],
+  })),
+
+  codeRecap    = { term: "[Term]", text: "[What the last edition looked like: courses, workshops, outcomes]" },
+  educateRecap = { term: "[Term]", text: "[What the last edition looked like: lectures, panels, guests]" },
+} = Astro.props as Props;
+
+// Bewerbungsschritte: Termine kommen aus der Bewerbungs-Datenbank, sobald es
+// dort eine Aim-Connect-Runde für diesen Standort gibt.
+const round = citySlug ? getApplicationFor(citySlug, "aim-connect") : undefined;
+
+const compact = new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short" });
+const d = (iso?: string) => (iso ? compact.format(new Date(iso)) : "[Date]");
+
+const applicationSteps: TimelineRow[] = [
+  { date: d(round?.opensAt),  dot: "hollow", title: "Applications open",     text: "Apply online. Open to students of all disciplines." },
+  { date: d(round?.deadline), dot: "hollow", title: "Application deadline",  text: "Last day to submit your application." },
+  { date: "[Date]",           dot: "hollow", title: "Interviews",            text: "Short personal conversations. We want to get to know you, not grill you." },
+  { date: "[Date]",           dot: "hollow", title: "Final decision",        text: "You hear back from us and the cohort is complete." },
+];
+
+const upcomingLabel = round ? `The upcoming batch (${getTermLabel(round)})` : "The upcoming batch ([Term])";
+const resolvedApplyHref = applyHref ?? round?.applyUrl ?? contactHref;
+
+// Rückblick in zwei Spalten aufteilen (wie im Entwurf)
+const half = Math.ceil(pastTimeline.length / 2);
+const pastCols = [pastTimeline.slice(0, half), pastTimeline.slice(half)];
+
+const upcomingRows = [...applicationSteps, ...upcomingEvents];
+---
+
+<section class="cpp" aria-labelledby="cpp-heading">
+  <div class="cpp__head">
+    <p class="cpp__overline">Our programs in {city}</p>
+    <h2 id="cpp-heading">Know what you're signing up for</h2>
+    <p class="cpp__sub">Pick a program to see what it offers, and how a semester with us is built.</p>
+  </div>
+
+  <div class="cpp__pills" role="tablist" aria-label="Programs">
+    <button type="button" class="cpp__pill is-active" data-tab="connect" aria-pressed="true">Aim Connect</button>
+    <button type="button" class="cpp__pill" data-tab="code" aria-pressed="false">Aim Code</button>
+    <button type="button" class="cpp__pill" data-tab="educate" aria-pressed="false">Aim Educate</button>
+  </div>
+
+  <!-- ── Aim Connect ─────────────────────────────────────────── -->
+  <div class="cpp__panel" data-panel="connect">
+    <div class="cpp__connect-intro">
+      <p class="cpp__text">
+        AIM Connect is an exclusive add-on study program for students passionate about the
+        intersection of medicine, entrepreneurship, and technology. Over the semester,
+        participants gain in-depth insights into the MedTech field, from hospitals and
+        research institutions to startups and established companies.
+      </p>
+      <div class="cpp__media"><div class="cpp__slot">Photo: kickoff / cohort</div></div>
+    </div>
+
+    <div class="cpp__components">
+      <p class="cpp__label">Three key components</p>
+      <p class="cpp__text cpp__text--wide">
+        Every Aim Connect semester is built on three pillars: the kickoff weekend to form
+        your cohort, regular partner visits and workshops, and a team project, prepared in
+        dedicated sessions, built intensively at the Make-A-Thon weekend, and pitched at the
+        closing summit.
+      </p>
+      <div class="cpp__steps">
+        <div class="cpp__steps-line" aria-hidden="true"></div>
+        <div class="cpp__step">
+          <span class="cpp__step-n">1</span>
+          <h3>Kickoff Weekend</h3>
+          <p>Two days to meet your cohort: intro talks, team building and a first look at the semester ahead.</p>
+        </div>
+        <div class="cpp__step">
+          <span class="cpp__step-n">2</span>
+          <h3>Partner visits &amp; workshops</h3>
+          <p>Weekly sessions with our partners: hospital and lab excursions and hands-on MedTech workshops.</p>
+        </div>
+        <div class="cpp__step">
+          <span class="cpp__step-n cpp__step-n--accent">3</span>
+          <h3>Team project: Make-A-Thon &amp; Summit</h3>
+          <p>In interdisciplinary teams you work on a MedTech project: preparation sessions during the semester, an intensive build at the Make-A-Thon weekend, and the final pitch at the summit.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cpp__tl-head">
+      <p class="cpp__label">Semester timeline</p>
+      <div class="cpp__toggle" role="group" aria-label="Timeline view">
+        <button type="button" class="cpp__toggle-btn is-active" data-tl="next" aria-pressed="true">Upcoming batch</button>
+        <button type="button" class="cpp__toggle-btn" data-tl="past" aria-pressed="false">How the last year went</button>
+      </div>
+    </div>
+
+    <!-- Kommendes Semester -->
+    <div data-tlview="next">
+      <p class="cpp__tl-caption">{upcomingLabel}</p>
+      <div class="cpp__next">
+        <div class="cpp__tl">
+          {upcomingRows.map(row => (
+            <div class="cpp__row">
+              <span class={`cpp__date ${row.dot === "accent" ? "cpp__date--accent" : ""}`}>{row.date}</span>
+              <span class="cpp__rail">
+                <span class={`cpp__dot cpp__dot--${row.dot ?? "filled"}`} aria-hidden="true"></span>
+                <span class="cpp__line" aria-hidden="true"></span>
+              </span>
+              <div class="cpp__row-body">
+                <h4>{row.title} {row.fixed && <span class="cpp__fixed">Fixed</span>}</h4>
+                <p>{row.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <aside class="cpp__fee">
+          <p class="cpp__fee-amount">{fee.amount}</p>
+          <p class="cpp__fee-note">{fee.note}</p>
+          <p class="cpp__fee-included">Included:</p>
+          <ul>{fee.includes.map(i => <li>{i}</li>)}</ul>
+        </aside>
+      </div>
+
+      <div class="cpp__secured">
+        <div class="cpp__secured-head">
+          <p class="cpp__label">Already on board for the next batch</p>
+          <p class="cpp__secured-sub">These partners are secured for the semester you are applying to.</p>
+        </div>
+
+        <div class="cpp__secured-split">
+          <div class="cpp__prows">
+            {securedPartners.map((p, i) => (
+              <button
+                type="button"
+                class={`cpp__prow ${i === 0 ? "is-active" : ""}`}
+                data-pt={String(i)}
+                aria-pressed={i === 0 ? "true" : "false"}
+              >
+                <span class="cpp__prow-logo">
+                  {p.logo ? <img src={p.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}
+                </span>
+                <span>{p.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {securedPartners.map((p, i) => (
+            <div class="cpp__pdetail" data-ptcard={String(i)} hidden={i !== 0}>
+              <span class="cpp__pdetail-logo">
+                {p.logo ? <img src={p.logo} alt="" loading="lazy" decoding="async" /> : <span>LOGO</span>}
+              </span>
+              <h4>{p.name}</h4>
+              <p>{p.text}</p>
+              {p.chips && (
+                <div class="cpp__pchips">
+                  {p.chips.map(c => <span class="cpp__pchip">{c}</span>)}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <a class="cpp__apply" href={resolvedApplyHref}>Apply for Aim Connect →</a>
+      </div>
+    </div>
+
+    <!-- Rückblick -->
+    <div data-tlview="past" hidden>
+      <div class="cpp__past">
+        {pastCols.map(col => (
+          <div class="cpp__tl">
+            {col.map(row => (
+              <div class="cpp__row">
+                <span class={`cpp__date ${row.dot === "accent" ? "cpp__date--accent" : ""}`}>{row.date}</span>
+                <span class="cpp__rail">
+                  <span class={`cpp__dot cpp__dot--${row.dot ?? "filled"}`} aria-hidden="true"></span>
+                  <span class="cpp__line" aria-hidden="true"></span>
+                </span>
+                <div class="cpp__row-body">
+                  <h4>{row.title}</h4>
+                  <p>{row.text}</p>
+                  {row.partners && (
+                    <div class="cpp__mini-partners">
+                      {row.partners.map(pp => (
+                        <div class="cpp__mini">
+                          <span class="cpp__mini-logo">{pp.logo ? <img src={pp.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}</span>
+                          <span class="cpp__mini-text"><strong>{pp.name}</strong>{pp.detail && <><br/>{pp.detail}</>}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Aim Code ────────────────────────────────────────────── -->
+  <div class="cpp__panel cpp__panel--simple" data-panel="code" hidden>
+    <div class="cpp__simple-copy">
+      <p class="cpp__text">
+        Within AIM Code, we offer specialized coding courses for students and medical
+        professionals, from hands-on introductory Python workshops to advanced sessions on
+        artificial intelligence in healthcare. All courses are free of charge.
+      </p>
+      <div class="cpp__recap">
+        <p class="cpp__recap-label">Last semester ({codeRecap.term})</p>
+        <p>{codeRecap.text}</p>
+      </div>
+      <a class="cpp__btn" href={contactHref}>Join the next course</a>
+    </div>
+    <div class="cpp__media cpp__media--tall"><div class="cpp__slot">Photo: coding course</div></div>
+  </div>
+
+  <!-- ── Aim Educate ─────────────────────────────────────────── -->
+  <div class="cpp__panel cpp__panel--simple" data-panel="educate" hidden>
+    <div class="cpp__simple-copy">
+      <p class="cpp__text">
+        Periodically, AIM organizes open lectures for all students interested in Medical AI.
+        Held in a relaxed and informal setting, they foster open discussion and let
+        participants explore current trends, research and innovations freely.
+      </p>
+      <div class="cpp__recap">
+        <p class="cpp__recap-label">Last semester ({educateRecap.term})</p>
+        <p>{educateRecap.text}</p>
+      </div>
+      <a class="cpp__btn" href={contactHref}>See upcoming lectures</a>
+    </div>
+    <div class="cpp__media cpp__media--tall"><div class="cpp__slot">Photo: open lecture</div></div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var root = document.currentScript.closest(".cpp");
+      if (!root) return;
+
+      function wire(btnSel, btnAttr, viewSel, viewAttr) {
+        var btns = [].slice.call(root.querySelectorAll(btnSel));
+        btns.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var key = btn.getAttribute(btnAttr);
+            btns.forEach(function (b) {
+              var on = b === btn;
+              b.classList.toggle("is-active", on);
+              b.setAttribute("aria-pressed", String(on));
+            });
+            [].slice.call(root.querySelectorAll(viewSel)).forEach(function (v) {
+              v.hidden = v.getAttribute(viewAttr) !== key;
+            });
+          });
+        });
+      }
+
+      wire("[data-tab]",  "data-tab", "[data-panel]",  "data-panel");
+      wire("[data-tl]",   "data-tl",  "[data-tlview]", "data-tlview");
+
+      // ── Partnerwahl: Klick + automatisches Weiterblättern ──────────
+      // Alle 4 s springt die Auswahl zum nächsten Partner, damit
+      // Interessierte alle gesicherten Partner zu sehen bekommen.
+      // Ein Klick wählt manuell und beendet die Rotation; solange die
+      // Maus über der Box liegt, pausiert sie. Bei reduzierter Bewegung
+      // wird gar nicht rotiert.
+      var ptBtns = [].slice.call(root.querySelectorAll("[data-pt]"));
+      if (ptBtns.length) {
+        var ptCards = [].slice.call(root.querySelectorAll("[data-ptcard]"));
+        var securedBox = root.querySelector(".cpp__secured");
+        var current = 0;
+        var timer = null;
+
+        function showPartner(i) {
+          current = i;
+          var key = ptBtns[i].getAttribute("data-pt");
+          ptBtns.forEach(function (b, j) {
+            b.classList.toggle("is-active", j === i);
+            b.setAttribute("aria-pressed", String(j === i));
+          });
+          ptCards.forEach(function (c) {
+            c.hidden = c.getAttribute("data-ptcard") !== key;
+          });
+        }
+
+        function stopRotation() {
+          if (timer) { clearInterval(timer); timer = null; }
+        }
+
+        ptBtns.forEach(function (btn, i) {
+          btn.addEventListener("click", function () {
+            stopRotation();          // manuelle Wahl gewinnt dauerhaft
+            showPartner(i);
+          });
+        });
+
+        var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (ptBtns.length > 1 && !reduceMotion) {
+          timer = setInterval(function () {
+            // Live geprüft statt über mouseenter/mouseleave-Flags: die
+            // Ereignispaare können bei Scroll-Wiederherstellung ohne
+            // Gegenstück feuern und die Rotation dauerhaft anhalten.
+            if (document.hidden || securedBox.matches(":hover")) return;
+            showPartner((current + 1) % ptBtns.length);
+          }, 4000);
+        }
+      }
+    })();
+  </script>
+</section>
+
+<style>
+  .cpp {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+    padding:        0 clamp(var(--space-6), 5vw, 64px) clamp(var(--space-12), 5vw, 56px);
+  }
+
+  /* Das hidden-Attribut wirkt nur über display:none der UA-Styles –
+     jede eigene display-Angabe (grid der Panels/Karten) würde es
+     überstimmen. Deshalb hier explizit erzwingen. */
+  .cpp [hidden] { display: none !important; }
+
+  .cpp__head { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+  .cpp__head h2 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem); letter-spacing: -0.5px; }
+  .cpp__sub { font-size: var(--fs-body); line-height: 1.6; }
+
+  .cpp__overline,
+  .cpp__label {
+    font-size:      13px;
+    font-weight:    800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .cpp__text { font-size: var(--fs-body); line-height: 1.65; }
+  .cpp__text--wide { max-width: 900px; font-size: 15px; }
+
+  .cpp__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           100%;
+    height:          100%;
+    font-size:       var(--fs-small);
+    font-weight:     var(--fw-semibold);
+    color:           var(--color-text-muted);
+    background:      #F7F9FE;
+    border:          2px dashed var(--color-border-subtle);
+    border-radius:   16px;
+  }
+
+  /* ── Programm-Pills ───────────────────────────────────────── */
+  .cpp__pills { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .cpp__pill {
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   800;
+    color:         var(--color-text-body);
+    background:    #EEF1F7;
+    border:        none;
+    border-radius: var(--radius-pill);
+    padding:       10px 22px;
+    transition:    background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .cpp__pill:hover { color: var(--color-brand-blue); }
+  .cpp__pill.is-active { background: var(--color-brand-blue); color: var(--color-text-on-brand); }
+
+  .cpp__panel {
+    display:        flex;
+    flex-direction: column;
+    gap:            clamp(var(--space-8), 3vw, 48px);
+    border-top:     1px solid var(--color-border-subtle);
+    padding-top:    var(--space-8);
+  }
+
+  /* ── Connect: Intro ───────────────────────────────────────── */
+  .cpp__connect-intro {
+    display:               grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap:                   48px;
+    align-items:           center;
+  }
+
+  .cpp__media { height: 200px; }
+  .cpp__media--tall { height: 300px; }
+  .cpp__media img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+
+  /* ── Drei Komponenten ─────────────────────────────────────── */
+  .cpp__components { display: flex; flex-direction: column; gap: var(--space-4); }
+
+  .cpp__steps {
+    display:               grid;
+    grid-template-columns: repeat(3, 1fr);
+    position:              relative;
+    margin-top:            var(--space-4);
+  }
+
+  .cpp__steps-line {
+    position:   absolute;
+    top:        17px;
+    left:       20px;
+    right:      20px;
+    height:     2px;
+    background: var(--color-border-subtle);
+  }
+
+  .cpp__step { display: flex; flex-direction: column; gap: 14px; position: relative; padding-right: 32px; }
+
+  .cpp__step-n {
+    width:           36px;
+    height:          36px;
+    border-radius:   50%;
+    background:      var(--color-brand-blue);
+    color:           #fff;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       15px;
+    font-weight:     800;
+    border:          4px solid var(--color-bg-surface);
+  }
+
+  .cpp__step-n--accent { background: linear-gradient(135deg, #8D2DF1, #D400FF); }
+
+  .cpp__step h3 { font-size: 17px; }
+  .cpp__step p  { font-size: 14px; line-height: 1.6; }
+
+  /* ── Timeline-Kopf + Umschalter ───────────────────────────── */
+  .cpp__tl-head {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             var(--space-6);
+    flex-wrap:       wrap;
+  }
+
+  .cpp__toggle { display: flex; gap: 6px; background: #EEF1F7; border-radius: var(--radius-pill); padding: 4px; }
+
+  .cpp__toggle-btn {
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   800;
+    color:         var(--color-text-body);
+    background:    transparent;
+    border:        none;
+    border-radius: var(--radius-pill);
+    padding:       8px 20px;
+    transition:    background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .cpp__toggle-btn.is-active { background: var(--color-brand-blue); color: #fff; }
+
+  .cpp__tl-caption { font-size: 13px; font-weight: var(--fw-bold); color: var(--color-text-body); margin-bottom: var(--space-4); }
+
+  /* ── Timeline ─────────────────────────────────────────────── */
+  .cpp__tl { display: flex; flex-direction: column; }
+
+  .cpp__row {
+    display:               grid;
+    grid-template-columns: 90px 16px minmax(0, 1fr);
+    gap:                   0 16px;
+  }
+
+  .cpp__date {
+    text-align:  right;
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+
+  .cpp__date--accent { color: var(--color-accent-purple); }
+
+  .cpp__rail { display: flex; flex-direction: column; align-items: center; }
+
+  .cpp__dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+  .cpp__dot--filled { background: var(--color-brand-blue); }
+  .cpp__dot--hollow { background: #fff; border: 3px solid var(--color-brand-blue); }
+  .cpp__dot--accent { background: linear-gradient(135deg, #8D2DF1, #D400FF); }
+
+  .cpp__line { width: 2px; flex: 1; background: var(--color-border-subtle); }
+  .cpp__row:last-child .cpp__line { display: none; }
+
+  .cpp__row-body { padding-bottom: 28px; }
+  .cpp__row:last-child .cpp__row-body { padding-bottom: 0; }
+
+  .cpp__row-body h4 { font-size: 15px; }
+  .cpp__row-body p  { font-size: 13px; line-height: 1.5; margin-top: 2px; }
+
+  .cpp__fixed {
+    background:     #EDF2FF;
+    color:          var(--color-brand-blue);
+    font-size:      11px;
+    font-weight:    800;
+    padding:        2px 8px;
+    border-radius:  var(--radius-pill);
+    vertical-align: 2px;
+    white-space:    nowrap;
+  }
+
+  /* Partner-Miniaturen im Rückblick */
+  .cpp__mini-partners { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .cpp__mini { display: flex; align-items: center; gap: 10px; }
+
+  .cpp__mini-logo {
+    width:           32px;
+    height:          32px;
+    border-radius:   8px;
+    background:      #fff;
+    border:          1px solid var(--color-border-subtle);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    overflow:        hidden;
+    flex-shrink:     0;
+    font-size:       10px;
+    font-weight:     800;
+    color:           #98A1B4;
+  }
+
+  .cpp__mini-logo img { max-width: 26px; max-height: 26px; object-fit: contain; }
+  .cpp__mini-text { font-size: 12px; line-height: 1.4; }
+  .cpp__mini-text strong { color: var(--color-text-heading); }
+
+  /* ── Kommendes Semester: Timeline + Kostenkarte ───────────── */
+  .cpp__next { display: flex; gap: 40px; align-items: flex-start; }
+  .cpp__next .cpp__tl { flex: 1; max-width: 760px; }
+
+  .cpp__fee {
+    width:          300px;
+    flex-shrink:    0;
+    background:     #EDF2FF;
+    border-radius:  16px;
+    padding:        24px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+  }
+
+  .cpp__fee-amount { font-size: 28px; font-weight: 800; color: var(--color-brand-blue); line-height: 1; }
+  .cpp__fee-note { font-size: 14px; font-weight: 800; color: var(--color-brand-blue-dark); }
+  .cpp__fee-included { font-size: 13px; color: var(--color-brand-blue-dark); }
+
+  .cpp__fee ul { display: flex; flex-direction: column; gap: 6px; }
+  .cpp__fee li {
+    font-size:    13px;
+    line-height:  1.5;
+    color:        var(--color-brand-blue-dark);
+    padding-left: var(--space-4);
+    position:     relative;
+  }
+  .cpp__fee li::before { content: "·"; position: absolute; left: 0; color: var(--color-brand-blue); font-weight: 800; }
+
+  /* ── Gesicherte Partner ───────────────────────────────────── */
+  /* Weißer Rahmen statt Wash (aktualisierter Entwurf 6a) */
+  .cpp__secured {
+    background:     var(--color-bg-surface);
+    border:         1px solid #DEE3ED;
+    border-radius:  20px;
+    padding:        32px 36px;
+    display:        flex;
+    flex-direction: column;
+    gap:            24px;
+    margin-top:     var(--space-6);
+  }
+
+  .cpp__secured-head { display: flex; flex-direction: column; gap: 6px; }
+  .cpp__secured-sub { font-size: 15px; line-height: 1.5; color: var(--color-text-body); }
+
+  /* Liste links, Detail rechts */
+  .cpp__secured-split {
+    display:               grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap:                   32px;
+    align-items:           stretch;
+  }
+
+  .cpp__prows { display: flex; flex-direction: column; gap: 8px; }
+
+  .cpp__prow {
+    display:       flex;
+    align-items:   center;
+    gap:           12px;
+    text-align:    left;
+    font-family:   var(--font-display);
+    font-size:     15px;
+    font-weight:   800;
+    color:         var(--color-text-heading);
+    background:    var(--color-bg-surface);
+    border:        1px solid #DEE3ED;
+    border-radius: 14px;
+    padding:       12px 16px;
+    transition:    color var(--transition-fast), border-color var(--transition-fast),
+                   box-shadow var(--transition-fast);
+  }
+
+  .cpp__prow:hover { color: var(--color-brand-blue); }
+
+  .cpp__prow.is-active {
+    color:        var(--color-brand-blue);
+    border-color: var(--color-brand-blue);
+    box-shadow:   inset 0 0 0 2px var(--color-brand-blue);
+  }
+
+  .cpp__prow-logo {
+    width:           36px;
+    height:          36px;
+    border-radius:   8px;
+    background:      #EEF1F7;
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    overflow:        hidden;
+    flex-shrink:     0;
+    font-size:       9px;
+    font-weight:     800;
+    color:           #98A1B4;
+  }
+
+  .cpp__prow-logo img { max-width: 30px; max-height: 30px; object-fit: contain; }
+
+  /* Detailkarte auf hellblauer Fläche */
+  .cpp__pdetail {
+    background:      #EDF2FF;
+    border-radius:   20px;
+    padding:         32px 36px;
+    display:         flex;
+    flex-direction:  column;
+    justify-content: center;
+    gap:             12px;
+    animation:       cpp-card-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes cpp-card-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cpp__pdetail { animation: none; }
+  }
+
+  .cpp__pdetail-logo {
+    width:           64px;
+    height:          64px;
+    border-radius:   12px;
+    background:      var(--color-bg-surface);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    overflow:        hidden;
+    font-size:       11px;
+    font-weight:     800;
+    color:           #98A1B4;
+  }
+
+  .cpp__pdetail-logo img { max-width: 52px; max-height: 52px; object-fit: contain; }
+
+  .cpp__pdetail h4 { font-size: 20px; color: var(--color-brand-blue-dark); }
+  .cpp__pdetail p  { font-size: 14px; line-height: 1.65; color: var(--color-brand-blue-dark); }
+
+  .cpp__pchips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+  .cpp__pchip {
+    background:    var(--color-bg-surface);
+    color:         var(--color-brand-blue);
+    font-size:     13px;
+    font-weight:   var(--fw-bold);
+    padding:       6px 14px;
+    border-radius: var(--radius-pill);
+    white-space:   nowrap;
+  }
+
+  /* Voller Gradient-Apply über die ganze Breite */
+  .cpp__apply {
+    align-self:      stretch;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             10px;
+    font-family:     var(--font-display);
+    font-size:       18px;
+    font-weight:     800;
+    color:           #fff;
+    background:      linear-gradient(90deg, var(--color-brand-blue), var(--color-accent-purple));
+    border-radius:   var(--radius-pill);
+    padding:         18px 32px;
+    margin-top:      4px;
+    text-decoration: none;
+    box-shadow:      0 8px 24px rgba(0, 82, 233, 0.35);
+    transition:      transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .cpp__apply:hover {
+    transform:       translateY(-2px);
+    box-shadow:      0 12px 32px rgba(0, 82, 233, 0.45);
+    text-decoration: none;
+  }
+
+  .cpp__btn {
+    align-self:      flex-start;
+    font-family:     var(--font-display);
+    background:      var(--color-brand-blue);
+    color:           #fff;
+    font-size:       14px;
+    font-weight:     800;
+    padding:         12px 24px;
+    border-radius:   var(--radius-pill);
+    text-decoration: none;
+    transition:      background var(--transition-fast);
+  }
+
+  .cpp__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+
+  /* ── Rückblick: zwei Spalten ──────────────────────────────── */
+  .cpp__past {
+    display:               grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:                   0 64px;
+  }
+
+  /* ── Einfache Panels (Code / Educate) ─────────────────────── */
+  .cpp__panel--simple {
+    display:               grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap:                   48px;
+    align-items:           start;
+  }
+
+  .cpp__simple-copy { display: flex; flex-direction: column; gap: 20px; }
+
+  .cpp__recap {
+    background:     #EDF2FF;
+    border-radius:  16px;
+    padding:        24px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+  }
+
+  .cpp__recap-label {
+    font-size:      12px;
+    font-weight:    800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .cpp__recap p:not(.cpp__recap-label) { font-size: 14px; line-height: 1.8; color: var(--color-brand-blue-dark); }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 940px) {
+    .cpp__connect-intro,
+    .cpp__panel--simple { grid-template-columns: minmax(0, 1fr); }
+    .cpp__next { flex-direction: column; }
+    .cpp__secured-split { grid-template-columns: minmax(0, 1fr); }
+    .cpp__fee  { width: 100%; }
+    .cpp__past { grid-template-columns: minmax(0, 1fr); }
+    .cpp__steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+    .cpp__steps-line { display: none; }
+    .cpp__step { padding-right: 0; }
+  }
+</style>

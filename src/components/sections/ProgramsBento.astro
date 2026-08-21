@@ -1,0 +1,305 @@
+---
+// src/components/sections/ProgramsBento.astro
+// "Our Programs" – Bento-Mosaik mit allen fünf AIM-Programmen.
+// Umsetzung von Entwurf 4A aus dem Claude-Design-Projekt
+// ("What is OneAIM Options.dc.html", Abschnitt 4A "TALL BENTO MOSAIC").
+//
+// Aufbau des Rasters (6 Spalten, Zeilen à 120px):
+//   ┌───────────────┬───────────────┐
+//   │               │  AIM Code     │  ← Foto + Scrim
+//   │  AIM Connect  ├───────────────┤
+//   │  (Foto oben,  │  AIM Innovate │  ← Blau/Violett-Verlauf
+//   │   Text unten) ├───────────────┤
+//   ├───────────────┤               │
+//   │  AIM Educate  │  AIM Science  │
+//   └───────────────┴───────────────┘
+//
+// Nicht zu verwechseln mit ProgramTeasers.astro – das ist das
+// stadtspezifische Teaser-Grid auf /munich und /aachen.
+
+import { programs } from "../../data/programs";
+---
+
+<section class="programs" id="programs" aria-labelledby="programs-heading">
+  <div class="container">
+    <div class="programs__panel">
+      <header class="programs__header">
+        <p class="programs__overline">What we do</p>
+        <h2 id="programs-heading" class="programs__heading">
+          Our <span class="text-accent">Programs</span>
+        </h2>
+        <p class="programs__lead">
+          Each chapter runs its own programs on the shared OneAIM blueprint: the
+          same formats in every city, with local partners, projects and dates. The
+          chapters work closely together, with joint events, shared speakers and
+          projects that span locations.
+        </p>
+      </header>
+
+      <ul class="programs__grid">
+        {programs.map(p => (
+          <li class={`programs__cell programs__cell--${p.variant}`}>
+            <a class="programs__card" href={`/programs/${p.slug}`}>
+              {p.variant === "feature" && (
+                <span class="programs__media">
+                  <img src={p.image} alt={p.imageAlt ?? ""} loading="lazy" decoding="async" />
+                </span>
+              )}
+
+              {p.variant === "photo" && (
+                <>
+                  <img
+                    class="programs__bg"
+                    src={p.image}
+                    alt={p.imageAlt ?? ""}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span class="programs__scrim" aria-hidden="true"></span>
+                </>
+              )}
+
+              <span class="programs__body">
+                {p.badge && <span class="programs__badge">{p.badge}</span>}
+                <h3 class="programs__name">{p.name}</h3>
+                <span class="programs__text">{p.text}</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .programs {
+    background:    var(--color-bg-surface);
+    padding-block: var(--space-8) var(--space-24);
+    /* Sprungziel des Hero-Buttons: Abstand, damit die Überschrift
+       nicht unter der klebenden Kopfzeile landet. */
+    scroll-margin-top: var(--header-height);
+  }
+
+  .programs__panel {
+    background:    var(--color-bg-surface);
+    border-radius: var(--radius-lg);
+    box-shadow:    0 8px 32px rgba(35, 42, 207, 0.08);
+    padding:       clamp(var(--space-8), 6vw, 96px) clamp(var(--space-6), 5vw, 72px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-12);
+  }
+
+  .programs__header {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-4);
+    max-width:      640px;
+  }
+
+  .programs__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .programs__heading {
+    font-size:      clamp(1.9rem, 1.3rem + 2vw, 2.75rem);
+    line-height:    1.1;
+    letter-spacing: -0.01em;
+  }
+
+  /* Hinweis unter der Überschrift: die fünf Programme sind ein gemeinsamer
+     Rahmen, ausgerichtet wird jeweils vor Ort. */
+  .programs__lead {
+    font-size:   var(--fs-body);
+    line-height: var(--lh-body);
+    color:       var(--color-text-muted);
+    max-width:   58ch;
+  }
+
+  /* ── Raster ───────────────────────────────────────────────────
+     6 Spalten, Zeilenhöhe 120px. Die Karten werden automatisch
+     platziert; nur die Spannweiten sind gesetzt.                 */
+  .programs__grid {
+    display:               grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows:        120px;
+    gap:                   22px;
+  }
+
+  .programs__cell            { display: flex; }
+  .programs__cell--feature   { grid-column: span 3; grid-row: span 4; }
+  .programs__cell--photo,
+  .programs__cell--gradient,
+  .programs__cell--light,
+  .programs__cell--outline   { grid-column: span 3; grid-row: span 2; }
+
+  /* ── Karte (gemeinsame Basis) ─────────────────────────────── */
+  .programs__card {
+    position:        relative;
+    overflow:        hidden;
+    border-radius:   var(--radius-lg);
+    width:           100%;
+    display:         flex;
+    flex-direction:  column;
+    text-decoration: none;
+    transition:      box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .programs__card:hover { text-decoration: none; transform: translateY(-2px); }
+
+  .programs__body {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-2);
+  }
+
+  .programs__name   { font-size: 24px; }
+  .programs__text   { font-size: 14px; line-height: 1.55; }
+
+  /* ── Variante: Feature (Foto oben, Text unten) ────────────── */
+  .programs__cell--feature .programs__card {
+    background: var(--color-bg-surface);
+    border:     1px solid var(--color-border-subtle);
+  }
+
+  .programs__cell--feature .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.14);
+  }
+
+  .programs__media {
+    flex:       1;
+    min-height: 0;
+    display:    block;
+  }
+
+  .programs__media img {
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+  }
+
+  .programs__cell--feature .programs__body { padding: 26px 30px 30px; }
+  .programs__cell--feature .programs__name { font-size: 26px; }
+  .programs__cell--feature .programs__text {
+    font-size:   15px;
+    line-height: 1.65;
+    color:       var(--color-text-body);
+  }
+
+  .programs__badge {
+    align-self:     flex-start;
+    font-size:      12px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color:          var(--color-brand-blue);
+    background:     #E5EDFF;
+    border-radius:  var(--radius-pill);
+    padding:        5px 12px;
+  }
+
+  /* ── Variante: Foto mit Scrim ─────────────────────────────── */
+  .programs__cell--photo .programs__card { justify-content: flex-end; }
+
+  .programs__cell--photo .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.18);
+  }
+
+  .programs__bg {
+    position:   absolute;
+    inset:      0;
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+  }
+
+  .programs__scrim {
+    position: absolute;
+    inset:    0;
+    background: linear-gradient(
+      to top,
+      rgba(6, 10, 30, 0.8),
+      rgba(6, 10, 30, 0.1) 65%
+    );
+  }
+
+  .programs__cell--photo .programs__body {
+    position: relative;   /* über Foto und Scrim */
+    gap:      var(--space-1);
+    padding:  0 28px 22px;
+  }
+
+  .programs__cell--photo .programs__name { color: var(--color-text-on-dark); }
+  .programs__cell--photo .programs__text { color: rgba(255, 255, 255, 0.88); }
+
+  /* ── Variante: Verlauf ────────────────────────────────────── */
+  .programs__cell--gradient .programs__card {
+    background:      linear-gradient(135deg, var(--color-brand-blue), var(--color-accent-purple));
+    justify-content: flex-end;
+  }
+
+  .programs__cell--gradient .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(141, 45, 241, 0.3);
+  }
+
+  .programs__cell--gradient .programs__body { padding: 28px 30px; }
+  .programs__cell--gradient .programs__name { color: var(--color-text-on-dark); }
+  .programs__cell--gradient .programs__text { color: rgba(255, 255, 255, 0.9); }
+
+  /* ── Variante: Light Blue ─────────────────────────────────── */
+  .programs__cell--light .programs__card {
+    background:      var(--color-brand-blue-light);
+    justify-content: flex-end;
+  }
+
+  .programs__cell--light .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.18);
+  }
+
+  .programs__cell--light .programs__body { padding: 28px 30px; }
+  .programs__cell--light .programs__name,
+  .programs__cell--light .programs__text { color: var(--color-brand-blue-dark); }
+
+  /* ── Variante: Outline ────────────────────────────────────── */
+  .programs__cell--outline .programs__card {
+    background:      #F7F9FE;
+    border:          1px solid var(--color-border-subtle);
+    justify-content: flex-end;
+  }
+
+  .programs__cell--outline .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.12);
+  }
+
+  .programs__cell--outline .programs__body { padding: 28px 30px; }
+  .programs__cell--outline .programs__text { color: var(--color-text-body); }
+
+  /* ── Responsive ───────────────────────────────────────────────
+     Unter 900px trägt das 6-Spalten-Raster nicht mehr: eine Spalte,
+     Höhen richten sich nach dem Inhalt. Die beiden Foto-Varianten
+     brauchen dann eine Mindesthöhe, sonst kollabieren sie.        */
+  @media (max-width: 900px) {
+    .programs__grid {
+      grid-template-columns: 1fr;
+      grid-auto-rows:        auto;
+      gap:                   var(--space-4);
+    }
+
+    .programs__cell--feature,
+    .programs__cell--photo,
+    .programs__cell--gradient,
+    .programs__cell--light,
+    .programs__cell--outline {
+      grid-column: 1 / -1;
+      grid-row:    auto;
+    }
+
+    .programs__media           { flex: 0 0 220px; height: 220px; }
+    .programs__cell--photo .programs__card { min-height: 240px; }
+  }
+</style>

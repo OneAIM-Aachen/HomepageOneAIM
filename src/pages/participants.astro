@@ -1,0 +1,169 @@
+---
+// src/pages/participants.astro
+//
+// Platzhalterseite für die Teilnehmer-Übersicht (Entwurf 1b,
+// "Community Coming Soon": geblurrtes Mitglieder-Raster als Teaser,
+// davor eine zentrierte Karte mit Logo, Text und "Launching soon").
+//
+// Sobald die echte Übersicht existiert, ersetzt sie diese Seite.
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+// Geblurrtes Deko-Raster im Hintergrund: 12 Kacheln, abwechselnd helle
+// Kreise. Reine Dekoration (aria-hidden), daher hier nur Indizes.
+const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
+---
+
+<BaseLayout
+  title="Participants"
+  description="The overview of all OneAIM program participants across every city is coming soon."
+>
+  <section class="pcs" aria-label="Participants overview coming soon">
+    <div class="container">
+      <div class="pcs__panel">
+
+        <!-- Geblurrte Vorschau des künftigen Teilnehmer-Rasters -->
+        <div class="pcs__ghost" aria-hidden="true">
+          {ghostTiles.map(light => (
+            <div class="pcs__ghost-tile">
+              <span class={`pcs__ghost-avatar ${light ? "pcs__ghost-avatar--a" : "pcs__ghost-avatar--b"}`}></span>
+              <span class="pcs__ghost-name"></span>
+            </div>
+          ))}
+        </div>
+
+        <!-- Zentrierte Teaser-Karte -->
+        <div class="pcs__center">
+          <div class="pcs__card">
+            <img class="pcs__logo" src="/logo.png" alt="OneAIM" height="36" decoding="async" />
+            <h1 class="pcs__title">See all participants in the OneAIM community</h1>
+            <p class="pcs__text">
+              One overview of <strong>all 500+ people</strong> who have been part
+              of a OneAIM program, across every city and from the first batch to
+              the current one. Search by name, city or batch and connect.
+              Access is exclusive to
+              <strong>team members, participants and sponsors</strong>.
+              We're putting the finishing touches on it.
+            </p>
+            <span class="pcs__pill">Launching soon</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .pcs {
+    background:    var(--color-bg-page);
+    padding-block: var(--space-12) var(--space-24);
+  }
+
+  .pcs__panel {
+    position:      relative;
+    min-height:    640px;
+    background:    var(--color-bg-surface);
+    border-radius: var(--radius-lg);
+    box-shadow:    0 8px 32px rgba(35, 42, 207, 0.08);
+    overflow:      hidden;
+  }
+
+  /* ── Geblurrtes Hintergrund-Raster ────────────────────────── */
+  .pcs__ghost {
+    position:              absolute;
+    inset:                 40px;
+    filter:                blur(7px);
+    opacity:               0.45;
+    display:               grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:                   28px;
+    align-content:         start;
+    pointer-events:        none;
+  }
+
+  .pcs__ghost-tile {
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            8px;
+  }
+
+  .pcs__ghost-avatar {
+    width:         84px;
+    height:        84px;
+    border-radius: 50%;
+  }
+
+  .pcs__ghost-avatar--a { background: #C9D8FF; }
+  .pcs__ghost-avatar--b { background: #EDF2FF; }
+
+  .pcs__ghost-name {
+    width:         70px;
+    height:        10px;
+    border-radius: 5px;
+    background:    var(--color-border-subtle);
+  }
+
+  /* ── Teaser-Karte ─────────────────────────────────────────── */
+  .pcs__center {
+    position:        absolute;
+    inset:           0;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    padding:         var(--space-6);
+  }
+
+  .pcs__card {
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 20px 60px rgba(35, 42, 207, 0.18);
+    padding:        clamp(var(--space-8), 4vw, 48px) clamp(var(--space-6), 4.5vw, 56px);
+    max-width:      520px;
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            18px;
+    text-align:     center;
+  }
+
+  .pcs__logo { height: 36px; width: auto; display: block; }
+
+  .pcs__title {
+    font-size:      clamp(1.5rem, 1.1rem + 1.8vw, 2.125rem);
+    letter-spacing: -0.5px;
+    line-height:    1.15;
+    color:          var(--color-text-heading);
+    text-wrap:      pretty;
+  }
+
+  .pcs__text {
+    font-size:   15px;
+    line-height: 1.6;
+    color:       var(--color-text-body);
+    text-wrap:   pretty;
+  }
+
+  .pcs__text strong {
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+  }
+
+  .pcs__pill {
+    background:    #EDF2FF;
+    border-radius: var(--radius-pill);
+    padding:       9px 22px;
+    font-family:   var(--font-display);
+    font-size:     13px;
+    font-weight:   800;
+    color:         var(--color-brand-blue);
+  }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 900px) { .pcs__ghost { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 600px) {
+    .pcs__ghost { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .pcs__panel { min-height: 560px; }
+  }
+</style>
