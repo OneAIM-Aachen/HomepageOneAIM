@@ -209,7 +209,7 @@ export const teamMembers: TeamMember[] = [
     photo: "/images/team/aliya-zwiens.jpg" },
   { name: "Eric Hölpes",        team: "Social Media",       teamLead: true, president: false, city: "aachen",
     photo: "/images/team/eric-hoelpes.jpg" },
-  { name: "Jonathan Rempel",    team: "Finance & Legal",    teamLead: true, president: false, city: "aachen",
+  { name: "Jonathan Rempel",    team: "Finance & Legal",    teamLead: false, president: false, city: "aachen",
     photo: "/images/team/jonathan-rempel.jpg" },
   { name: "Sebastian Ha",       team: "AIM Code",           teamLead: true, president: false, city: "aachen",
     photo: "/images/team/sebastian-ha.jpg" },
@@ -222,7 +222,7 @@ export const teamMembers: TeamMember[] = [
 
   // ── Aachen – Advisors ──────────────────────────────────────────────────
   { name: "Karl Kindermann",   team: "Advisors", teamLead: false, president: false, city: "aachen", position: "Advisor", linkedIn: "https://www.linkedin.com/in/karlkindermann/" },
-  { name: "Sven Mattus",       team: "Advisors", teamLead: false, president: false, city: "aachen", position: "Advisor", linkedIn: "https://www.linkedin.com/in/sven-mattus-522494177/",
+  { name: "Sven Mattus",       team: "Finance & Legal", teamLead: true, president: false, city: "aachen", linkedIn: "https://www.linkedin.com/in/sven-mattus-522494177/",
     photo: "/images/team/sven-mattus.jpg" },
   { name: "Dr. Anton Dimroth", team: "Advisors", teamLead: false, president: false, city: "aachen", position: "Advisor", linkedIn: "https://www.linkedin.com/in/anton-dimroth-35ba0aa8/",
     photo: "/images/team/anton-dimroth.jpg" },
@@ -238,6 +238,20 @@ export const teamMembers: TeamMember[] = [
 
   // ── Aachen – Ehemalige (erscheinen nicht auf der Website) ──────────────
   { name: "Zeynep Öztürk", team: "General", teamLead: false, president: false, city: "aachen", position: "Member", formerMember: true },
+
+  // ── Frankfurt – Gründungsteam ──────────────────────────────────────────
+  { name: "Medi Bergmann",       team: "Board", teamLead: false, president: true, city: "frankfurt", linkedIn: "https://www.linkedin.com/in/medi-bergmann-305644250",
+    photo: "/images/team/medi-bergmann.jpg" },
+  { name: "Maximilian Pfeiffer", team: "Marketing", teamLead: true, president: false, city: "frankfurt", position: "Vice-President | Marketing", linkedIn: "https://www.linkedin.com/in/maximilian-pfeiffer-52576a1bb",
+    photo: "/images/team/maximilian-pfeiffer.jpg" },
+  { name: "Paul Rössler",        team: "Community & Recruiting", teamLead: true, president: false, city: "frankfurt", linkedIn: "https://www.linkedin.com/in/paul-r%C3%B6ssler-925b301b7",
+    photo: "/images/team/paul-roessler.jpg" },
+  { name: "Hendrik Noffke",      team: "Community & Recruiting", teamLead: true, president: false, city: "frankfurt", linkedIn: "https://www.linkedin.com/in/hendrik-noffke-6110542a2",
+    photo: "/images/team/hendrik-noffke.jpg" },
+  { name: "Amelie Biallas",      team: "PR & Legal", teamLead: true, president: false, city: "frankfurt",
+    photo: "/images/team/amelie-biallas.jpg" },
+  { name: "Justus Fricke",       team: "AIM Connect", teamLead: true, president: false, city: "frankfurt", linkedIn: "https://www.linkedin.com/in/justus-fricke",
+    photo: "/images/team/justus-fricke.jpg" },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

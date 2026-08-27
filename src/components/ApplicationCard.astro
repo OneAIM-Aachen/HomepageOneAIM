@@ -1,0 +1,176 @@
+---
+// src/components/ApplicationCard.astro
+//
+// DIE Standard-Bewerbungskarte – gleiches Design wie die Karte oben rechts
+// im Hero der Standortseiten (CityBlueprint): Status-Punkt, Titel,
+// Datenzeilen, Button. Wird in den "Apply in your city"-Rastern der
+// Programmseiten verwendet; die Daten kommen aus applications.ts.
+
+import type { CitySlug } from "../data/cityData";
+import {
+  getApplicationFor,
+  getFeaturedApplication,
+  getProgramName,
+  getStatus,
+  getTermLabel,
+} from "../data/applications";
+
+interface Props {
+  city: CitySlug;
+  /** Anzeigename, z. B. "Munich" – für den Button-Text */
+  cityName: string;
+  /**
+   * Programm-Slug aus programs.ts, z. B. "aim-connect".
+   * Weglassen = die hervorgehobene Runde des Standorts (Hero der Stadtseite).
+   */
+  program?: string;
+  /** Verb des Buttons bei offener Runde (Standard: "Apply" → "Apply here") */
+  ctaVerb?: string;
+  /** "hero" = kräftiger Schatten für die Karte auf dem Hero-Foto */
+  variant?: "hero";
+}
+
+const { city, cityName, program, ctaVerb = "Apply", variant } = Astro.props as Props;
+
+// Kurzform ohne Jahr ("1 Sep") – das Semester steht im Kartentitel; en-GB
+// kürzt September als "Sept" ab, daher auf drei Buchstaben normalisiert.
+const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const dateFmt = { format: (x: Date) => shortDate.format(x).replace("Sept", "Sep") };
+
+const app    = program ? getApplicationFor(city, program) : getFeaturedApplication(city);
+const status = app ? getStatus(app) : undefined;
+// Deep-Links in das Programm-Panel der Standortseite: "More info" springt
+// zur Semester-Timeline, "Apply here" zum Bewerbungs-Button. Steht die
+// Karte bereits auf der Seite des Standorts (Hero), nur der Hash – sonst
+// erzwingt der Pfadwechsel (/munich vs. /munich/) einen Reload.
+const prog = program ?? app?.program;
+const onOwnPage = Astro.url.pathname.replace(/\/$/, "") === `/${city}`;
+const base = onOwnPage ? "" : `/${city}`;
+const infoAnchor  = prog ? `${base}#${prog}-timeline` : "/contact";
+const applyAnchor = prog ? `${base}#${prog}-apply`    : "/contact";
+
+const card = app
+  ? {
+      status,
+      statusLabel: status === "open" ? "Applications open" : "Applications not yet open",
+      title:       cityName,
+      subtitle:    `${getProgramName(app)} · ${getTermLabel(app)}`,
+      rows: [
+        ...(status !== "open"
+          ? [{ label: "Applications open", value: dateFmt.format(new Date(app.opensAt)) }]
+          : []),
+        { label: "Application deadline", value: app.deadline ? dateFmt.format(new Date(app.deadline)) : "To be announced" },
+        ...(app.startsAt ? [{ label: "Program start", value: dateFmt.format(new Date(app.startsAt)) }] : []),
+        ...(app.spots    ? [{ label: "Spots", value: String(app.spots) }] : []),
+      ],
+      note:     undefined,
+      ctaLabel: status === "open" ? `${ctaVerb} here` : "More info",
+      ctaHref:  status === "open" ? applyAnchor : infoAnchor,
+    }
+  : {
+      status: "upcoming" as const,
+      statusLabel: "No open applications",
+      title: cityName,
+      subtitle: "The next round is being planned",
+      rows: [],
+      note: "New rounds are announced here and on Instagram as soon as the dates are set.",
+      ctaLabel: "Contact us",
+      ctaHref: "/contact",
+    };
+---
+
+<div class={`appc ${variant === "hero" ? "appc--hero" : ""}`}>
+  <div class={`appc__status appc__status--${card.status}`}>
+    <span class="appc__dot" aria-hidden="true"></span>
+    <span>{card.statusLabel}</span>
+  </div>
+  <h3 class="appc__title">{card.title}</h3>
+  {card.subtitle && <p class="appc__subtitle">{card.subtitle}</p>}
+  {card.rows.length > 0 && (
+    <dl class="appc__rows">
+      {card.rows.map(r => (
+        <div class="appc__row">
+          <dt>{r.label}</dt>
+          <dd>{r.value}</dd>
+        </div>
+      ))}
+    </dl>
+  )}
+  {card.note && <p class="appc__note">{card.note}</p>}
+  <a class="appc__btn" href={card.ctaHref}>{card.ctaLabel}</a>
+  <slot />
+</div>
+
+<style>
+  /* Spiegel der Hero-Karte (CityBlueprint .bp__app), nur mit weicherem
+     Schatten – auf hellen Flächen wirkt der Hero-Schatten zu schwer. */
+  .appc {
+    display:        flex;
+    flex-direction: column;
+    gap:            14px;
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 8px 24px rgba(35, 42, 207, 0.10);
+    padding:        clamp(var(--space-6), 2.5vw, 36px);
+  }
+
+  .appc__status {
+    display:        flex;
+    align-items:    center;
+    gap:            10px;
+    font-size:      13px;
+    font-weight:    800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .appc__dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .appc__status--open           { color: #1fbf75; }
+  .appc__status--open .appc__dot { background: #1fbf75; box-shadow: 0 0 0 4px rgba(31, 191, 117, 0.2); }
+
+  .appc__status--upcoming           { color: var(--color-text-muted); }
+  .appc__status--upcoming .appc__dot { background: #a6adc2; }
+
+  /* Stadtname als Überschrift – wie bei den früheren Stadtkarten */
+  .appc__title { font-size: 22px; color: var(--color-brand-blue); }
+
+  .appc__subtitle {
+    font-size:   14px;
+    font-weight: 700;
+    color:       var(--color-text-muted);
+    margin-top:  -6px;
+  }
+
+  .appc__note {
+    font-size:   13px;
+    line-height: 1.6;
+    color:       var(--color-text-muted);
+  }
+
+  .appc__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+  .appc__row  { display: flex; justify-content: space-between; gap: var(--space-4); }
+  .appc__row dt { font-size: 14px; color: var(--color-text-muted); }
+  .appc__row dd { font-size: 14px; font-weight: 800; color: var(--color-text-heading); margin: 0; }
+
+  .appc__btn {
+    margin-top:      auto;
+    white-space:     nowrap;
+    text-align:      center;
+    font-family:     var(--font-display);
+    font-size:       15px;
+    font-weight:     var(--fw-bold);
+    color:           var(--color-text-on-brand);
+    background:      var(--color-brand-blue);
+    border:          2px solid transparent;
+    border-radius:   var(--radius-pill);
+    padding:         13px 28px;
+    text-decoration: none;
+    transition:      background var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .appc__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+
+  /* Auf dem Hero-Foto der Stadtseiten: gleicher Schatten wie früher */
+  .appc--hero { box-shadow: 0 20px 48px rgba(6, 10, 30, 0.35); }
+</style>

@@ -13,7 +13,30 @@
 
 // Nur die für die Startseite markierten Einträge (onLanding: true in
 // partners.ts). Die vollständige Liste steht auf /partners.
-import { landingPartners as partners } from "../../data/partners";
+import { landingPartners } from "../../data/partners";
+
+// Zufällige Reihenfolge (Fisher-Yates), neu gemischt bei jedem Build –
+// so wirkt das Band gemischt statt nach Datenbank-Reihenfolge sortiert.
+// Nebenbedingung: Universitäten laufen nicht direkt hintereinander
+// (inklusive Übergang am Schleifenende, das Band wiederholt sich nahtlos).
+const UNIVERSITIES = new Set(["tum", "lmu", "rwth-aachen", "harvard"]);
+const isUni = (p: (typeof landingPartners)[number]) => UNIVERSITIES.has(p.id);
+
+function shuffled() {
+  const arr = [...landingPartners];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+let partners = shuffled();
+for (let tries = 0; tries < 1000; tries++) {
+  const clash = partners.some((p, i) => isUni(p) && isUni(partners[(i + 1) % partners.length]));
+  if (!clash) break;
+  partners = shuffled();
+}
 ---
 
 <section class="partners-section" aria-labelledby="partners-heading">

@@ -5,11 +5,10 @@
 // ("What is OneAIM Options.dc.html", Abschnitt 9A):
 // Verlaufsfläche mit zwei Glas-Karten – links Studierende, rechts Partner.
 //
-// LINKZIELE: Es gibt bislang weder eine Bewerbungsstrecke noch eine
-// Mitglieder-Seite. Die Buttons zeigen deshalb auf die nächstbeste
-// vorhandene Seite. Sobald es echte Ziele gibt, hier bzw. per Prop
-// austauschen – die Bewerbungslinks je Stadt und Programm stehen in
-// src/data/application.ts.
+// LINKZIELE: "Apply for a program" springt zur Programmübersicht der
+// Startseite (#programs), die anderen Buttons zur Kontaktseite. Bei
+// Bedarf per Prop austauschbar – die Bewerbungslinks je Stadt und
+// Programm stehen in src/data/applications.ts.
 
 interface Props {
   applyHref?: string;
@@ -18,7 +17,7 @@ interface Props {
 }
 
 const {
-  applyHref   = "/programs/aim-connect",
+  applyHref   = "/#programs",
   memberHref  = "/contact",
   partnerHref = "/contact",
 } = Astro.props as Props;
@@ -51,7 +50,7 @@ const {
           <div class="join__card">
             <p class="join__label">For partners</p>
             <p class="join__text">
-              Support us as a sponsor, host or speaker. Let's talk.
+              Work with us as a sponsor, host or speaker. Let's talk.
             </p>
             <div class="join__actions join__actions--bottom">
               <a class="join__btn" href={partnerHref}>Contact us →</a>

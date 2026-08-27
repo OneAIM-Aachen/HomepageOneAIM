@@ -1,0 +1,873 @@
+---
+// src/pages/programs/aim-connect.astro
+//
+// Dedizierte AIM-Connect-Seite (Entwurf 1a, "AIM Connect Page Options":
+// Light editorial). Ersetzt die generische Programmseite aus
+// [program].astro (dort per Filter ausgenommen).
+//
+// Bänder:
+//   ① Hero            – hellblaues Band, Foto rechts, CTAs
+//   ② What it is      – Text + Fakten-Pills
+//   ③ Components      – drei Karten (Kickoff / Visits / Makeathon)
+//   ④ Exemplary       – drei Karten mit Detailboxen, rotiert alle 5 s
+//   ⑤ Applications    – EINE Karte je Standort, automatisch aus
+//                       applications.ts: Runde mit program "aim-connect"
+//                       und passender Stadt → offen/kommend/geplant.
+//
+// Bewerbungslogik (Wunsch: alles automatisch aus der Datenbank):
+//   • Neue Runde in applications.ts mit program: "aim-connect" anlegen –
+//     sie erscheint hier ohne weitere Änderung in der Stadt-Karte.
+//   • Offen      → "Applications open", Deadline, Apply-Button
+//   • Kommend    → "Opens [date]" mit Datum aus opensAt
+//   • Keine/vorbei → "Applications starting soon"
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ApplicationCard from "../../components/ApplicationCard.astro";
+import { cities } from "../../data/cityData";
+import {
+  getApplicationFor,
+  getStatus,
+  getTermLabel,
+} from "../../data/applications";
+
+const dateFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+});
+const shortFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" });
+
+// Eine Karte je Standort – Zustand aus der Bewerbungs-Datenbank abgeleitet.
+type CardState = "open" | "upcoming" | "planned";
+
+// FAQ – übernommen von der alten Programmseite (one-aim.org/program).
+const faqs: { q: string; a: string }[] = [
+  { q: "Who can apply to AIM Connect?",
+    a: "AIM Connect is open to students from all disciplines who have a genuine interest in HealthTech and healthcare innovation. Whether you're studying medicine, engineering, business, or any other field, we welcome your unique perspective." },
+  { q: "Do I need any prior experience in coding or medical technology to join?",
+    a: "No prior experience is necessary! The program is designed to accommodate students at various skill levels, offering foundational knowledge and building up to more advanced concepts in HealthTech." },
+  { q: "Will I receive a certificate upon completing the program?",
+    a: "Absolutely! Upon completing the program, you'll receive a certificate to acknowledge your participation and achievements. The program culminates in a makeathon exclusive to your cohort, allowing you to apply your newly acquired skills in a practical, collaborative setting." },
+  { q: "What is the expected time commitment for the program?",
+    a: "Participants should plan for 6-8 hours of engagement each week, including attending workshops, lectures, and working on group projects. We aim to balance the program workload with students' academic commitments." },
+  { q: "When is the program offered?",
+    a: "AIM Connect is offered once per semester, providing two opportunities to join each academic year." },
+  { q: "How does the application process work?",
+    a: "Our application portal opens once per semester. Applicants are required to submit their CV and answer a few short questions. We then review all applications and invite selected candidates for a virtual interview, held during the semester break. All candidates receive feedback no later than two weeks before the Kick-Off Weekend." },
+  { q: "Are international students eligible to apply for AIM Connect?",
+    a: "Absolutely, international students are welcome to apply! We value the diverse perspectives that students from different countries and cultures bring to our community." },
+  { q: "How can I stay updated on AIM Connect news and deadlines?",
+    a: "Follow us on LinkedIn and our other social media channels to stay up to date on the latest news, announcements, and application deadlines." },
+  { q: "How many participants will be part of the program?",
+    a: "Approximately 20-22 people can participate each semester. Secure your spot now by registering immediately!" },
+  { q: "What is OneAIM, LMU AIM and AIM Connect?",
+    a: "OneAIM is a student initiative dedicated to exploring the interdisciplinary field at the intersection of medicine and technology. It was founded by bringing together students from various backgrounds, building on the legacy of LMU AIM, its predecessor initiative. Through its programs and events, OneAIM fosters cross-disciplinary networking and skill development for students passionate about healthcare innovation. AIM Connect is OneAIM's flagship program: an immersive 10-week experience designed for students who want to engage deeply with the HealthTech ecosystem through visits, collaborations, and hands-on challenges." },
+  { q: "What language is used in the AIM Connect program?",
+    a: "English is the primary language of instruction and communication throughout the program. A good level of English proficiency is expected, as it is essential for engaging with our visits and activities. We conduct everything in English to ensure inclusivity and accessibility for all participants." },
+  { q: "What networking opportunities does AIM Connect provide?",
+    a: "AIM Connect offers direct access to professionals across the HealthTech ecosystem in your city, from clinicians and researchers to startup founders and corporate leaders. Through our visits and program events, participants build meaningful connections with industry stakeholders and become part of a growing alumni network." },
+  { q: "Can participants choose their project topics, or are they assigned?",
+    a: "Project topics are defined by the group itself, allowing participants to choose based on their interests, expertise, and goals. This encourages collaboration and ensures the project is meaningful to everyone involved." },
+  { q: "How can participants contribute to the OneAIM community after completing the program?",
+    a: "Alumni are encouraged to stay involved by mentoring future cohorts, participating in networking events, and contributing to the broader OneAIM community. Their experience and insights play an important role in shaping the program and supporting the next generation of HealthTech enthusiasts." },
+  { q: "What is a Makeathon?",
+    a: "A makeathon (a combination of \"make\" and \"marathon\") is an intensive, collaborative event where teams come together to brainstorm, design, and build functional prototypes within a limited timeframe. Unlike hackathons, which focus primarily on software, makeathons emphasize creating tangible solutions to real-world problems." },
+  { q: "What are the goals of AIM Connect besides networking and transfer of knowledge?",
+    a: "Beyond networking and knowledge transfer, AIM Connect aims to foster interdisciplinary collaboration and promote diversity in STEM and healthcare by encouraging participation from underrepresented groups. The program empowers participants to tackle complex healthcare challenges through creative problem-solving and a culture of continuous learning, all within a supportive and inclusive community." },
+  { q: "What does the team of OneAIM look like?",
+    a: "The team behind OneAIM is a diverse and dynamic group, embodying a rich variety of backgrounds, disciplines, and perspectives. It is composed of members from across the fields of medicine, engineering, business, and technology, ensuring a multidisciplinary approach to healthcare innovation." },
+  { q: "How does AIM Connect ensure diversity and support female empowerment within its organizational structure?",
+    a: "The team is strongly committed to female empowerment, with significant representation of women in leadership and mentorship roles." },
+];
+
+---
+
+<BaseLayout
+  title="AIM Connect"
+  description="AIM Connect: a selective 10-week program connecting students from medical, engineering and business backgrounds to the HealthTech ecosystem."
+>
+  <article class="acp" aria-label="AIM Connect program">
+    <div class="container">
+      <div class="acp__panel">
+
+        <!-- ① Hero -->
+        <header class="acp__hero">
+          <div class="acp__hero-copy">
+            <p class="acp__overline">Our flagship program</p>
+            <h1 class="acp__title">AIM Connect</h1>
+            <p class="acp__lead">
+              A selective 10-week program connecting students from medical,
+              engineering and business backgrounds to the HealthTech ecosystem,
+              organized by your city's chapter, with all batches meeting for
+              the kickoff weekend in Berlin.
+            </p>
+            <div class="acp__hero-actions">
+              <a class="acp__btn" href="#apply">Apply now</a>
+              <a class="acp__btn acp__btn--ghost" href="#how">How it works ↓</a>
+            </div>
+          </div>
+          <img
+            class="acp__hero-img"
+            src="/images/events/aachenKickoff2026.jpg"
+            alt="AIM Connect kickoff weekend"
+            loading="eager"
+            decoding="async"
+          />
+        </header>
+
+        <!-- ② What it is -->
+        <section class="acp__what" id="how" aria-labelledby="acp-what">
+          <div class="acp__what-head">
+            <p class="acp__overline">What it is</p>
+            <h2 id="acp-what" class="acp__h2">
+              An add-on study program for the future of MedTech
+            </h2>
+          </div>
+          <p class="acp__what-text">
+            AIM Connect is a selective 10-week program connecting around 20
+            students per city from medical, engineering, and business
+            backgrounds to the HealthTech ecosystem. Through a competitive
+            application process, participants gain direct access to 8 curated
+            visits spanning clinical practice, research and development,
+            startups, and corporate innovation, building an end-to-end
+            understanding of how ideas evolve into impactful solutions.
+          </p>
+          <div class="acp__pills">
+            <span class="acp__pill">10 weeks</span>
+            <span class="acp__pill">~20 participants per city</span>
+            <span class="acp__pill">8 curated visits</span>
+            <span class="acp__pill">6–8 h per week</span>
+            <span class="acp__pill">In English</span>
+            <span class="acp__pill">Certificate on completion</span>
+          </div>
+        </section>
+
+        <!-- ③ Three key components -->
+        <section class="acp__components" aria-label="Three key components">
+          <p class="acp__overline">Three key components</p>
+          <div class="acp__comp-grid">
+            <div class="acp__comp">
+              <div class="acp__comp-top">
+                <span class="acp__comp-num">1</span>
+                <span class="acp__comp-tag acp__comp-tag--gradient">Excursion or in your city</span>
+              </div>
+              <h3 class="acp__comp-title">Kickoff Weekend</h3>
+              <p class="acp__comp-text">
+                An immersive 3-day opening event: Meet your cohort for the
+                first time, hear from industry voices, and build the foundation
+                for the weeks ahead.
+              </p>
+            </div>
+            <div class="acp__comp">
+              <div class="acp__comp-top">
+                <span class="acp__comp-num">2</span>
+                <span class="acp__comp-tag">In your city</span>
+              </div>
+              <h3 class="acp__comp-title">Partner visits &amp; workshops</h3>
+              <p class="acp__comp-text">
+                One session per week, organized by your city's chapter: 8
+                curated visits spanning clinical practice, research and
+                development, startups, and corporate innovation.
+              </p>
+            </div>
+            <div class="acp__comp">
+              <div class="acp__comp-top">
+                <span class="acp__comp-num acp__comp-num--purple">3</span>
+                <span class="acp__comp-tag">In your city</span>
+              </div>
+              <h3 class="acp__comp-title">Team project: Make-A-Thon &amp; Summit</h3>
+              <p class="acp__comp-text">
+                The program culminates in a 3-day Makeathon &amp; Summit: Your
+                team picks a topic, builds a tangible prototype, and pitches it
+                in front of partners and guests.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ④ An exemplary semester -->
+        <section class="acp__semester" aria-labelledby="acp-semester">
+          <div class="acp__sem-head">
+            <p class="acp__overline">An exemplary semester</p>
+            <h2 id="acp-semester" class="acp__h2">What a batch actually looks like</h2>
+          </div>
+
+          <div class="acp__sem-flow">
+            <button type="button" class="acp__sem-card" data-sem-pick="k" aria-expanded="true">
+              <img src="/images/events/aachenKickoff2026.jpg" alt="" loading="lazy" decoding="async" />
+              <span class="acp__sem-row">
+                <span class="acp__sem-meta">
+                  <span class="acp__sem-name">Kickoff weekend</span>
+                </span>
+                <span class="acp__sem-chev" aria-hidden="true">↓</span>
+              </span>
+            </button>
+          <div class="acp__sem-detail" data-sem-panel="k">
+            <h3 class="acp__sem-detail-title">Kickoff weekend</h3>
+            <p class="acp__sem-detail-text">
+              The semester starts with intro talks, team building and a first
+              look at the semester ahead. Depending on the batch, the kickoff is
+              an excursion together with the other chapters or takes place in
+              your own city.
+            </p>
+            <p class="acp__sem-gallery-label">Example moments</p>
+            <div class="acp__sem-gallery">
+              <figure>
+                <img src="/images/connect/kickoff-intro.jpg" alt="Welcome and intro talks at the kickoff" loading="lazy" decoding="async" />
+                <figcaption>Welcome &amp; intro talks</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/kickoff-teambuilding.jpg" alt="Team building at the kickoff weekend" loading="lazy" decoding="async" />
+                <figcaption>Cross-city team building</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/kickoff-evening.jpg" alt="Evening get-together at the kickoff weekend" loading="lazy" decoding="async" />
+                <figcaption>Evening get-together</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/kickoff-project-ideas.jpg" alt="First project ideas session" style="object-position: center 22%" loading="lazy" decoding="async" />
+                <figcaption>First project ideas</figcaption>
+              </figure>
+            </div>
+          </div>
+            <button type="button" class="acp__sem-card" data-sem-pick="w" aria-expanded="false">
+              <img src="/images/connect/partner-visits-card.jpg" alt="" loading="lazy" decoding="async" />
+              <span class="acp__sem-row">
+                <span class="acp__sem-meta">
+                  <span class="acp__sem-name">Partner visits</span>
+                </span>
+                <span class="acp__sem-chev" aria-hidden="true">↓</span>
+              </span>
+            </button>
+          <div class="acp__sem-detail" data-sem-panel="w" hidden>
+            <h3 class="acp__sem-detail-title">Partner visits</h3>
+            <p class="acp__sem-detail-text">
+              Weeks 1–8 follow an arc through the HealthTech ecosystem: clinical
+              sessions and hospital visits show real workflows and where
+              technology meets patient care; research visits open the doors of
+              leading labs; startup and corporate visits reveal how MedTech
+              products are founded, funded, built and brought to market.
+            </p>
+            <p class="acp__sem-gallery-label">Example events</p>
+            <div class="acp__sem-gallery">
+              <figure>
+                <img src="/images/connect/hospital-visit.jpg" alt="Clinical session and hospital visit" loading="lazy" decoding="async" />
+                <figcaption>Clinical session &amp; hospital visit</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/lab-visit.jpg" alt="Research session and lab visit" loading="lazy" decoding="async" />
+                <figcaption>Research session &amp; lab visit</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/startup-visit.jpg" alt="Startup visit" loading="lazy" decoding="async" />
+                <figcaption>Startup visits</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/corporate-visit.jpg" alt="Corporate visit" loading="lazy" decoding="async" />
+                <figcaption>Corporate visits</figcaption>
+              </figure>
+            </div>
+          </div>
+            <button type="button" class="acp__sem-card" data-sem-pick="m" aria-expanded="false">
+              <img src="/images/connect/makeathon-summit-card.jpg" alt="" loading="lazy" decoding="async" />
+              <span class="acp__sem-row">
+                <span class="acp__sem-meta">
+                  <span class="acp__sem-name">Make-A-Thon &amp; Summit</span>
+                </span>
+                <span class="acp__sem-chev" aria-hidden="true">↓</span>
+              </span>
+            </button>
+          <div class="acp__sem-detail" data-sem-panel="m" hidden>
+            <h3 class="acp__sem-detail-title">Make-A-Thon &amp; Summit</h3>
+            <p class="acp__sem-detail-text">
+              The finale of every batch: a Make-A-Thon weekend &amp; Summit.
+              Your team works on a MedTech project, builds a tangible prototype
+              and pitches it in front of partners and guests.
+            </p>
+            <p class="acp__sem-gallery-label">Example moments</p>
+            <div class="acp__sem-gallery">
+              <figure>
+                <img src="/images/connect/project-prep.jpg" alt="Project preparation session" loading="lazy" decoding="async" />
+                <figcaption>Project preparation sessions</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/makeathon-build.jpg" alt="Make-A-Thon build" loading="lazy" decoding="async" />
+                <figcaption>48-hour Make-A-Thon build</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/summit-pitch.jpg" alt="Final pitches at the summit" loading="lazy" decoding="async" />
+                <figcaption>Final pitches at the summit</figcaption>
+              </figure>
+              <figure>
+                <img src="/images/connect/award-ceremony.jpg" alt="Award ceremony at the summit" loading="lazy" decoding="async" />
+                <figcaption>Award ceremony</figcaption>
+              </figure>
+            </div>
+          </div>
+
+
+
+          </div>
+        </section>
+
+        <!-- ⑤ Applications by city – automatisch aus applications.ts -->
+        <section class="acp__apply" id="apply" aria-labelledby="acp-apply">
+          <div class="acp__apply-head">
+            <p class="acp__overline">Open applications</p>
+            <h2 id="acp-apply" class="acp__h2 acp__h2--blue">Apply in your city</h2>
+          </div>
+          <div class="acp__apply-grid">
+            {cities.map(city => (
+              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-connect" />
+            ))}
+          </div>
+        </section>
+
+        <!-- ⑥ FAQ – von der alten Programmseite übernommen -->
+        <section class="acp__faq" aria-labelledby="acp-faq">
+          <div class="acp__faq-head">
+            <p class="acp__overline">FAQ</p>
+            <h2 id="acp-faq" class="acp__h2">Frequently asked questions</h2>
+          </div>
+          <div class="acp__faq-list">
+            {faqs.map(faq => (
+              <details class="acp__faq-item">
+                <summary>
+                  <span>{faq.q}</span>
+                  <span class="acp__faq-chev" aria-hidden="true">↓</span>
+                </summary>
+                <p>{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .acp { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+
+  /* CSS mit display-Wert schlägt das hidden-Attribut – daher der Riegel. */
+  .acp [hidden] { display: none !important; }
+
+  .acp__panel {
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 8px 32px rgba(35, 42, 207, 0.08);
+    overflow:       hidden;
+    display:        flex;
+    flex-direction: column;
+  }
+
+  .acp__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .acp__h2 {
+    font-size:      clamp(1.6rem, 1.2rem + 1.8vw, 2.25rem);
+    letter-spacing: -0.5px;
+    line-height:    1.15;
+    color:          var(--color-text-heading);
+    text-wrap:      pretty;
+  }
+
+  .acp__h2--blue { color: #232ACF; }
+
+  /* Ablagefläche für noch fehlende Fotos. */
+  .acp__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           100%;
+    height:          150px;
+    padding:         var(--space-3);
+    text-align:      center;
+    font-size:       var(--fs-small);
+    font-weight:     var(--fw-semibold);
+    color:           var(--color-text-muted);
+    background:      #F7F9FE;
+    border:          2px dashed var(--color-border-subtle);
+    border-radius:   12px;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────── */
+  .acp__btn {
+    display:         inline-block;
+    align-self:      flex-start;
+    background:      var(--color-brand-blue);
+    color:           var(--color-text-on-brand);
+    font-family:     var(--font-display);
+    font-size:       15px;
+    font-weight:     800;
+    padding:         14px 28px;
+    border-radius:   var(--radius-pill);
+    text-decoration: none;
+    transition:      background var(--transition-fast);
+  }
+
+  .acp__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+
+  .acp__btn--ghost {
+    background: rgba(255, 255, 255, 0.7);
+    color:      var(--color-brand-blue);
+  }
+
+  .acp__btn--ghost:hover { background: #fff; }
+
+  .acp__btn--sm { font-size: 14px; padding: 11px 22px; margin-top: auto; }
+
+  /* ── ① Hero ───────────────────────────────────────────────── */
+  .acp__hero {
+    background:            #C9D8FF;
+    padding:               clamp(var(--space-10, 40px), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+    display:               grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap:                   clamp(var(--space-8), 4vw, 56px);
+    align-items:           center;
+  }
+
+  .acp__hero-copy { display: flex; flex-direction: column; gap: 20px; }
+
+  .acp__title {
+    font-size:      clamp(2.4rem, 1.6rem + 3.4vw, 3.25rem);
+    letter-spacing: -1px;
+    line-height:    1.08;
+    color:          #232ACF;
+  }
+
+  .acp__lead {
+    font-size:   17px;
+    line-height: 1.6;
+    color:       #232ACF;
+    max-width:   480px;
+    text-wrap:   pretty;
+  }
+
+  .acp__hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .acp__hero-img {
+    width:         100%;
+    height:        340px;
+    object-fit:    cover;
+    border-radius: 20px;
+    display:       block;
+  }
+
+  /* ── ② What it is ─────────────────────────────────────────── */
+  .acp__what {
+    padding:               clamp(var(--space-10, 40px), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+    display:               grid;
+    grid-template-columns: 1fr 1fr;
+    gap:                   clamp(var(--space-8), 4.5vw, 64px);
+    align-items:           start;
+  }
+
+  .acp__what-head { display: flex; flex-direction: column; gap: 16px; }
+
+  .acp__what-text {
+    font-size:   17px;
+    line-height: 1.7;
+    color:       var(--color-text-body);
+    text-wrap:   pretty;
+  }
+
+  .acp__pills {
+    grid-column: 1 / -1;
+    display:     flex;
+    gap:         12px;
+    flex-wrap:   wrap;
+  }
+
+  .acp__pill {
+    background:    #EDF2FF;
+    color:         #232ACF;
+    font-size:     14px;
+    font-weight:   800;
+    padding:       10px 20px;
+    border-radius: var(--radius-pill);
+    white-space:   nowrap;
+  }
+
+  /* ── ③ Components ─────────────────────────────────────────── */
+  .acp__components {
+    padding:        0 clamp(var(--space-6), 5vw, 72px) clamp(var(--space-10, 40px), 5vw, 80px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+  }
+
+  .acp__comp-grid {
+    display:               grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:                   20px;
+  }
+
+  .acp__comp {
+    background:     #EDF2FF;
+    border-radius:  20px;
+    padding:        32px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+  }
+
+  .acp__comp-top {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             8px;
+  }
+
+  .acp__comp-num {
+    width:           36px;
+    height:          36px;
+    border-radius:   50%;
+    background:      var(--color-brand-blue);
+    color:           #fff;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       15px;
+    font-weight:     800;
+    flex-shrink:     0;
+  }
+
+  .acp__comp-num--purple { background: linear-gradient(135deg, #8D2DF1, #D400FF); }
+
+  .acp__comp-tag {
+    background:     #fff;
+    color:          var(--color-brand-blue);
+    font-size:      11px;
+    font-weight:    800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding:        4px 12px;
+    border-radius:  var(--radius-pill);
+    white-space:    nowrap;
+  }
+
+  .acp__comp-tag--gradient {
+    background: linear-gradient(90deg, #0052E9, #8D2DF1);
+    color:      #fff;
+  }
+
+  .acp__comp-title { font-size: 19px; font-weight: 800; color: #232ACF; }
+
+  .acp__comp-text { font-size: 14px; line-height: 1.6; color: var(--color-text-body); }
+
+  /* ── ④ Exemplary semester ─────────────────────────────────── */
+  .acp__semester {
+    padding:        0 clamp(var(--space-6), 5vw, 72px) clamp(var(--space-10, 40px), 5vw, 80px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+  }
+
+  .acp__sem-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+
+  /* Karten + Detailboxen in EINEM Grid: am Desktop stehen die drei
+     Karten in Zeile 1, die jeweils sichtbare Box spannt darunter über
+     alle Spalten. Mobil (einspaltig) folgt jede Box direkt auf ihre
+     Karte – Quellreihenfolge ist Karte→Box je Paar. */
+  .acp__sem-flow {
+    display:               grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:                   20px;
+  }
+
+  .acp__sem-card:nth-of-type(1) { grid-column: 1; grid-row: 1; }
+  .acp__sem-card:nth-of-type(2) { grid-column: 2; grid-row: 1; }
+  .acp__sem-card:nth-of-type(3) { grid-column: 3; grid-row: 1; }
+
+  .acp__sem-detail { grid-column: 1 / -1; }
+
+  .acp__sem-card {
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+    align-items:    stretch;
+    border:         none;
+    background:     transparent;
+    padding:        0;
+    font-family:    var(--font-display);
+    cursor:         pointer;
+    border-radius:  16px;
+    text-align:     left;
+  }
+
+  .acp__sem-card img {
+    width:         100%;
+    height:        200px;
+    object-fit:    cover;
+    border-radius: 16px;
+    display:       block;
+  }
+
+  .acp__sem-row {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             12px;
+  }
+
+  .acp__sem-meta { display: flex; flex-direction: column; gap: 2px; }
+
+  .acp__sem-name { font-size: 16px; font-weight: 800; color: var(--color-text-heading); }
+
+  .acp__sem-sub { font-size: 13px; color: var(--color-text-muted); }
+
+  .acp__sem-chev {
+    width:           28px;
+    height:          28px;
+    border-radius:   50%;
+    background:      #EEF1F7;
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       14px;
+    font-weight:     800;
+    flex-shrink:     0;
+    transition:      background var(--transition-fast), color var(--transition-fast),
+                     transform var(--transition-fast);
+  }
+
+  .acp__sem-card[aria-expanded="true"] .acp__sem-chev {
+    background: var(--color-brand-blue);
+    color:      #fff;
+    transform:  rotate(180deg);
+  }
+
+  .acp__sem-detail {
+    background:     #EDF2FF;
+    border-radius:  20px;
+    padding:        32px 36px;
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+  }
+
+  .acp__sem-detail-title { font-size: 18px; font-weight: 800; color: #232ACF; }
+
+  .acp__sem-detail-text {
+    font-size:   15px;
+    line-height: 1.7;
+    color:       var(--color-text-body);
+    max-width:   900px;
+  }
+
+  .acp__sem-gallery-label {
+    font-size:      12px;
+    font-weight:    800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+    margin-top:     8px;
+  }
+
+  .acp__sem-gallery {
+    display:               grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap:                   12px;
+  }
+
+  .acp__sem-gallery figure {
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+    margin:         0;
+  }
+
+  .acp__sem-gallery img {
+    width:         100%;
+    height:        150px;
+    object-fit:    cover;
+    border-radius: 12px;
+    display:       block;
+  }
+
+  .acp__sem-gallery figcaption {
+    font-size:   13px;
+    font-weight: 800;
+    color:       #232ACF;
+    text-align:  center;
+  }
+
+  /* ── ⑤ Applications ───────────────────────────────────────── */
+  .acp__apply {
+    background:     #EDF2FF;
+    padding:        clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 72px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
+  }
+
+  .acp__apply-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+
+  .acp__apply-grid {
+    display:               grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:                   20px;
+  }
+
+  .acp__city {
+    background:     var(--color-bg-surface);
+    border-radius:  20px;
+    padding:        32px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            14px;
+  }
+
+  .acp__city--planned {
+    background: transparent;
+    border:     2px dashed #C4CBD9;
+  }
+
+  .acp__city-top {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             8px;
+    flex-wrap:       wrap;
+  }
+
+  .acp__city-name { font-size: 21px; font-weight: 800; color: var(--color-brand-blue); }
+
+  .acp__city--planned .acp__city-name { color: #98A1B4; }
+
+  .acp__city-badge {
+    font-size:     12px;
+    font-weight:   800;
+    padding:       4px 12px;
+    border-radius: var(--radius-pill);
+    white-space:   nowrap;
+  }
+
+  .acp__city-badge--open     { background: #EDF2FF; color: var(--color-brand-blue); }
+  .acp__city-badge--upcoming { background: #fff; color: var(--color-accent-purple); border: 1px solid #E0CCF9; }
+  .acp__city-badge--planned  { background: #EEF1F7; color: #98A1B4; }
+
+  .acp__city-line { font-size: 14px; line-height: 1.6; color: var(--color-text-body); }
+
+  .acp__city--planned .acp__city-line { color: #98A1B4; }
+
+  /* ── ⑥ FAQ ────────────────────────────────────────────────── */
+  .acp__faq {
+    padding:        clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 72px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+  }
+
+  .acp__faq-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+
+  .acp__faq-list { display: flex; flex-direction: column; }
+
+  .acp__faq-item { border-top: 1px solid var(--color-border-subtle); }
+
+  .acp__faq-item:last-child { border-bottom: 1px solid var(--color-border-subtle); }
+
+  .acp__faq-item summary {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             var(--space-6);
+    padding:         18px 4px;
+    cursor:          pointer;
+    list-style:      none;
+    font-family:     var(--font-display);
+    font-size:       16px;
+    font-weight:     800;
+    color:           var(--color-text-heading);
+    transition:      color var(--transition-fast);
+  }
+
+  .acp__faq-item summary::-webkit-details-marker { display: none; }
+
+  .acp__faq-item summary:hover { color: var(--color-brand-blue); }
+
+  .acp__faq-chev {
+    width:           28px;
+    height:          28px;
+    border-radius:   50%;
+    background:      #EEF1F7;
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       14px;
+    font-weight:     800;
+    flex-shrink:     0;
+    transition:      background var(--transition-fast), color var(--transition-fast),
+                     transform var(--transition-fast);
+  }
+
+  .acp__faq-item[open] .acp__faq-chev {
+    background: var(--color-brand-blue);
+    color:      #fff;
+    transform:  rotate(180deg);
+  }
+
+  .acp__faq-item > p {
+    font-size:   15px;
+    line-height: 1.7;
+    color:       var(--color-text-body);
+    max-width:   860px;
+    padding:     0 4px 20px;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 960px) {
+    .acp__hero { grid-template-columns: minmax(0, 1fr); }
+    .acp__hero-img { height: 260px; }
+    .acp__what { grid-template-columns: minmax(0, 1fr); }
+    .acp__comp-grid, .acp__apply-grid { grid-template-columns: minmax(0, 1fr); }
+    .acp__sem-flow { grid-template-columns: minmax(0, 1fr); }
+    /* Einspaltig: Quellreihenfolge (Karte, dann ihre Box) gilt wieder. */
+    .acp__sem-card:nth-of-type(1),
+    .acp__sem-card:nth-of-type(2),
+    .acp__sem-card:nth-of-type(3) { grid-column: auto; grid-row: auto; }
+    .acp__sem-detail { grid-column: auto; }
+    .acp__sem-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+
+<script>
+  // "Exemplary semester": genau eine Detailbox sichtbar. Rotiert alle 5 s
+  // automatisch weiter; sobald jemand selbst klickt, stoppt die Rotation.
+  // Erneuter Klick auf die aktive Karte klappt die Box zu.
+  const cards  = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-sem-pick]"));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>("[data-sem-panel]"));
+
+  if (cards.length && panels.length) {
+    const order = cards.map(c => c.dataset.semPick as string);
+    let active: string | null = order[0];
+    let paused = false;
+
+    function render() {
+      panels.forEach(p => p.toggleAttribute("hidden", p.dataset.semPanel !== active));
+      cards.forEach(c => c.setAttribute("aria-expanded", String(c.dataset.semPick === active)));
+    }
+
+    cards.forEach(card => card.addEventListener("click", () => {
+      paused = true;
+      const key = card.dataset.semPick as string;
+      active = active === key ? null : key;
+      render();
+    }));
+
+    setInterval(() => {
+      if (paused || document.hidden) return;
+      const idx = active ? order.indexOf(active) : -1;
+      active = order[(idx + 1) % order.length];
+      render();
+    }, 5000);
+  }
+</script>

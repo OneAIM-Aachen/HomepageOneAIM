@@ -47,8 +47,8 @@ export const partners: Partner[] = [
   {
     id: "tum",
     type: "sponsor",
-    onLanding: true,
     name: "TUM",
+    onLanding: true,
     logo: "/images/partners/tum.png",
     logoAlt: "Technische Universität München (TUM) – Platzhalter-Logo",
     website: "https://www.tum.de",
@@ -56,8 +56,8 @@ export const partners: Partner[] = [
   {
     id: "brainlab",
     type: "partner",
-    onLanding: true,
     name: "Brainlab",
+    onLanding: true,
     logo: "/images/partners/brainlab.png",
     logoAlt: "Brainlab AG – Platzhalter-Logo",
     website: "https://www.brainlab.com",
@@ -65,7 +65,6 @@ export const partners: Partner[] = [
   {
     id: "lmu-klinikum",
     type: "sponsor",
-    onLanding: true,
     name: "LMU Klinikum",
     logo: "/images/partners/lmu-klinikum.png",
     logoAlt: "LMU Klinikum München – Platzhalter-Logo",
@@ -122,7 +121,6 @@ export const partners: Partner[] = [
   {
     id: "unternehmertum",
     type: "partner",
-    onLanding: true,
     name: "UnternehmerTUM",
     logo: "/images/partners/unternehmertum.webp",
     logoAlt: "UnternehmerTUM – Platzhalter-Logo",
@@ -168,7 +166,6 @@ export const partners: Partner[] = [
   {
     id: "strategyand",
     type: "partner",
-    onLanding: true,
     name: "Strategy&",
     logo: "/images/partners/strategyand.png",
     logoAlt: "Strategy& (PwC) – Logo",
@@ -193,8 +190,8 @@ export const partners: Partner[] = [
   {
     id: "avelios",
     type: "partner",
-    onLanding: true,
     name: "Avelios Medical",
+    onLanding: true,
     logo: "/images/partners/avelios.png",
     logoAlt: "Avelios Medical – Logo",
     website: "https://www.avelios.com",
@@ -202,8 +199,8 @@ export const partners: Partner[] = [
   {
     id: "zeiss",
     type: "partner",
-    onLanding: true,
     name: "ZEISS",
+    onLanding: true,
     logo: "/images/partners/zeiss.png",
     logoAlt: "Carl Zeiss AG – Logo",
     website: "https://www.zeiss.de",
@@ -286,7 +283,6 @@ export const partners: Partner[] = [
   {
     id: "bmg",
     type: "partner",
-    onLanding: true,
     name: "Bundesministerium für Gesundheit",
     logo: "/images/partners/bmg.png",
     logoAlt: "Bundesministerium für Gesundheit – Logo",
@@ -301,6 +297,7 @@ export const partners: Partner[] = [
     id: "lmu",
     type: "partner",
     name: "LMU München",
+    onLanding: true,
     logo: "/images/partners/lmu.svg",
     logoAlt: "Ludwig-Maximilians-Universität München (LMU) – Logo",
     website: "https://www.lmu.de",
@@ -317,6 +314,7 @@ export const partners: Partner[] = [
     id: "amboss",
     type: "partner",
     name: "AMBOSS",
+    onLanding: true,
     logo: "/images/partners/amboss.svg",
     logoAlt: "AMBOSS – Logo",
     website: "https://www.amboss.com",
@@ -397,6 +395,7 @@ export const partners: Partner[] = [
     id: "google",
     type: "partner",
     name: "Google",
+    onLanding: true,
     logo: "/images/partners/google.svg",
     logoAlt: "Google – Logo",
     website: "https://www.google.com",
@@ -413,6 +412,7 @@ export const partners: Partner[] = [
     id: "heidi-health",
     type: "partner",
     name: "Heidi Health",
+    onLanding: true,
     logo: "/images/partners/heidi-health.svg",
     logoAlt: "Heidi Health – Logo",
     website: "https://www.heidihealth.com",
@@ -453,6 +453,7 @@ export const partners: Partner[] = [
     id: "smith-nephew",
     type: "partner",
     name: "Smith+Nephew",
+    onLanding: true,
     logo: "/images/partners/smith-nephew.svg",
     logoAlt: "Smith+Nephew – Logo",
     website: "https://www.smith-nephew.com",
@@ -501,6 +502,7 @@ export const partners: Partner[] = [
     id: "rwth-aachen",
     type: "partner",
     name: "RWTH Aachen",
+    onLanding: true,
     logo: "/images/partners/rwth-aachen.svg",
     logoAlt: "RWTH Aachen University – Logo",
     website: "https://www.rwth-aachen.de",
@@ -536,6 +538,33 @@ export const partners: Partner[] = [
     logo: "/images/partners/vivalyx.png",
     logoAlt: "Vivalyx – Logo",
     website: "https://vivalyx.com",
+  },
+  {
+    id: "harvard",
+    type: "partner",
+    name: "Harvard University",
+    onLanding: true,
+    // Volles Wortmarken-Logo für die Partner-Übersicht; das Wappen allein
+    // (harvard-shield.svg) bleibt für ikonhafte Verwendungen (Timelines).
+    logo: "/images/partners/harvard.png",
+    logoAlt: "Harvard University – Coat of arms",
+    website: "https://hsph.harvard.edu/ala/faculty/leo-anthony-celi/",
+  },
+  {
+    id: "imperial",
+    type: "partner",
+    name: "Imperial College London",
+    logo: "/images/partners/imperial-crest.png",
+    logoAlt: "Imperial College London – Crest",
+    website: "https://profiles.imperial.ac.uk/f.rodriguez",
+  },
+  {
+    id: "digitalhub-aachen",
+    type: "partner",
+    name: "digitalHUB Aachen",
+    logo: "/images/partners/digitalhub-aachen.svg",
+    logoAlt: "digitalHUB Aachen – Logo",
+    website: "https://digitalhub.de",
   },
 ];
 

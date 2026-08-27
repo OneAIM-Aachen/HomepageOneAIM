@@ -5,24 +5,25 @@
 // ("City Past Programs Options.dc.html", "Full Connect panel").
 //
 // Aufbau:
-//   • Programm-Pills (Aim Connect / Aim Code / Aim Educate) schalten Panels um
-//   • Aim Connect: Intro + Foto → "Three key components" (nummerierte Leiste)
+//   • Programm-Pills (AIM Connect / AIM Code) schalten Panels um
+//   • AIM Connect: Intro + Foto → "Three key components" (nummerierte Leiste)
 //     → Semester-Timeline mit Umschalter "Upcoming batch" / "How the last
 //     year went" → Kostenkarte → "Already on board"-Partnerwahl → Apply
 //   • Die Partnerwahl zeigt LOGOS als Buttons und blättert automatisch
 //     durch die Partner (alle 4 s). Ein Klick wählt manuell und stoppt
 //     das Blättern; bei prefers-reduced-motion läuft es gar nicht erst.
-//   • Aim Code / Aim Educate: Intro + "Last semester"-Rückblick + CTA + Foto
+//   • AIM Code: Intro + "Last semester"-Rückblick + CTA + Foto
 //
 // ZUSTAND: Gerüst. Stadtspezifische Fakten (Termine, Partner, Gebühr) stehen
 // als [Platzhalter] bzw. kommen – wo vorhanden – aus src/data/applications.ts
-// (Bewerbungsöffnung und -frist für Aim Connect). Die erklärenden Programm-
+// (Bewerbungsöffnung und -frist für AIM Connect). Die erklärenden Programm-
 // texte sind bewusst fest: sie sind an allen Standorten gleich.
 //
 // Interaktivität ist reines Inline-JS (hidden-Attribute) – kein Framework.
 
-import { getApplicationFor, getTermLabel } from "../../data/applications";
-import type { CitySlug } from "../../data/cityData";
+import { getApplicationFor, getStatus, getTermLabel } from "../../data/applications";
+import { getUpcomingEvents, getEventDateLabel } from "../../data/eventsData";
+import { cityData, type CitySlug } from "../../data/cityData";
 
 interface TimelineRow {
   date: string;
@@ -32,8 +33,9 @@ interface TimelineRow {
   dot?: "hollow" | "filled" | "accent";
   /** Zeigt den "Fixed"-Chip hinter dem Titel */
   fixed?: boolean;
-  /** Partnerzeilen unter dem Eintrag (Name + optional Person/Rolle) */
-  partners?: { name: string; detail?: string; logo?: string }[];
+  /** Partnerzeilen unter dem Eintrag (Name + optional Person/Rolle).
+      `wide` = rechteckige Kachel für Wortmarken statt quadratischer. */
+  partners?: { name: string; detail?: string; logo?: string; wide?: boolean }[];
 }
 
 interface SecuredPartner {
@@ -49,23 +51,29 @@ interface Props {
   citySlug?: CitySlug;
   contactHref?: string;
   applyHref?: string;
-  /** Rückblick-Timeline "How the last year went" */
+  /** Rückblick-Timeline "How the last batch went" */
   pastTimeline?: TimelineRow[];
   /** Feste Termine des kommenden Semesters (nach den Bewerbungsschritten) */
   upcomingEvents?: TimelineRow[];
   fee?: { amount: string; note: string; includes: string[] };
   securedPartners?: SecuredPartner[];
   codeRecap?: { term: string; text: string };
-  educateRecap?: { term: string; text: string };
 }
 
-const {
-  city        = "[City]",
-  citySlug,
-  contactHref = "/contact",
-  applyHref,
+const SECURED_PLACEHOLDER: SecuredPartner[] = [1, 2, 3, 4, 5].map(n => ({
+  name: `[Partner ${n}]`,
+  text: "[1–2 sentences: who this partner is and what participants will experience with them.]",
+  chips: ["[Visit type]", "[Week]", "[Name · Position]"],
+}));
 
-  pastTimeline = [
+const UPCOMING_PLACEHOLDER: TimelineRow[] = [
+    { date: "[24–26 Oct]", dot: "filled", fixed: true, title: "Kickoff Weekend", text: "Meet the cohort: team building and intro talks." },
+    { date: "[Week 1–8]", dot: "filled", title: "Partner visits & workshops", text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups." },
+    { date: "[06–08 Feb]", dot: "accent", fixed: true, title: "Make-A-Thon", text: "48-hour build weekend. Your team turns its project into a prototype." },
+    { date: "[20 Feb]", dot: "accent", fixed: true, title: "Summit", text: "The closing event: final pitches in front of partners and guests." },
+  ];
+
+const PAST_PLACEHOLDER: TimelineRow[] = [
     { date: "[Date]", dot: "filled", title: "Kickoff Weekend", text: "[One line about the kickoff.]",
       partners: [
         { name: "[Partner 1]", detail: "[Name · Position]" },
@@ -86,60 +94,142 @@ const {
       partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
     { date: "[Date]", dot: "accent", title: "Make-A-Thon & Summit", text: "48-hour hackathon, [n] prototype teams, closing summit.",
       partners: [{ name: "[Host & sponsor partners]" }] },
-  ],
+  ];
 
-  upcomingEvents = [
-    { date: "[24–26 Oct]", dot: "filled", fixed: true, title: "Kickoff Weekend", text: "Meet the cohort: team building and intro talks." },
-    { date: "[Week 1–8]", dot: "filled", title: "Partner visits & workshops", text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups." },
-    { date: "[06–08 Feb]", dot: "accent", fixed: true, title: "Make-A-Thon", text: "48-hour build weekend. Your team turns its project into a prototype." },
-    { date: "[20 Feb]", dot: "accent", fixed: true, title: "Summit", text: "The closing event: final pitches in front of partners and guests." },
-  ],
+const {
+  city        = "[City]",
+  citySlug,
+  contactHref = "/contact",
+  applyHref,
+
 
   fee = {
     amount: "50 €",
     note: "Participation fee, due only after a positive interview and your invitation to the batch.",
     includes: [
-      "Accommodation for 2 nights in [location]",
+      "Accommodation for 2 nights in Berlin",
       "All partner visits",
       "All other material costs",
     ],
   },
 
-  securedPartners = [1, 2, 3, 4, 5].map(n => ({
-    name: `[Partner ${n}]`,
-    text: "[1–2 sentences: who this partner is and what participants will experience with them.]",
-    chips: ["[Visit type]", "[Week]", "[Name · Position]"],
-  })),
 
   codeRecap    = { term: "[Term]", text: "[What the last edition looked like: courses, workshops, outcomes]" },
-  educateRecap = { term: "[Term]", text: "[What the last edition looked like: lectures, panels, guests]" },
 } = Astro.props as Props;
+
+// Gesicherte Partner der kommenden Runde: Prop → Standort-Datenbank → Platzhalter.
+const securedPartners =
+  (Astro.props as Props).securedPartners
+  ?? (citySlug ? cityData[citySlug]?.connectSecuredPartners : undefined)
+  ?? SECURED_PLACEHOLDER;
+
+// Feste Termine der kommenden Runde: Prop → Standort-Datenbank → Platzhalter.
+const upcomingEvents =
+  (Astro.props as Props).upcomingEvents
+  ?? (citySlug ? cityData[citySlug]?.connectUpcomingEvents : undefined)
+  ?? UPCOMING_PLACEHOLDER;
+
+// Rückblick-Timeline: explizite Prop → Standort-Datenbank → Platzhalter.
+const pastTimeline =
+  (Astro.props as Props).pastTimeline
+  ?? (citySlug ? cityData[citySlug]?.connectPastTimeline : undefined)
+  ?? PAST_PLACEHOLDER;
 
 // Bewerbungsschritte: Termine kommen aus der Bewerbungs-Datenbank, sobald es
 // dort eine Aim-Connect-Runde für diesen Standort gibt.
 const round = citySlug ? getApplicationFor(citySlug, "aim-connect") : undefined;
 
-const compact = new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short" });
+// Gleiches Format wie die festen Termine ("23–25 Oct"): Tag zuerst, Monat kurz.
+// en-GB kürzt September als "Sept" ab – auf drei Buchstaben normalisieren,
+// damit es zu den handgepflegten Terminen ("23–25 Oct") passt.
+const fmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const compact = { format: (x: Date) => fmt.format(x).replace("Sept", "Sep") };
+const dayNum  = new Intl.DateTimeFormat("en-GB", { day: "numeric" });
 const d = (iso?: string) => (iso ? compact.format(new Date(iso)) : "[Date]");
+
+// Zeitraum im selben Format wie die festen Termine: "18–22 Sep" bzw. "19 Oct–13 Dec".
+const dRange = (from?: string, to?: string) => {
+  if (!from || !to) return "[Date]";
+  const a = new Date(from), b = new Date(to);
+  return a.getMonth() === b.getMonth()
+    ? `${dayNum.format(a)}–${compact.format(b)}`
+    : `${compact.format(a)}–${compact.format(b)}`;
+};
 
 const applicationSteps: TimelineRow[] = [
   { date: d(round?.opensAt),  dot: "hollow", title: "Applications open",     text: "Apply online. Open to students of all disciplines." },
-  { date: d(round?.deadline), dot: "hollow", title: "Application deadline",  text: "Last day to submit your application." },
-  { date: "[Date]",           dot: "hollow", title: "Interviews",            text: "Short personal conversations. We want to get to know you, not grill you." },
-  { date: "[Date]",           dot: "hollow", title: "Final decision",        text: "You hear back from us and the cohort is complete." },
+  { date: round && !round.deadline ? "TBA" : d(round?.deadline), dot: "hollow", title: "Application deadline",  text: "Last day to submit your application." },
+  { date: round?.interviewsLabel ?? dRange(round?.interviewsFrom, round?.interviewsTo), dot: "hollow", title: "Interviews", text: "Short personal conversations. We want to get to know you, not grill you." },
+  { date: d(round?.decisionBy), dot: "hollow", title: "Final decision",      text: "You hear back from us and the cohort is complete." },
 ];
 
 const upcomingLabel = round ? `The upcoming batch (${getTermLabel(round)})` : "The upcoming batch ([Term])";
+// Rückblick: Beschriftung des Umschalters und optionaler Hinweistext
+// (cityData.ts → connectPastToggleLabel / connectPastNote). Frankfurt zeigt
+// so das Münchner Beispielprogramm statt eines eigenen Jahrgangs.
+const pastToggleLabel = (citySlug ? cityData[citySlug]?.connectPastToggleLabel : undefined) ?? "How the last batch went";
+const pastNote        = citySlug ? cityData[citySlug]?.connectPastNote : undefined;
+
+// AIM-Innovate-Tab anzeigen? (cityData.ts → showInnovate)
+const showInnovate = citySlug ? Boolean(cityData[citySlug]?.showInnovate) : false;
+const innovateRound = citySlug && showInnovate ? getApplicationFor(citySlug, "aim-innovate") : undefined;
+
+// Teilnahmegebühr-Karte anzeigen? (cityData.ts → connectShowFee)
+const showFee = citySlug ? Boolean(cityData[citySlug]?.connectShowFee) : true;
+
+// AIM Code noch im Aufbau? (cityData.ts → codeComingSoon)
+const codeComingSoon = citySlug ? Boolean(cityData[citySlug]?.codeComingSoon) : false;
+
+// AIM Code an diesem Standort anzeigen? (cityData.ts → showCode, Standard: ja)
+const showCode = citySlug ? cityData[citySlug]?.showCode !== false : true;
+
+// AIM Educate: kommende Events dieses Standorts (Events ohne Stadt = überall)
+const educateEvents = citySlug
+  ? getUpcomingEvents().filter(e => !e.city || e.city === citySlug)
+  : [];
+
+// Connect-Intro-Foto aus der Standort-Datenbank (cityData.ts).
+const connectImage    = citySlug ? cityData[citySlug]?.connectImage    : undefined;
+const connectImageAlt = citySlug ? cityData[citySlug]?.connectImageAlt : "";
+
+// Bewerbungs-Button nur bei offener Runde; Ziel ist das Bewerbungsformular
+// (applications.ts → applyUrl, z. B. der Tally-Link), bis es eingetragen
+// ist die Kontaktseite.
+const applicationsOpen  = round ? getStatus(round) === "open" : false;
 const resolvedApplyHref = applyHref ?? round?.applyUrl ?? contactHref;
 
-// Rückblick in zwei Spalten aufteilen (wie im Entwurf)
-const half = Math.ceil(pastTimeline.length / 2);
-const pastCols = [pastTimeline.slice(0, half), pastTimeline.slice(half)];
+// Rückblick in zwei Spalten aufteilen (wie im Entwurf). Bei ungerader
+// Anzahl bekommt die RECHTE Spalte die zusätzliche Zeile – links steht
+// der hohe Kickoff-Eintrag, so bleiben die Spalten optisch ausgewogen.
+const split = (rows: TimelineRow[]) => {
+  const h = Math.floor(rows.length / 2);
+  return [rows.slice(0, h), rows.slice(h)];
+};
+const pastCols = split(pastTimeline);
+
+// Beispiel-Timelines anderer Städte (cityData.ts → connectExampleFrom):
+// Frankfurt zeigt so die Programme aus München und Aachen im Wechsel.
+// Ohne connectExampleFrom gibt es genau eine Ansicht: den eigenen Rückblick.
+const exampleFrom = (citySlug ? cityData[citySlug]?.connectExampleFrom : undefined) ?? [];
+const pastTermOf = (slug: CitySlug) => cityData[slug]?.connectPastTerm;
+const pastViews = exampleFrom.length
+  ? exampleFrom.map(slug => ({
+      slug,
+      name: cityData[slug].displayName,
+      caption: `The ${cityData[slug].displayName} batch (${pastTermOf(slug) ?? "[Term]"})`,
+      cols: split(cityData[slug].connectPastTimeline ?? []),
+    }))
+  : [{
+      slug: "own",
+      name: "",
+      caption: `The last batch (${(citySlug ? pastTermOf(citySlug) : undefined) ?? "[Term]"})`,
+      cols: pastCols,
+    }];
 
 const upcomingRows = [...applicationSteps, ...upcomingEvents];
 ---
 
-<section class="cpp" aria-labelledby="cpp-heading">
+<section class="cpp" id="programs" aria-labelledby="cpp-heading">
   <div class="cpp__head">
     <p class="cpp__overline">Our programs in {city}</p>
     <h2 id="cpp-heading">Know what you're signing up for</h2>
@@ -147,12 +237,17 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   </div>
 
   <div class="cpp__pills" role="tablist" aria-label="Programs">
-    <button type="button" class="cpp__pill is-active" data-tab="connect" aria-pressed="true">Aim Connect</button>
-    <button type="button" class="cpp__pill" data-tab="code" aria-pressed="false">Aim Code</button>
-    <button type="button" class="cpp__pill" data-tab="educate" aria-pressed="false">Aim Educate</button>
+    <button type="button" class="cpp__pill is-active" data-tab="connect" aria-pressed="true">AIM Connect</button>
+    {showCode && (
+      <button type="button" class="cpp__pill" data-tab="code" aria-pressed="false">AIM Code</button>
+    )}
+    {showInnovate && (
+      <button type="button" class="cpp__pill" data-tab="innovate" aria-pressed="false">AIM Innovate Impact Hub</button>
+    )}
+    <button type="button" class="cpp__pill" data-tab="educate" aria-pressed="false">AIM Educate</button>
   </div>
 
-  <!-- ── Aim Connect ─────────────────────────────────────────── -->
+  <!-- ── AIM Connect ─────────────────────────────────────────── -->
   <div class="cpp__panel" data-panel="connect">
     <div class="cpp__connect-intro">
       <p class="cpp__text">
@@ -161,13 +256,17 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         participants gain in-depth insights into the MedTech field, from hospitals and
         research institutions to startups and established companies.
       </p>
-      <div class="cpp__media"><div class="cpp__slot">Photo: kickoff / cohort</div></div>
+      <div class="cpp__media">
+        {connectImage
+          ? <img src={connectImage} alt={connectImageAlt} loading="lazy" decoding="async" />
+          : <div class="cpp__slot">Photo: kickoff / cohort</div>}
+      </div>
     </div>
 
     <div class="cpp__components">
       <p class="cpp__label">Three key components</p>
       <p class="cpp__text cpp__text--wide">
-        Every Aim Connect semester is built on three pillars: the kickoff weekend to form
+        Every AIM Connect semester is built on three pillars: the kickoff weekend to form
         your cohort, regular partner visits and workshops, and a team project, prepared in
         dedicated sessions, built intensively at the Make-A-Thon weekend, and pitched at the
         closing summit.
@@ -177,12 +276,12 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         <div class="cpp__step">
           <span class="cpp__step-n">1</span>
           <h3>Kickoff Weekend</h3>
-          <p>Two days to meet your cohort: intro talks, team building and a first look at the semester ahead.</p>
+          <p>Three days to meet your cohort: intro talks, the first 2-3 partner visits, team building and a look at the semester ahead.</p>
         </div>
         <div class="cpp__step">
           <span class="cpp__step-n">2</span>
           <h3>Partner visits &amp; workshops</h3>
-          <p>Weekly sessions with our partners: hospital and lab excursions and hands-on MedTech workshops.</p>
+          <p>Weekly sessions with our partners: clinicians, labs, start-ups, established companies and all other parts of MedTech innovation.</p>
         </div>
         <div class="cpp__step">
           <span class="cpp__step-n cpp__step-n--accent">3</span>
@@ -196,7 +295,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       <p class="cpp__label">Semester timeline</p>
       <div class="cpp__toggle" role="group" aria-label="Timeline view">
         <button type="button" class="cpp__toggle-btn is-active" data-tl="next" aria-pressed="true">Upcoming batch</button>
-        <button type="button" class="cpp__toggle-btn" data-tl="past" aria-pressed="false">How the last year went</button>
+        <button type="button" class="cpp__toggle-btn" data-tl="past" aria-pressed="false">{pastToggleLabel}</button>
       </div>
     </div>
 
@@ -219,12 +318,14 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
             </div>
           ))}
         </div>
-        <aside class="cpp__fee">
-          <p class="cpp__fee-amount">{fee.amount}</p>
-          <p class="cpp__fee-note">{fee.note}</p>
-          <p class="cpp__fee-included">Included:</p>
-          <ul>{fee.includes.map(i => <li>{i}</li>)}</ul>
-        </aside>
+        {showFee && (
+          <aside class="cpp__fee">
+            <p class="cpp__fee-amount">{fee.amount}</p>
+            <p class="cpp__fee-note">{fee.note}</p>
+            <p class="cpp__fee-included">Included:</p>
+            <ul>{fee.includes.map(i => <li>{i}</li>)}</ul>
+          </aside>
+        )}
       </div>
 
       <div class="cpp__secured">
@@ -266,14 +367,27 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
           ))}
         </div>
 
-        <a class="cpp__apply" href={resolvedApplyHref}>Apply for Aim Connect →</a>
+        {applicationsOpen && (
+          <a class="cpp__apply" href={resolvedApplyHref}>Apply for AIM Connect →</a>
+        )}
       </div>
     </div>
 
     <!-- Rückblick -->
     <div data-tlview="past" hidden>
-      <div class="cpp__past">
-        {pastCols.map(col => (
+      {pastNote && <p class="cpp__past-note">{pastNote}</p>}
+      {pastViews.length > 1 && (
+        <div class="cpp__toggle cpp__toggle--excity" role="group" aria-label="Example city">
+          {pastViews.map((v, i) => (
+            <button type="button" class={`cpp__toggle-btn ${i === 0 ? "is-active" : ""}`} data-exbtn={v.slug} aria-pressed={i === 0 ? "true" : "false"}>{v.name}</button>
+          ))}
+        </div>
+      )}
+      {pastViews.map((v, i) => (
+      <div data-excity={v.slug} hidden={i !== 0}>
+        <p class="cpp__tl-caption">{v.caption}</p>
+        <div class="cpp__past">
+        {v.cols.map(col => (
           <div class="cpp__tl">
             {col.map(row => (
               <div class="cpp__row">
@@ -289,7 +403,11 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
                     <div class="cpp__mini-partners">
                       {row.partners.map(pp => (
                         <div class="cpp__mini">
-                          <span class="cpp__mini-logo">{pp.logo ? <img src={pp.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}</span>
+                          {/* Kachel nur mit Logo oder bei Platzhalter-Einträgen ("[…]");
+                              echte Einträge ohne Logo (z. B. Einzelpersonen) kommen ohne Kachel. */}
+                          {(pp.logo || pp.name.startsWith("[")) && (
+                            <span class={`cpp__mini-logo ${pp.wide ? "cpp__mini-logo--wide" : ""}`}>{pp.logo ? <img src={pp.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}</span>
+                          )}
                           <span class="cpp__mini-text"><strong>{pp.name}</strong>{pp.detail && <><br/>{pp.detail}</>}</span>
                         </div>
                       ))}
@@ -300,42 +418,121 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
             ))}
           </div>
         ))}
+        </div>
       </div>
+      ))}
     </div>
   </div>
 
-  <!-- ── Aim Code ────────────────────────────────────────────── -->
-  <div class="cpp__panel cpp__panel--simple" data-panel="code" hidden>
+  <!-- ── AIM Code (nur wenn showCode) ────────────────────────── -->
+  {showCode && (
+  <div class={`cpp__panel cpp__panel--simple ${codeComingSoon ? "cpp__panel--single" : ""}`} data-panel="code" hidden>
     <div class="cpp__simple-copy">
       <p class="cpp__text">
         Within AIM Code, we offer specialized coding courses for students and medical
         professionals, from hands-on introductory Python workshops to advanced sessions on
         artificial intelligence in healthcare. All courses are free of charge.
       </p>
-      <div class="cpp__recap">
-        <p class="cpp__recap-label">Last semester ({codeRecap.term})</p>
-        <p>{codeRecap.text}</p>
-      </div>
-      <a class="cpp__btn" href={contactHref}>Join the next course</a>
+      {codeComingSoon ? (
+        <div class="cpp__recap cpp__recap--soon">
+          <p class="cpp__recap-label">Coming soon</p>
+          <p>
+            AIM Code in {city} is in preparation. Course details and registration dates
+            will be announced here as soon as they are set. Until then, have a look at
+            what the courses are about.
+          </p>
+          <a class="cpp__btn cpp__btn--outline" href="/programs/aim-code">About AIM Code →</a>
+        </div>
+      ) : (
+        <>
+          <div class="cpp__recap">
+            <p class="cpp__recap-label">Last semester ({codeRecap.term})</p>
+            <p>{codeRecap.text}</p>
+          </div>
+          <a class="cpp__btn" href={contactHref}>Join the next course</a>
+        </>
+      )}
     </div>
-    <div class="cpp__media cpp__media--tall"><div class="cpp__slot">Photo: coding course</div></div>
+    {!codeComingSoon && (
+      <div class="cpp__media cpp__media--tall"><div class="cpp__slot">Photo: coding course</div></div>
+    )}
   </div>
+  )}
 
-  <!-- ── Aim Educate ─────────────────────────────────────────── -->
-  <div class="cpp__panel cpp__panel--simple" data-panel="educate" hidden>
+  <!-- ── AIM Innovate ────────────────────────────────────────── -->
+  {showInnovate && (
+    <div class="cpp__panel cpp__panel--simple cpp__panel--single" data-panel="innovate" hidden>
+      <div class="cpp__simple-copy">
+        <p class="cpp__text">
+          The AIM Innovate Impact Hub is our incubator dedicated to everything
+          behind HealthTech innovation: capability building, creation sprints
+          and start-up incubation, with the ambition to translate ideas into
+          your own startup.
+        </p>
+        {innovateRound ? (
+          <div class="cpp__recap">
+            <p class="cpp__recap-label">Next round ({getTermLabel(innovateRound)})</p>
+            <p>
+              Applications {new Date() < new Date(innovateRound.opensAt) ? `open on ${innovateRound.opensAt}` : "are open"}.
+              Details and the full program are on the Impact Hub page.
+            </p>
+            <a class="cpp__btn" href="/programs/aim-innovate">About the Impact Hub →</a>
+          </div>
+        ) : (
+          <div class="cpp__recap cpp__recap--soon">
+            <p class="cpp__recap-label">Coming soon</p>
+            <p>
+              The next Impact Hub round in {city} is in preparation. Dates and
+              the application will be announced here as soon as they are set.
+              Until then, have a look at what the program is about.
+            </p>
+            <a class="cpp__btn cpp__btn--outline" href="/programs/aim-innovate">About the Impact Hub →</a>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+
+  <!-- ── AIM Educate: offene Events aus eventsData.ts ─────────── -->
+  <div class="cpp__panel cpp__panel--simple cpp__panel--single" data-panel="educate" hidden>
     <div class="cpp__simple-copy">
       <p class="cpp__text">
-        Periodically, AIM organizes open lectures for all students interested in Medical AI.
-        Held in a relaxed and informal setting, they foster open discussion and let
-        participants explore current trends, research and innovations freely.
+        With AIM Educate, we host open events: summits, lecture series and
+        expert talks on Health AI and MedTech. Open to everyone, event by
+        event: no semester-long commitment, no application.
       </p>
-      <div class="cpp__recap">
-        <p class="cpp__recap-label">Last semester ({educateRecap.term})</p>
-        <p>{educateRecap.text}</p>
-      </div>
-      <a class="cpp__btn" href={contactHref}>See upcoming lectures</a>
+      {educateEvents.length > 0 ? (
+        <>
+          <div class="cpp__events">
+            {educateEvents.map(e => (
+              <div class="cpp__event">
+                <span class="cpp__event-date">{getEventDateLabel(e)}</span>
+                <div class="cpp__event-body">
+                  <p class="cpp__event-title">{e.title}</p>
+                  {(e.location || e.text) && (
+                    <p class="cpp__event-text">{e.location ?? e.text}</p>
+                  )}
+                </div>
+                {e.registerUrl && (
+                  <a class="cpp__btn cpp__btn--outline" href={e.registerUrl} target="_blank" rel="noopener noreferrer">Register</a>
+                )}
+              </div>
+            ))}
+          </div>
+          <a class="cpp__btn cpp__btn--outline" href="/programs/aim-educate">All AIM Educate events →</a>
+        </>
+      ) : (
+        <div class="cpp__recap cpp__recap--soon">
+          <p class="cpp__recap-label">No upcoming events right now</p>
+          <p>
+            There are currently no open AIM Educate events in {city}. New
+            summits, lecture series and expert talks are announced as soon as
+            the dates are set: have a look at the overview page for all events.
+          </p>
+          <a class="cpp__btn cpp__btn--outline" href="/programs/aim-educate">All AIM Educate events →</a>
+        </div>
+      )}
     </div>
-    <div class="cpp__media cpp__media--tall"><div class="cpp__slot">Photo: open lecture</div></div>
   </div>
 
   <script is:inline>
@@ -362,6 +559,51 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
       wire("[data-tab]",  "data-tab", "[data-panel]",  "data-panel");
       wire("[data-tl]",   "data-tl",  "[data-tlview]", "data-tlview");
+      wire("[data-exbtn]", "data-exbtn", "[data-excity]", "data-excity");
+
+      // ── Deep-Links: /munich#aim-connect öffnet das passende Panel.
+      // Zusätze steuern das Scrollziel innerhalb des Connect-Panels:
+      //   #aim-connect-timeline → Semester-Timeline
+      //   #aim-connect-apply    → "Apply for AIM Connect"-Button, so
+      //                           gescrollt, dass er unten im Bild steht
+      function applyHash(initial) {
+        var m = (location.hash || "").match(/^#aim-([a-z]+?)(?:-(timeline|apply))?$/);
+        if (!m) return;
+        var target = root.querySelector('[data-tab="' + m[1] + '"]');
+        if (!target) return;
+        target.click();
+        var el = m[2] === "timeline" ? root.querySelector(".cpp__tl-head")
+               : m[2] === "apply"    ? root.querySelector(".cpp__apply")
+               : root;
+        // Ziel unsichtbar (anderes Panel aktiv)? Dann zum Panel-Anfang.
+        if (!el || !el.offsetParent) el = root;
+        var block = m[2] === "apply" && el !== root ? "end" : "start";
+        // Mehrfach scrollen: sofort und nachdem sich das Layout gesetzt
+        // hat – nachladende Bilder oberhalb verschieben sonst die Position.
+        setTimeout(function () { el.scrollIntoView({ block: block }); }, 60);
+        setTimeout(function () { el.scrollIntoView({ block: block }); }, 450);
+        if (initial) {
+          window.addEventListener("load", function () {
+            el.scrollIntoView({ block: block });
+          }, { once: true });
+        }
+      }
+      applyHash(true);
+      window.addEventListener("hashchange", function () { applyHash(false); });
+
+      // Erneuter Klick auf einen Link mit UNVERÄNDERTEM Hash löst kein
+      // hashchange aus – dann direkt scrollen (z. B. "More info" im Hero,
+      // nachdem man wieder nach oben gescrollt hat).
+      document.addEventListener("click", function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a[href*="#aim-"]') : null;
+        if (!a) return;
+        var url = new URL(a.getAttribute("href"), location.href);
+        var samePath = url.pathname.replace(/\/$/, "") === location.pathname.replace(/\/$/, "");
+        if (samePath && url.hash === location.hash) {
+          e.preventDefault();
+          applyHash(false);
+        }
+      });
 
       // ── Partnerwahl: Klick + automatisches Weiterblättern ──────────
       // Alle 4 s springt die Auswahl zum nächsten Partner, damit
@@ -415,7 +657,34 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 </section>
 
 <style>
+  /* AIM-Educate-Events auf den Stadtseiten */
+  .cpp__events { display: flex; flex-direction: column; gap: 12px; }
+
+  .cpp__event {
+    display:       flex;
+    align-items:   center;
+    gap:           18px;
+    flex-wrap:     wrap;
+    background:    #F7F9FE;
+    border:        1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    padding:       16px 20px;
+  }
+
+  .cpp__event-date {
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+    white-space: nowrap;
+    min-width:   110px;
+  }
+
+  .cpp__event-body  { display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px; }
+  .cpp__event-title { font-size: 16px; font-weight: 800; color: var(--color-text-heading); }
+  .cpp__event-text  { font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }
+
   .cpp {
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
     display:        flex;
     flex-direction: column;
     gap:            var(--space-8);
@@ -537,6 +806,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   /* ── Timeline-Kopf + Umschalter ───────────────────────────── */
   .cpp__tl-head {
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
     display:         flex;
     justify-content: space-between;
     align-items:     center;
@@ -561,6 +831,21 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   .cpp__toggle-btn.is-active { background: var(--color-brand-blue); color: #fff; }
 
   .cpp__tl-caption { font-size: 13px; font-weight: var(--fw-bold); color: var(--color-text-body); margin-bottom: var(--space-4); }
+
+  /* Stadt-Umschalter über den Beispiel-Timelines */
+  .cpp__toggle--excity { align-self: flex-start; margin-bottom: var(--space-8, 32px); }
+
+  /* Hinweis über dem Rückblick (z. B. Beispielprogramm aus München) */
+  .cpp__past-note {
+    font-size:     14px;
+    line-height:   1.6;
+    color:         var(--color-text-body);
+    background:    var(--color-bg-subtle);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: 12px;
+    padding:       14px 18px;
+    margin-bottom: var(--space-8, 32px);
+  }
 
   /* ── Timeline ─────────────────────────────────────────────── */
   .cpp__tl { display: flex; flex-direction: column; }
@@ -630,6 +915,10 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   }
 
   .cpp__mini-logo img { max-width: 26px; max-height: 26px; object-fit: contain; }
+
+  /* Rechteckige Kachel für breite Wortmarken (z. B. CSI Aachen). */
+  .cpp__mini-logo--wide { width: 96px; padding: 0 6px; }
+  .cpp__mini-logo--wide img { max-width: 84px; }
   .cpp__mini-text { font-size: 12px; line-height: 1.4; }
   .cpp__mini-text strong { color: var(--color-text-heading); }
 
@@ -784,6 +1073,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   /* Voller Gradient-Apply über die ganze Breite */
   .cpp__apply {
+    scroll-margin-bottom: var(--space-6);
     align-self:      stretch;
     display:         flex;
     align-items:     center;
@@ -830,7 +1120,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     gap:                   0 64px;
   }
 
-  /* ── Einfache Panels (Code / Educate) ─────────────────────── */
+  /* ── Einfaches Panel (Code) ───────────────────────────────── */
   .cpp__panel--simple {
     display:               grid;
     grid-template-columns: minmax(0, 1fr) 380px;
@@ -839,6 +1129,17 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   }
 
   .cpp__simple-copy { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Coming-soon-Zustand: einspaltig, Hinweisbox mit gestricheltem Rand. */
+  .cpp__panel--single { grid-template-columns: minmax(0, 1fr); }
+  .cpp__recap--soon { border: 2px dashed #C4CBD9; background: #F7F9FE; }
+  .cpp__recap--soon .cpp__btn { align-self: flex-start; margin-top: 6px; }
+  .cpp__btn--outline {
+    background:   transparent;
+    color:        var(--color-brand-blue);
+    border:       2px solid var(--color-brand-blue);
+  }
+  .cpp__btn--outline:hover { background: #E5EDFF; }
 
   .cpp__recap {
     background:     #EDF2FF;

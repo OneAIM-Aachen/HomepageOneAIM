@@ -1,0 +1,721 @@
+---
+// src/pages/programs/aim-innovate.astro
+//
+// AIM Innovate Impact Hub (Rebranding, Entwurf 1a aus
+// "AIM Impact Hub Page Options": Light editorial mit Pillar-Karten).
+//
+// Bänder:
+//   ① Hero            – hellblaues Band, Foto rechts, "New"-Pill, CTA
+//   ② What it is      – zweispaltig: Überschrift + zwei Absätze
+//   ③ Three pillars   – drei interaktive Karten (Capability Building /
+//                       Creation Sprints / Start-up Incubation), Detailbox
+//                       darunter; rotiert alle 6 s, Klick übernimmt
+//   ④ Applications    – EINE Karte je Standort aus applications.ts
+//                       (Übernahme von der alten AIM-Innovate-Seite)
+//   ⑤ News            – neueste Beiträge mit programs: ["aim-innovate"]
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ApplicationCard from "../../components/ApplicationCard.astro";
+import { cities } from "../../data/cityData";
+import { getNewsByProgram } from "../../data/newsData";
+import {
+  getApplicationFor,
+  getStatus,
+  getTermLabel,
+} from "../../data/applications";
+
+const dateFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+});
+const shortFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" });
+
+// ── Capability Building: die Skills (Fotos = Wochenfotos des alten Programms) ──
+const skills = [
+  { pill: "R&D", title: "Research & Development",
+    desc: "Exploring structured ideation and the R&D cycle with insights from a leading industry player.",
+    img: "/images/innovate/week-02-rd.jpg" },
+  { pill: "Patent Law", title: "Patent Law",
+    desc: "Understanding patent rights, protection scope, and intellectual property considerations in MedTech.",
+    img: "/images/innovate/week-03-patent.jpg" },
+  { pill: "Clinical Trials", title: "Clinical Trials",
+    desc: "An overview of clinical trial types, ethical concerns, and regulatory challenges in MedTech studies.",
+    img: "/images/innovate/week-04-clinical-trials.jpg" },
+  { pill: "Authorities", title: "Authorities",
+    desc: "Insights into regulatory decision-making, quality management, and submission requirements for approvals.",
+    img: "/images/innovate/week-05-authorities.jpg" },
+  { pill: "Venture Capital", title: "Venture Capital",
+    desc: "Exploring VC funding requirements, the key elements of a successful startup, and the state of innovation in Germany.",
+    img: "/images/innovate/week-06-vc.jpg" },
+  { pill: "Health Policy", title: "Health Policy",
+    desc: "Examining regulatory reasoning, MDR, the EU AI Act, and responses to startup concerns in health policy.",
+    img: "/images/innovate/week-07-health-policy.jpg" },
+  { pill: "Clinical Practice Guidelines", title: "Clinical Practice Guidelines",
+    desc: "The pathway towards the highest scientific approval of new technologies in healthcare.",
+    img: "/images/innovate/week-09-guidelines.jpg" },
+];
+
+// ── News ───────────────────────────────────────────────────────────────
+const newsDateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
+const news = getNewsByProgram("aim-innovate", 3);
+---
+
+<BaseLayout
+  title="AIM Innovate Impact Hub"
+  description="The AIM Innovate Impact Hub: capability building, creation sprints and start-up incubation to turn HealthTech ideas into ventures. First implementation in Munich."
+>
+  <article class="acv" aria-label="AIM Innovate Impact Hub">
+    <div class="container">
+      <div class="acv__panel">
+
+        <!-- ① Hero -->
+        <header class="acv__hero">
+          <div class="acv__hero-glow" aria-hidden="true"></div>
+          <div class="acv__hero-copy">
+            <div class="acv__hero-tags">
+              <p class="acv__overline acv__overline--purple">AIM Innovate</p>
+              <span class="acv__new">New</span>
+            </div>
+            <h1 class="acv__title">AIM Innovate Impact Hub</h1>
+            <p class="acv__lead">
+              The new incubator dedicated to everything behind HealthTech
+              innovation with the ambition to translate it into your own
+              startup. The extension of two successful AIM Innovate batches.
+            </p>
+            <div class="acv__hero-actions">
+              <a class="acv__btn" href="#apply">Get involved</a>
+              <span class="acv__hero-chip">
+                <span class="acv__hero-dot" aria-hidden="true"></span>
+                First implementation: Munich
+              </span>
+            </div>
+          </div>
+          <img
+            class="acv__hero-img"
+            src="/images/innovate/week-01-kickoff.jpg"
+            alt="The AIM Innovate cohort at the kickoff"
+            loading="eager"
+            decoding="async"
+          />
+        </header>
+
+        <!-- ② What it is -->
+        <section class="acv__what" aria-labelledby="acv-what">
+          <div class="acv__what-head">
+            <p class="acv__overline acv__overline--purple">What it is</p>
+            <h2 id="acv-what" class="acv__h2">What happens behind HealthTech innovation</h2>
+          </div>
+          <div class="acv__what-copy">
+            <p>
+              While AIM Connect builds a network and explores MedTech itself,
+              the Impact Hub focuses on everything behind the innovation:
+              venture building, regulatory pathways, clinical trials and health
+              policy. It brings together entrepreneurs, innovators, researchers,
+              clinicians, and ambitious talents to accelerate innovation and
+              venture creation, build entrepreneurial and innovation
+              capabilities, and create tangible and lasting impact in
+              healthcare.
+            </p>
+            <p>
+              It grew out of AIM Innovate. We are now expanding our ambition,
+              covering the full stack from skills and idea creation to venture
+              building, with the AIM to bring startup ideas to life. The first
+              implementation will be in Munich, with more locations to follow.
+            </p>
+          </div>
+        </section>
+
+        <!-- ③ Three pillars – Karten schalten die Detailbox darunter um -->
+        <section class="acv__pillars" aria-labelledby="acv-pillars">
+          <div class="acv__pillars-head">
+            <p class="acv__overline acv__overline--purple">Three pillars</p>
+            <h2 id="acv-pillars" class="acv__h2">What the Impact Hub does</h2>
+          </div>
+
+          <div class="acv__pillar-grid">
+            <button type="button" class="acv__pillar acv__pillar--cap is-active" data-pillar="0" aria-pressed="true">
+              <span class="acv__pillar-num acv__pillar-num--blue">01</span>
+              <span class="acv__pillar-title">Capability Building</span>
+              <span class="acv__pillar-text">
+                A curated series of workshops and educational formats covering
+                HealthTech, entrepreneurship, innovation, venture building, and
+                regulation.
+              </span>
+              <span class="acv__pillar-cta acv__pillar-cta--blue" data-pillar-label="0"
+                data-active-label="Showing below ↓" data-idle-label="Explore the capabilities ↓">Showing below ↓</span>
+            </button>
+
+            <button type="button" class="acv__pillar acv__pillar--sprint" data-pillar="1" aria-pressed="false">
+              <span class="acv__pillar-num acv__pillar-num--purple">02</span>
+              <span class="acv__pillar-title">Creation Sprints</span>
+              <span class="acv__pillar-text">
+                Hackathons, makeathons, and innovation challenges designed to
+                foster collaboration, test ideas rapidly, and turn concepts into
+                solutions.
+              </span>
+              <span class="acv__pillar-cta acv__pillar-cta--purple" data-pillar-label="1"
+                data-active-label="Showing below ↓" data-idle-label="See a sprint in action ↓">See a sprint in action ↓</span>
+            </button>
+
+            <button type="button" class="acv__pillar acv__pillar--inc" data-pillar="2" aria-pressed="false">
+              <span class="acv__pillar-toprow">
+                <span class="acv__pillar-num acv__pillar-num--magenta">03</span>
+                <span class="acv__soon">Coming soon</span>
+              </span>
+              <span class="acv__pillar-title">Start-up Incubation</span>
+              <span class="acv__pillar-text">
+                Through strategic partnerships and hands-on programs, we empower
+                teams to work on real-world healthcare challenges and transform
+                promising ideas into impactful HealthTech ventures.
+              </span>
+              <span class="acv__pillar-cta acv__pillar-cta--magenta" data-pillar-label="2"
+                data-active-label="Showing below ↓" data-idle-label="See how we incubate ↓">See how we incubate ↓</span>
+            </button>
+          </div>
+
+          <!-- Detail: Capability Building -->
+          <div class="acv__detail" data-pillar-panel="0">
+            <p class="acv__detail-label acv__detail-label--blue">The capabilities we build</p>
+            <div class="acv__skill-pills">
+              {skills.map((s, i) => (
+                <button type="button" class={`acv__skill-pill ${i === 0 ? "is-active" : ""}`} data-skill={String(i)} aria-pressed={i === 0 ? "true" : "false"}>{s.pill}</button>
+              ))}
+            </div>
+            <div class="acv__skill-detail">
+              <div class="acv__skill-copy">
+                <p class="acv__skill-title" data-skill-title>{skills[0].title}</p>
+                <p class="acv__skill-desc" data-skill-desc>{skills[0].desc}</p>
+              </div>
+              <div class="acv__skill-img" data-skill-img style={`background-image:url('${skills[0].img}')`}></div>
+            </div>
+          </div>
+
+          <!-- Detail: Creation Sprints -->
+          <div class="acv__detail" data-pillar-panel="1" hidden>
+            <p class="acv__detail-label acv__detail-label--purple">What a sprint looks like</p>
+            <div class="acv__skill-detail">
+              <div class="acv__skill-copy">
+                <p class="acv__skill-title">Hackathons, makeathons and innovation challenges</p>
+                <p class="acv__skill-desc">
+                  Independent events designed to foster collaboration, test
+                  ideas rapidly, and turn concepts into solutions: teams create,
+                  develop, and pitch real-world HealthTech projects.
+                </p>
+              </div>
+              <div class="acv__skill-img" style="background-image:url('/images/innovate/week-10-hackathon.jpg')"></div>
+            </div>
+          </div>
+
+          <!-- Detail: Start-up Incubation -->
+          <div class="acv__detail" data-pillar-panel="2" hidden>
+            <div class="acv__detail-labelrow">
+              <p class="acv__detail-label acv__detail-label--magenta">From idea to venture</p>
+              <span class="acv__soon">Coming soon</span>
+            </div>
+            <div class="acv__skill-copy acv__skill-copy--wide">
+              <p class="acv__skill-title">Incubating HealthTech ventures</p>
+              <p class="acv__skill-desc">
+                Teams work on real-world healthcare challenges together with our
+                partners, with mentoring and hands-on programs that carry
+                promising ideas from first concept to an impactful HealthTech
+                venture. The incubation program launches soon: stay tuned.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ④ Applications – Übernahme von der alten AIM-Innovate-Seite -->
+        <section class="acv__apply" id="apply" aria-labelledby="acv-apply">
+          <div class="acv__apply-head">
+            <p class="acv__overline">Open applications</p>
+            <h2 id="acv-apply" class="acv__h2 acv__h2--blue">Apply in your city</h2>
+            <p class="acv__apply-sub">
+              The AIM Innovate Impact Hub currently runs in Munich, organized by
+              the Munich chapter.
+            </p>
+          </div>
+          <div class="acv__apply-grid">
+            {cities.filter(c => c.showInnovate).map(city => (
+              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-innovate" />
+            ))}
+          </div>
+        </section>
+
+        <!-- ⑤ News – automatisch aus newsData.ts (programs: ["aim-innovate"]) -->
+        <section class="acv__news" aria-labelledby="acv-news">
+          <div class="acv__news-head">
+            <div>
+              <p class="acv__overline">News</p>
+              <h2 id="acv-news" class="acv__h2">News from AIM Innovate</h2>
+            </div>
+            <a class="acv__more" href="/news">All news →</a>
+          </div>
+          {news.length > 0 ? (
+            <div class="acv__news-grid">
+              {news.map(n => (
+                <a class="acv__news-card" href={`/news/${n.id}`}>
+                  <span class="acv__news-thumb">
+                    {n.image
+                      ? <img src={n.image} alt="" loading="lazy" decoding="async" />
+                      : <span class="acv__slot">Photo</span>}
+                  </span>
+                  <span class="acv__news-body">
+                    <span class="acv__news-title">{n.title}</span>
+                    <span class="acv__news-date">{newsDateFmt.format(new Date(n.date))}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p class="acv__news-empty">
+              No news about AIM Innovate yet. New posts appear here
+              automatically.
+            </p>
+          )}
+        </section>
+
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .acv { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+
+  .acv__panel {
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 8px 32px rgba(35, 42, 207, 0.08);
+    overflow:       hidden;
+    display:        flex;
+    flex-direction: column;
+  }
+
+  .acv__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .acv__overline--purple { color: #8D2DF1; }
+
+  .acv__h2 {
+    font-size:      clamp(1.6rem, 1.2rem + 1.8vw, 2.25rem);
+    letter-spacing: -0.5px;
+    line-height:    1.15;
+    color:          var(--color-text-heading);
+    text-wrap:      pretty;
+  }
+
+  .acv__h2--blue { color: #232ACF; }
+
+  .acv__more { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); }
+
+  .acv__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           100%;
+    height:          100%;
+    border:          2px dashed #C4CBD9;
+    border-radius:   10px;
+    font-size:       12px;
+    font-weight:     var(--fw-bold);
+    color:           #98A1B4;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────── */
+  .acv__btn {
+    display:         inline-block;
+    align-self:      flex-start;
+    background:      var(--color-brand-blue);
+    color:           var(--color-text-on-brand);
+    font-family:     var(--font-display);
+    font-size:       15px;
+    font-weight:     800;
+    padding:         14px 28px;
+    border-radius:   var(--radius-pill);
+    text-decoration: none;
+    white-space:     nowrap;
+    transition:      background var(--transition-fast);
+  }
+
+  .acv__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+  .acv__btn--sm { font-size: 14px; padding: 11px 24px; }
+
+  /* ── ① Hero ───────────────────────────────────────────────── */
+  .acv__hero {
+    background:            #C9D8FF;
+    padding:               clamp(var(--space-10, 40px), 5vw, 88px) clamp(var(--space-6), 5vw, 72px);
+    display:               grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap:                   clamp(var(--space-8), 4vw, 48px);
+    align-items:           center;
+    position:              relative;
+    overflow:              hidden;
+  }
+
+  .acv__hero-glow {
+    position:      absolute;
+    width:         520px;
+    height:        520px;
+    border-radius: 50%;
+    background:    radial-gradient(circle, rgba(141, 45, 241, 0.25), transparent 70%);
+    top:           -180px;
+    right:         -120px;
+    pointer-events: none;
+  }
+
+  .acv__hero-copy { display: flex; flex-direction: column; gap: 22px; position: relative; }
+  .acv__hero-tags { display: flex; align-items: center; gap: 12px; }
+
+  .acv__new {
+    background:    linear-gradient(90deg, #0052E9, #8D2DF1);
+    color:         #fff;
+    font-size:     12px;
+    font-weight:   800;
+    padding:       4px 12px;
+    border-radius: var(--radius-pill);
+    white-space:   nowrap;
+  }
+
+  .acv__title {
+    font-size:      clamp(2.4rem, 1.6rem + 3.4vw, 3.5rem);
+    letter-spacing: -1.2px;
+    line-height:    1.06;
+    color:          #232ACF;
+    text-wrap:      pretty;
+  }
+
+  .acv__lead { font-size: 19px; line-height: 1.6; color: #232ACF; max-width: 520px; text-wrap: pretty; }
+
+  .acv__hero-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  .acv__hero-chip {
+    display:       inline-flex;
+    align-items:   center;
+    gap:           8px;
+    background:    rgba(255, 255, 255, 0.7);
+    padding:       10px 20px;
+    border-radius: var(--radius-pill);
+    font-size:     14px;
+    font-weight:   700;
+    color:         #232ACF;
+  }
+
+  .acv__hero-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-brand-blue); }
+
+  .acv__hero-img {
+    width:         100%;
+    height:        340px;
+    object-fit:    cover;
+    border-radius: 20px;
+    display:       block;
+    position:      relative;
+  }
+
+  /* ── ② What it is ─────────────────────────────────────────── */
+  .acv__what {
+    padding:               clamp(var(--space-10, 40px), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+    display:               grid;
+    grid-template-columns: 1fr 1fr;
+    gap:                   clamp(var(--space-8), 4.5vw, 64px);
+    align-items:           start;
+  }
+
+  .acv__what-head { display: flex; flex-direction: column; gap: 16px; }
+  .acv__what-copy { display: flex; flex-direction: column; gap: 16px; }
+  .acv__what-copy p { font-size: 17px; line-height: 1.7; color: var(--color-text-body); text-wrap: pretty; }
+
+  /* ── ③ Three pillars ──────────────────────────────────────── */
+  .acv__pillars {
+    padding:        0 clamp(var(--space-6), 5vw, 72px) clamp(var(--space-10, 40px), 5vw, 80px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+  }
+
+  .acv__pillars-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+
+  .acv__pillar-grid {
+    display:               grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:                   20px;
+  }
+
+  .acv__pillar {
+    background:     #EDF2FF;
+    border:         2px solid transparent;
+    border-radius:  20px;
+    padding:        34px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            14px;
+    align-items:    stretch;
+    text-align:     left;
+    font-family:    var(--font-display);
+    cursor:         pointer;
+    transition:     border-color var(--transition-fast);
+  }
+
+  .acv__pillar--cap.is-active    { border-color: #0052E9; }
+  .acv__pillar--sprint.is-active { border-color: #8D2DF1; }
+  .acv__pillar--inc.is-active    { border-color: #D400FF; }
+
+  .acv__pillar-toprow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+  .acv__pillar-num { font-size: 34px; font-weight: 800; line-height: 1; }
+  .acv__pillar-num--blue    { color: #0052E9; }
+  .acv__pillar-num--purple  { color: #8D2DF1; }
+  .acv__pillar-num--magenta { color: #D400FF; }
+
+  .acv__pillar-title { font-size: 21px; font-weight: 800; color: #232ACF; text-wrap: pretty; }
+  .acv__pillar-text  { font-size: 15px; line-height: 1.65; color: var(--color-text-body); font-family: var(--font-body); }
+
+  .acv__pillar-cta { margin-top: auto; font-size: 14px; font-weight: 800; }
+  .acv__pillar-cta--blue    { color: #0052E9; }
+  .acv__pillar-cta--purple  { color: #8D2DF1; }
+  .acv__pillar-cta--magenta { color: #D400FF; }
+
+  .acv__soon {
+    background:    #FBEAFF;
+    color:         #8D2DF1;
+    font-size:     12px;
+    font-weight:   800;
+    padding:       4px 12px;
+    border-radius: var(--radius-pill);
+    white-space:   nowrap;
+  }
+
+  /* Detailbox unter den Karten */
+  .acv__detail {
+    background:     #fff;
+    border:         1px solid var(--color-border-subtle);
+    border-radius:  20px;
+    padding:        36px 32px;
+    display:        flex;
+    flex-direction: column;
+    gap:            24px;
+    box-shadow:     0 8px 24px rgba(35, 42, 207, 0.08);
+  }
+
+  .acv__detail[hidden] { display: none; }
+
+  .acv__detail-labelrow { display: flex; align-items: center; gap: 12px; }
+
+  .acv__detail-label {
+    font-size:      13px;
+    font-weight:    800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .acv__detail-label--blue    { color: #0052E9; }
+  .acv__detail-label--purple  { color: #8D2DF1; }
+  .acv__detail-label--magenta { color: #D400FF; }
+
+  .acv__skill-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .acv__skill-pill {
+    border:        none;
+    font-family:   var(--font-display);
+    cursor:        pointer;
+    font-size:     13px;
+    font-weight:   700;
+    padding:       8px 16px;
+    border-radius: var(--radius-pill);
+    white-space:   nowrap;
+    background:    #EDF2FF;
+    color:         #232ACF;
+    transition:    background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .acv__skill-pill.is-active { background: var(--color-brand-blue); color: #fff; }
+
+  .acv__skill-detail {
+    display:               grid;
+    grid-template-columns: 1fr 420px;
+    gap:                   32px;
+    align-items:           center;
+  }
+
+  .acv__skill-copy { display: flex; flex-direction: column; gap: 12px; }
+  .acv__skill-copy--wide { max-width: 760px; }
+  .acv__skill-title { font-size: 24px; font-weight: 800; color: #232ACF; text-wrap: pretty; }
+  .acv__skill-desc  { font-size: 16px; line-height: 1.7; color: var(--color-text-body); }
+
+  .acv__skill-img {
+    width:               100%;
+    height:              240px;
+    border-radius:       14px;
+    background-color:    #DEE3ED;
+    background-size:     cover;
+    background-position: center;
+  }
+
+  /* ── ④ Applications ───────────────────────────────────────── */
+  .acv__apply {
+    background:        #EDF2FF;
+    padding:           clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 72px);
+    display:           flex;
+    flex-direction:    column;
+    gap:               var(--space-8);
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
+  }
+
+  .acv__apply-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+  .acv__apply-sub  { font-size: 15px; line-height: 1.6; color: #232ACF; }
+
+  .acv__apply-grid {
+    display:               grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:                   20px;
+  }
+
+  .acv__city {
+    background:     var(--color-bg-surface);
+    border-radius:  20px;
+    padding:        32px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            14px;
+  }
+
+  .acv__city--planned { background: transparent; border: 2px dashed #C4CBD9; }
+
+  .acv__city-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .acv__city-name { font-size: 21px; font-weight: 800; color: var(--color-brand-blue); }
+  .acv__city--planned .acv__city-name { color: #98A1B4; }
+
+  .acv__city-badge { font-size: 12px; font-weight: 800; padding: 4px 12px; border-radius: var(--radius-pill); white-space: nowrap; }
+  .acv__city-badge--open     { background: #EDF2FF; color: var(--color-brand-blue); }
+  .acv__city-badge--upcoming { background: #fff; color: var(--color-accent-purple); border: 1px solid #E0CCF9; }
+  .acv__city-badge--planned  { background: #EEF1F7; color: #98A1B4; }
+
+  .acv__city-line { font-size: 14px; line-height: 1.6; color: var(--color-text-body); }
+  .acv__city--planned .acv__city-line { color: #98A1B4; }
+
+  /* ── ⑤ News ───────────────────────────────────────────────── */
+  .acv__news {
+    padding:        clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 72px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-6);
+  }
+
+  .acv__news-head {
+    display:         flex;
+    align-items:     flex-end;
+    justify-content: space-between;
+    gap:             var(--space-8);
+    flex-wrap:       wrap;
+  }
+
+  .acv__news-head > div { display: flex; flex-direction: column; gap: 12px; }
+
+  .acv__news-grid {
+    display:               grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap:                   var(--space-6);
+  }
+
+  .acv__news-card {
+    display:               grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    gap:                   20px;
+    align-items:           center;
+    padding:               20px 24px;
+    border:                1px solid var(--color-border-subtle);
+    border-radius:         var(--radius-md);
+    text-decoration:       none;
+    transition:            box-shadow var(--transition-base);
+  }
+
+  .acv__news-card:hover { box-shadow: 0 8px 24px rgba(35, 42, 207, 0.12); text-decoration: none; }
+  .acv__news-thumb { display: block; height: 80px; border-radius: 10px; overflow: hidden; }
+  .acv__news-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .acv__news-body  { display: flex; flex-direction: column; gap: 4px; }
+  .acv__news-title { font-family: var(--font-display); font-weight: var(--fw-bold); font-size: 16px; color: var(--color-text-heading); }
+  .acv__news-date  { font-size: 13px; color: var(--color-text-muted); }
+
+  .acv__news-empty {
+    border:        2px dashed var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    padding:       var(--space-6);
+    text-align:    center;
+    font-size:     14px;
+    color:         var(--color-text-muted);
+  }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 960px) {
+    .acv__hero { grid-template-columns: minmax(0, 1fr); }
+    .acv__hero-img { height: 260px; }
+    .acv__what { grid-template-columns: minmax(0, 1fr); }
+    .acv__pillar-grid { grid-template-columns: minmax(0, 1fr); }
+    .acv__skill-detail { grid-template-columns: minmax(0, 1fr); }
+    .acv__apply-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+<script>
+  // Pillar-Karten: Klick zeigt die passende Detailbox; ohne Interaktion
+  // rotiert die Auswahl alle 6 s (wie im Entwurf), der erste Klick stoppt sie.
+  const pillarBtns   = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-pillar]"));
+  const pillarPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-pillar-panel]"));
+  let paused = false;
+
+  function showPillar(i: number) {
+    pillarBtns.forEach(b => {
+      const on = b.dataset.pillar === String(i);
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", String(on));
+    });
+    pillarPanels.forEach(p => p.toggleAttribute("hidden", p.dataset.pillarPanel !== String(i)));
+    document.querySelectorAll<HTMLElement>("[data-pillar-label]").forEach(l => {
+      const on = l.dataset.pillarLabel === String(i);
+      l.textContent = (on ? l.dataset.activeLabel : l.dataset.idleLabel) ?? "";
+    });
+  }
+
+  pillarBtns.forEach(b =>
+    b.addEventListener("click", () => { paused = true; showPillar(Number(b.dataset.pillar)); })
+  );
+
+  let current = 0;
+  setInterval(() => {
+    if (paused) return;
+    current = (current + 1) % pillarPanels.length;
+    showPillar(current);
+  }, 6000);
+
+  // Skill-Pills der Capability-Box: Titel, Text und Bild umschalten.
+  const skillData = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-skill]"));
+  const titleEl = document.querySelector<HTMLElement>("[data-skill-title]");
+  const descEl  = document.querySelector<HTMLElement>("[data-skill-desc]");
+  const imgEl   = document.querySelector<HTMLElement>("[data-skill-img]");
+
+  const SKILLS: { title: string; desc: string; img: string }[] = JSON.parse(
+    document.getElementById("acv-skill-data")?.textContent ?? "[]"
+  );
+
+  skillData.forEach(btn =>
+    btn.addEventListener("click", () => {
+      const i = Number(btn.dataset.skill);
+      skillData.forEach(b => {
+        const on = b === btn;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
+      const s = SKILLS[i];
+      if (s && titleEl && descEl && imgEl) {
+        titleEl.textContent = s.title;
+        descEl.textContent = s.desc;
+        imgEl.style.backgroundImage = `url('${s.img}')`;
+      }
+    })
+  );
+</script>
+
+<script is:inline type="application/json" id="acv-skill-data" set:html={JSON.stringify(skills.map(s => ({ title: s.title, desc: s.desc, img: s.img })))}></script>

@@ -20,8 +20,10 @@ export interface Program {
   /** Kurztext für die Karte auf der Startseite */
   text: string;
   variant: ProgramVariant;
-  /** Optionales Label auf der Karte, z. B. "Flagship" */
-  badge?: string;
+  /** Optionale Labels auf der Karte, z. B. ["Flagship"] oder ["New"] */
+  badges?: string[];
+  /** Abweichender Titel der Karte auf der Startseite, z. B. "AIM Innovate Impact Hub" */
+  cardName?: string;
   image?: string;
   imageAlt?: string;
 
@@ -41,7 +43,7 @@ export const programs: Program[] = [
   {
     slug: "aim-connect",
     name: "AIM Connect",
-    badge: "Flagship",
+    badges: ["Flagship"],
     variant: "feature",
     image: "/images/about/kickoff-2026.jpg",
     imageAlt: "Teilnehmende des AIM-Connect-Programms bei einem Event",
@@ -100,6 +102,8 @@ export const programs: Program[] = [
   {
     slug: "aim-innovate",
     name: "AIM Innovate",
+    badges: ["New"],
+    cardName: "AIM Innovate Impact Hub",
     variant: "gradient",
     text:
       "From idea to startup: regulation, policy and strategy with entrepreneurs, " +

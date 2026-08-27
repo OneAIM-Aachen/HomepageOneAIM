@@ -1,0 +1,470 @@
+---
+// src/pages/programs/aim-educate.astro
+//
+// Dedizierte AIM-Educate-Seite (Entwurf 1a, "AIM Educate Page Options":
+// Light editorial, passend zu den anderen Programmseiten). Ersetzt die
+// generische Programmseite aus [program].astro (dort ausgenommen).
+//
+// Bänder:
+//   ① Hero            – hellblaues Band, Foto rechts, CTAs
+//   ② What it is
+//   ③ Upcoming events – automatisch aus eventsData.ts (Datum ≥ heute),
+//                       sonst Leerzustand
+//   ④ Past events     – horizontal scrollbare Karten aus eventsData.ts
+//   ⑤ Never miss      – Instagram je Standort (cityData.ts) + LinkedIn
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { cities, cityData } from "../../data/cityData";
+import { getUpcomingEvents, getPastEvents, getEventDateLabel } from "../../data/eventsData";
+
+const upcoming = getUpcomingEvents();
+const past     = getPastEvents();
+
+const cityName = (slug?: string) => (slug ? cityData[slug as keyof typeof cityData]?.displayName : undefined);
+
+// Instagram-Buttons je Standort – nur Städte mit hinterlegtem Handle.
+const instagramCities = cities.filter(c => c.instagramHref);
+const linkedInHref = "https://www.linkedin.com/company/oneaim";
+---
+
+<BaseLayout
+  title="AIM Educate"
+  description="AIM Educate: summits, lecture series and expert talks on Health AI and MedTech. Open to everyone, event by event, no application."
+>
+  <article class="ace" aria-label="AIM Educate program">
+    <div class="container">
+      <div class="ace__panel">
+
+        <!-- ① Hero -->
+        <header class="ace__hero">
+          <div class="ace__hero-copy">
+            <p class="ace__overline">Open events, no commitment</p>
+            <h1 class="ace__title">AIM Educate</h1>
+            <p class="ace__lead">
+              Summits, lecture series and expert talks on Health AI and MedTech.
+              Open to everyone, event by event: no semester-long commitment, no
+              application.
+            </p>
+            <div class="ace__hero-actions">
+              <a class="ace__btn" href="#upcoming">Upcoming events</a>
+              <a class="ace__btn ace__btn--ghost" href="#past">Past events ↓</a>
+            </div>
+          </div>
+          <img
+            class="ace__hero-img"
+            src="/images/events/educate-hero.jpg"
+            alt="Audience in AIM Connect shirts following a talk at a OneAIM event"
+            loading="eager"
+            decoding="async"
+          />
+        </header>
+
+        <!-- ② What it is -->
+        <section class="ace__what" aria-labelledby="ace-what">
+          <div class="ace__what-head">
+            <p class="ace__overline">What it is</p>
+            <h2 id="ace-what" class="ace__h2">Learning at the cutting edge of Health AI</h2>
+          </div>
+          <p class="ace__what-text">
+            At OneAIM, we are dedicated to bringing you a diverse array of events
+            designed to immerse you in the world of MedTech and Medical AI. Unlike
+            our structured AIM Connect batch program, AIM Educate lets you
+            participate on a voluntary basis in individual events or series:
+            engaging discussions, industry experts, and a community of peers and
+            AI enthusiasts.
+          </p>
+        </section>
+
+        <!-- ③ Upcoming events – automatisch aus eventsData.ts -->
+        <section class="ace__upcoming" id="upcoming" aria-labelledby="ace-upcoming">
+          <div class="ace__section-head">
+            <p class="ace__overline">Coming up</p>
+            <h2 id="ace-upcoming" class="ace__h2">Upcoming events</h2>
+          </div>
+          {upcoming.length > 0 ? (
+            <div class="ace__event-grid">
+              {upcoming.map(e => (
+                <div class="ace__event">
+                  <div class="ace__event-top">
+                    <span class="ace__event-date">{getEventDateLabel(e)}</span>
+                    {cityName(e.city) && <span class="ace__event-city">{cityName(e.city)}</span>}
+                  </div>
+                  <h3 class="ace__event-title">{e.title}</h3>
+                  {(e.text || e.location) && (
+                    <p class="ace__event-text">{e.text}{e.text && e.location ? " " : ""}{e.location}</p>
+                  )}
+                  {e.registerUrl && (
+                    <a class="ace__btn ace__btn--sm" href={e.registerUrl} target="_blank" rel="noopener noreferrer">Register</a>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div class="ace__event ace__event--empty">
+              <span class="ace__event-badge">No upcoming events right now</span>
+              <h3 class="ace__event-title">The next events are being planned</h3>
+              <p class="ace__event-text">
+                New summits, lecture series and expert talks are announced here
+                and on our Instagram channels as soon as the dates are set.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <!-- ④ Past events – horizontal scrollbar -->
+        <section class="ace__past" id="past" aria-labelledby="ace-past">
+          <div class="ace__past-head">
+            <div class="ace__section-head">
+              <p class="ace__overline">How it went</p>
+              <h2 id="ace-past" class="ace__h2 ace__h2--blue">Past events</h2>
+            </div>
+            {past.length > 1 && (
+              <div class="ace__past-nav">
+                <button type="button" class="ace__past-arrow" data-past-prev aria-label="Previous events" disabled>←</button>
+                <button type="button" class="ace__past-arrow" data-past-next aria-label="Next events">→</button>
+              </div>
+            )}
+          </div>
+          <div class="ace__past-row" data-past-row>
+            {past.map(e => {
+              const Tag = e.recapUrl ? "a" : "div";
+              return (
+                <Tag class="ace__past-card" href={e.recapUrl} target={e.recapUrl ? "_blank" : undefined} rel={e.recapUrl ? "noopener noreferrer" : undefined}>
+                  {e.image
+                    ? <img src={e.image} alt={e.imageAlt ?? ""} loading="lazy" decoding="async" />
+                    : <span class="ace__slot ace__slot--card">Event photo</span>}
+                  <span class="ace__past-body">
+                    <span class="ace__past-date">{getEventDateLabel(e)}</span>
+                    <span class="ace__past-title">{e.title}</span>
+                    {e.recapUrl && <span class="ace__past-recap">Recap →</span>}
+                  </span>
+                </Tag>
+              );
+            })}
+          </div>
+        </section>
+
+        <!-- ⑤ Never miss an event – Instagram je Standort -->
+        <section class="ace__follow" aria-labelledby="ace-follow">
+          <div class="ace__follow-copy">
+            <h2 id="ace-follow" class="ace__follow-title">Never miss an event</h2>
+            <p class="ace__follow-text">
+              Follow your chapter on Instagram and OneAIM on LinkedIn.
+            </p>
+          </div>
+          <div class="ace__follow-actions">
+            {instagramCities.map(c => (
+              <a class="ace__btn ace__btn--sm" href={c.instagramHref} target="_blank" rel="noopener noreferrer">
+                Instagram {c.displayName}
+              </a>
+            ))}
+            <a class="ace__btn ace__btn--sm ace__btn--outline" href={linkedInHref} target="_blank" rel="noopener noreferrer">
+              LinkedIn
+            </a>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .ace { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+
+  .ace__panel {
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 8px 32px rgba(35, 42, 207, 0.08);
+    overflow:       hidden;
+    display:        flex;
+    flex-direction: column;
+  }
+
+  .ace__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .ace__h2 {
+    font-size:      clamp(1.6rem, 1.2rem + 1.8vw, 2.25rem);
+    letter-spacing: -0.5px;
+    line-height:    1.15;
+    color:          var(--color-text-heading);
+    text-wrap:      pretty;
+  }
+
+  .ace__h2--blue { color: #232ACF; }
+
+  .ace__section-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+
+  .ace__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           100%;
+    padding:         var(--space-4);
+    text-align:      center;
+    font-size:       var(--fs-small);
+    font-weight:     var(--fw-semibold);
+    color:           var(--color-text-muted);
+    background:      #F7F9FE;
+    border:          2px dashed var(--color-border-subtle);
+  }
+
+  .ace__hero-img { width: 100%; height: 340px; object-fit: cover; border-radius: 20px; display: block; }
+  .ace__slot--card { height: 170px; border: none; border-bottom: 2px dashed var(--color-border-subtle); }
+
+  /* ── Buttons ──────────────────────────────────────────────── */
+  .ace__btn {
+    display:         inline-block;
+    align-self:      flex-start;
+    background:      var(--color-brand-blue);
+    color:           var(--color-text-on-brand);
+    font-family:     var(--font-display);
+    font-size:       15px;
+    font-weight:     800;
+    padding:         14px 28px;
+    border-radius:   var(--radius-pill);
+    text-decoration: none;
+    white-space:     nowrap;
+    transition:      background var(--transition-fast);
+  }
+
+  .ace__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+  .ace__btn--ghost { background: rgba(255, 255, 255, 0.7); color: var(--color-brand-blue); }
+  .ace__btn--ghost:hover { background: #fff; }
+  .ace__btn--sm { font-size: 14px; padding: 11px 22px; margin-top: auto; }
+  .ace__btn--outline { background: #fff; color: var(--color-brand-blue); border: 1px solid var(--color-brand-blue); }
+  .ace__btn--outline:hover { background: #E5EDFF; }
+
+  /* ── ① Hero ───────────────────────────────────────────────── */
+  .ace__hero {
+    background:            #C9D8FF;
+    padding:               clamp(var(--space-10, 40px), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+    display:               grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap:                   clamp(var(--space-8), 4vw, 56px);
+    align-items:           center;
+  }
+
+  .ace__hero-copy { display: flex; flex-direction: column; gap: 20px; }
+
+  .ace__title {
+    font-size:      clamp(2.4rem, 1.6rem + 3.4vw, 3.25rem);
+    letter-spacing: -1px;
+    line-height:    1.08;
+    color:          #232ACF;
+  }
+
+  .ace__lead { font-size: 17px; line-height: 1.6; color: #232ACF; max-width: 480px; text-wrap: pretty; }
+  .ace__hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* ── ② What it is ─────────────────────────────────────────── */
+  .ace__what {
+    padding:               clamp(var(--space-10, 40px), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+    display:               grid;
+    grid-template-columns: 1fr 1fr;
+    gap:                   clamp(var(--space-8), 4.5vw, 64px);
+    align-items:           start;
+  }
+
+  .ace__what-head { display: flex; flex-direction: column; gap: 16px; }
+  .ace__what-text { font-size: 17px; line-height: 1.7; color: var(--color-text-body); text-wrap: pretty; }
+
+  /* ── ③ Upcoming ───────────────────────────────────────────── */
+  .ace__upcoming {
+    padding:           0 clamp(var(--space-6), 5vw, 72px) clamp(var(--space-10, 40px), 5vw, 80px);
+    display:           flex;
+    flex-direction:    column;
+    gap:               var(--space-7, 28px);
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
+  }
+
+  .ace__event-grid {
+    display:               grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:                   20px;
+  }
+
+  .ace__event {
+    background:     #EDF2FF;
+    border-radius:  20px;
+    padding:        32px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+  }
+
+  .ace__event--empty {
+    background: transparent;
+    border:     2px dashed #C4CBD9;
+    max-width:  640px;
+  }
+
+  .ace__event-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  .ace__event-date,
+  .ace__event-badge {
+    background:    #fff;
+    color:         var(--color-brand-blue);
+    font-size:     12px;
+    font-weight:   800;
+    padding:       4px 12px;
+    border-radius: var(--radius-pill);
+    white-space:   nowrap;
+    align-self:    flex-start;
+  }
+
+  .ace__event--empty .ace__event-badge { background: #EEF1F7; color: #98A1B4; }
+
+  .ace__event-city {
+    font-size:      12px;
+    font-weight:    800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .ace__event-title { font-size: 21px; font-weight: 800; color: #232ACF; }
+  .ace__event--empty .ace__event-title { color: #98A1B4; }
+  .ace__event-text  { font-size: 14px; line-height: 1.6; color: var(--color-text-body); }
+  .ace__event--empty .ace__event-text { color: #98A1B4; }
+
+  /* ── ④ Past events ────────────────────────────────────────── */
+  .ace__past {
+    background:        #C9D8FF;
+    padding:           clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 72px);
+    display:           flex;
+    flex-direction:    column;
+    gap:               var(--space-8);
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
+  }
+
+  .ace__past-head {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     flex-end;
+    gap:             var(--space-6);
+    flex-wrap:       wrap;
+  }
+
+  .ace__past-nav { display: flex; gap: 10px; }
+
+  .ace__past-arrow {
+    width:           44px;
+    height:          44px;
+    border-radius:   50%;
+    border:          1px solid #C9D8FF;
+    background:      #fff;
+    color:           #232ACF;
+    font-size:       18px;
+    font-weight:     800;
+    cursor:          pointer;
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    transition:      background var(--transition-fast), border-color var(--transition-fast),
+                     opacity var(--transition-fast);
+  }
+
+  .ace__past-arrow:hover:not(:disabled) { background: #E5EDFF; border-color: #232ACF; }
+  .ace__past-arrow:disabled { opacity: 0.35; cursor: default; }
+
+  .ace__past-row {
+    display:         flex;
+    gap:             20px;
+    overflow-x:      auto;
+    scrollbar-width: none;
+    padding-bottom:  8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .ace__past-row::-webkit-scrollbar { display: none; }
+
+  .ace__past-card {
+    flex:            0 0 300px;
+    scroll-snap-align: start;
+    border-radius:   18px;
+    overflow:        hidden;
+    background:      #fff;
+    box-shadow:      0 6px 20px rgba(35, 42, 207, 0.12);
+    display:         flex;
+    flex-direction:  column;
+    text-decoration: none;
+    transition:      transform var(--transition-base);
+  }
+
+  a.ace__past-card:hover { transform: translateY(-3px); text-decoration: none; }
+
+  .ace__past-card img { width: 100%; height: 170px; object-fit: cover; display: block; }
+
+  .ace__past-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 6px; }
+
+  .ace__past-date {
+    font-size:      12px;
+    font-weight:    800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .ace__past-title { font-size: 16px; font-weight: 800; color: #232ACF; }
+  .ace__past-recap { font-size: 13px; font-weight: 800; color: var(--color-brand-blue); margin-top: 4px; }
+
+  /* ── ⑤ Never miss an event ────────────────────────────────── */
+  .ace__follow {
+    background:      #EDF2FF;
+    padding:         clamp(var(--space-8), 4vw, 56px) clamp(var(--space-6), 5vw, 72px);
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             var(--space-8);
+    flex-wrap:       wrap;
+  }
+
+  .ace__follow-copy { display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+  .ace__follow-title { font-size: 22px; font-weight: 800; color: #232ACF; text-wrap: pretty; }
+  .ace__follow-text  { font-size: 15px; line-height: 1.6; color: var(--color-text-body); }
+
+  .ace__follow-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .ace__follow-actions .ace__btn { margin-top: 0; }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 960px) {
+    .ace__hero { grid-template-columns: minmax(0, 1fr); }
+    .ace__hero-img { height: 260px; }
+    .ace__what { grid-template-columns: minmax(0, 1fr); }
+    .ace__event-grid { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+
+<script>
+  // Pfeil-Navigation der Past-Events-Reihe: scrollt um eine Kartenbreite,
+  // an den Enden wird der jeweilige Pfeil deaktiviert.
+  const row  = document.querySelector<HTMLElement>("[data-past-row]");
+  const prev = document.querySelector<HTMLButtonElement>("[data-past-prev]");
+  const next = document.querySelector<HTMLButtonElement>("[data-past-next]");
+
+  if (row && prev && next) {
+    const step = () => {
+      const card = row.querySelector<HTMLElement>(".ace__past-card");
+      return (card?.offsetWidth ?? 300) + 20; // Kartenbreite + gap
+    };
+
+    function update() {
+      if (!row || !prev || !next) return;
+      prev.disabled = row.scrollLeft <= 4;
+      next.disabled = row.scrollLeft >= row.scrollWidth - row.clientWidth - 4;
+    }
+
+    prev.addEventListener("click", () => row.scrollBy({ left: -step(), behavior: "smooth" }));
+    next.addEventListener("click", () => row.scrollBy({ left:  step(), behavior: "smooth" }));
+    row.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    update();
+  }
+</script>

@@ -36,6 +36,7 @@ import {
   getProgramName,
   getApplicationTitle,
 } from "../../data/applications";
+import ApplicationCard from "../ApplicationCard.astro";
 
 interface Row { label: string; value: string }
 
@@ -43,9 +44,10 @@ interface Application {
   /** "open" = grüner Punkt, "upcoming" = grauer Punkt */
   status: "open" | "upcoming";
   statusLabel: string;
-  program: string;
-  term: string;
+  title: string;
   rows: Row[];
+  /** Freitextzeile unter den Daten, z. B. im Leerzustand */
+  note?: string;
   ctaLabel: string;
   ctaHref?: string;
 }
@@ -116,11 +118,18 @@ const heroImage      = props.heroImage      ?? db?.heroImage;
 const heroImageAlt   = props.heroImageAlt   ?? db?.heroImageAlt   ?? "";
 const universityLogo = props.universityLogo ?? db?.universityLogo;
 const university     = props.university     ?? db?.university     ?? "[University name]";
+
+// Hochschul-Chips: Liste aus der Datenbank → Einzel-Logo → Platzhalter-Chip.
+const universityLogos =
+  db?.universityLogos
+  ?? (universityLogo ? [{ src: universityLogo, alt: university }] : undefined);
 const instagram      = props.instagram      ?? db?.instagram      ?? "@oneaim.[city]";
 const instagramHref  = props.instagramHref  ?? db?.instagramHref;
 const foundedYear    = props.foundedYear    ?? db?.foundedYear    ?? "[year]";
 const universities   = props.universities   ?? db?.universities   ?? "[university/-ies]";
 const story          = props.story          ?? db?.story;
+const introHeading   = db?.introHeading ?? `Rooted in ${city}, part of something bigger`;
+const introText      = db?.introText;
 const introImage     = props.introImage     ?? db?.introImage;
 const introImageAlt  = props.introImageAlt  ?? db?.introImageAlt  ?? "";
 
@@ -128,9 +137,10 @@ const introImageAlt  = props.introImageAlt  ?? db?.introImageAlt  ?? "";
 // Reihenfolge wie beim News-Band: explizite Prop → Daten zum Standort →
 // Platzhalter. Der Status kommt aus den Datumsfeldern, nicht aus einem Flag.
 
-const dateFmt = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric", month: "long", year: "numeric",
-});
+// Kurzform ohne Jahr ("1 Sep") – das Semester steht im Kartentitel; en-GB
+// kürzt September als "Sept" ab, daher auf drei Buchstaben normalisiert.
+const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const dateFmt = { format: (x: Date) => shortDate.format(x).replace("Sept", "Sep") };
 const monthFmt = new Intl.DateTimeFormat("en-GB", { month: "long" });
 
 const featured = citySlug ? getFeaturedApplication(citySlug) : undefined;
@@ -142,24 +152,37 @@ const resolvedApplication = application ?? (featured
       statusLabel: getStatus(featured) === "open" ? "Applications open" : "Applications not yet open",
       title:       getApplicationTitle(featured),
       rows: [
-        { label: "Deadline", value: dateFmt.format(new Date(featured.deadline)) },
-        ...(featured.startsAt ? [{ label: "Start", value: dateFmt.format(new Date(featured.startsAt)) }] : []),
+        { label: "Application deadline", value: featured.deadline ? dateFmt.format(new Date(featured.deadline)) : "To be announced" },
+        ...(featured.startsAt ? [{ label: "Program start", value: dateFmt.format(new Date(featured.startsAt)) }] : []),
         ...(featured.spots    ? [{ label: "Spots", value: String(featured.spots) }] : []),
       ],
       ctaLabel: getStatus(featured) === "open" ? "Apply now →" : "Opens soon",
       ctaHref:  featured.applyUrl,
     }
-  : {
-      status: "open" as const,
-      statusLabel: "Applications open",
-      title: "[Program] [City] – [Term]",
-      rows: [
-        { label: "Deadline", value: "[Date]" },
-        { label: "Start",    value: "[Date]" },
-        { label: "Spots",    value: "[N]"    },
-      ],
-      ctaLabel: "Apply now →",
-    });
+  : citySlug
+    // Standort bekannt, aber keine Runde in applications.ts: ehrlicher
+    // Leerzustand statt Platzhalter-Karte mit eckigen Klammern.
+    ? {
+        status: "upcoming" as const,
+        statusLabel: "No open applications",
+        title: "The next round is being planned",
+        rows: [],
+        note: "New rounds are announced here and on Instagram as soon as the dates are set.",
+        ctaLabel: "Contact us",
+        ctaHref: contactHref,
+      }
+    // Reine Blaupause ohne citySlug: Platzhalter-Karte.
+    : {
+        status: "open" as const,
+        statusLabel: "Applications open",
+        title: "[Program] [City] – [Term]",
+        rows: [
+          { label: "Application deadline", value: "[Date]" },
+          { label: "Program start",    value: "[Date]" },
+          { label: "Spots",    value: "[N]"    },
+        ],
+        ctaLabel: "Apply now →",
+      });
 
 // "Coming up" nur zeigen, wenn es eine andere Runde als die hervorgehobene gibt.
 const resolvedUpcoming = upcoming ?? (nextUp && nextUp.id !== featured?.id
@@ -209,11 +232,15 @@ const resolvedNews = news ?? (cityNews.length
             <h1 class="bp__hero-title">{city}</h1>
 
             <div class="bp__chips">
-              <span class="bp__chip bp__chip--logo">
-                {universityLogo
-                  ? <img src={universityLogo} alt={university} loading="lazy" decoding="async" />
-                  : <span class="bp__slot bp__slot--logo">University logo</span>}
-              </span>
+              {universityLogos
+                ? universityLogos.map(logo => (
+                    <span class="bp__chip bp__chip--logo">
+                      <img src={logo.src} alt={logo.alt} loading="lazy" decoding="async" />
+                    </span>
+                  ))
+                : <span class="bp__chip bp__chip--logo">
+                    <span class="bp__slot bp__slot--logo">University logo</span>
+                  </span>}
 
               <a class="bp__chip bp__chip--ig" href={instagramHref ?? "#"}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -227,20 +254,34 @@ const resolvedNews = news ?? (cityNews.length
             </div>
           </div>
 
+          {citySlug ? (
+            <ApplicationCard city={citySlug} cityName={city} variant="hero">
+              {resolvedUpcoming && (
+                <div class="bp__upcoming">
+                  <span><strong>Coming up:</strong> {resolvedUpcoming.text}</span>
+                </div>
+              )}
+            </ApplicationCard>
+          ) : (
           <div class="bp__app">
             <div class={`bp__status bp__status--${resolvedApplication.status}`}>
               <span class="bp__dot" aria-hidden="true"></span>
               <span>{resolvedApplication.statusLabel}</span>
             </div>
             <h2 class="bp__app-title">{resolvedApplication.title}</h2>
-            <dl class="bp__rows">
-              {resolvedApplication.rows.map(r => (
-                <div class="bp__row">
-                  <dt>{r.label}</dt>
-                  <dd>{r.value}</dd>
-                </div>
-              ))}
-            </dl>
+            {resolvedApplication.rows.length > 0 && (
+              <dl class="bp__rows">
+                {resolvedApplication.rows.map(r => (
+                  <div class="bp__row">
+                    <dt>{r.label}</dt>
+                    <dd>{r.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {resolvedApplication.note && (
+              <p class="bp__app-note">{resolvedApplication.note}</p>
+            )}
             <a class="bp__btn" href={resolvedApplication.ctaHref ?? contactHref}>{resolvedApplication.ctaLabel}</a>
 
             {resolvedUpcoming && (
@@ -249,27 +290,30 @@ const resolvedNews = news ?? (cityNews.length
               </div>
             )}
           </div>
+          )}
         </div>
       </header>
 
       <!-- ② The chapter (Entwurf 2a: "Tight split") -->
-      <section class="bp__intro" aria-labelledby="bp-intro">
+      <section class={`bp__intro ${introImage ? "" : "bp__intro--no-media"}`} aria-labelledby="bp-intro">
         <div class="bp__intro-copy">
           <p class="bp__overline">About us</p>
-          <h2 id="bp-intro" class="bp__intro-heading">
-            Rooted in {city}, part of something bigger
-          </h2>
-          <p class="bp__intro-text">
-            OneAIM {city} was founded in {foundedYear} by students of {universities}{" "}
-            who wanted to bring medicine and technology closer together.{" "}
-            {story ?? "[1–2 sentences: how the chapter started, what it runs today, key local partners]"}
-          </p>
+          <h2 id="bp-intro" class="bp__intro-heading">{introHeading}</h2>
+          {introText ? (
+            <p class="bp__intro-text">{introText}</p>
+          ) : (
+            <p class="bp__intro-text">
+              OneAIM {city} was founded in {foundedYear} by students of {universities}{" "}
+              who wanted to bring medicine and technology closer together.{" "}
+              {story ?? "[1–2 sentences: how the chapter started, what it runs today, key local partners]"}
+            </p>
+          )}
         </div>
-        <div class="bp__intro-media">
-          {introImage
-            ? <img src={introImage} alt={introImageAlt} loading="lazy" decoding="async" />
-            : <div class="bp__slot">Team photo of the {city} chapter</div>}
-        </div>
+        {introImage && (
+          <div class="bp__intro-media">
+            <img src={introImage} alt={introImageAlt} loading="lazy" decoding="async" />
+          </div>
+        )}
       </section>
 
       <!-- ③ Programme vor Ort (Entwurf 6a: "Full Connect panel" –
@@ -474,6 +518,12 @@ const resolvedNews = news ?? (cityNews.length
 
   .bp__app-title { font-size: 22px; }
 
+  .bp__app-note {
+    font-size:   13px;
+    line-height: 1.6;
+    color:       var(--color-text-muted);
+  }
+
   .bp__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
   .bp__row  { display: flex; justify-content: space-between; gap: var(--space-4); }
   .bp__row dt { font-size: 14px; color: var(--color-text-muted); }
@@ -516,6 +566,9 @@ const resolvedNews = news ?? (cityNews.length
   }
 
   .bp__intro-text { font-size: var(--fs-body); line-height: 1.6; }
+
+  /* Ohne Teamfoto: einspaltig, Text skaliert mit der Breite. */
+  .bp__intro--no-media { grid-template-columns: minmax(0, 1fr); }
 
   .bp__intro-media { height: 300px; border-radius: 16px; overflow: hidden; }
   .bp__intro-media img { width: 100%; height: 100%; object-fit: cover; }

@@ -52,7 +52,19 @@ export interface Application {
   /** ISO YYYY-MM-DD – ab wann bewerbbar */
   opensAt: string;
   /** ISO YYYY-MM-DD – letzter Tag */
-  deadline: string;
+  /**
+   * ISO YYYY-MM-DD – Bewerbungsschluss. Darf fehlen, solange er noch nicht
+   * feststeht: die Runde gilt dann ab opensAt als offen, die Seiten zeigen
+   * "to be announced". Sobald das Datum steht, hier eintragen.
+   */
+  deadline?: string;
+  /** ISO YYYY-MM-DD – Interviews von/bis */
+  interviewsFrom?: string;
+  interviewsTo?: string;
+  /** Freie Anzeige statt von/bis, z. B. "Oct", solange nur der Monat feststeht */
+  interviewsLabel?: string;
+  /** ISO YYYY-MM-DD – Zusagen spätestens am */
+  decisionBy?: string;
   /** ISO YYYY-MM-DD – Programmstart */
   startsAt?: string;
   /** Anzahl Plätze */
@@ -66,9 +78,24 @@ export interface Application {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bewerbungsrunden
-// HINWEIS: Platzhalterdaten – Termine und Links vor Go-Live ersetzen.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Aktuell leer – die Demo-Runden sind entfernt. Neue Runde nach diesem
+// Muster ergänzen, alles Weitere (Karten, Status, Fristen) passiert von
+// selbst auf Standort- und Programmseiten:
+//
+//   {
+//     id:       "munich-aim-connect-ws26",   // "<stadt>-<programm>-<semester><jahr>"
+//     city:     "munich",                    // "munich" | "aachen" | "frankfurt"
+//     program:  "aim-connect",               // Slug aus programs.ts
+//     semester: "WS",                        // "WS" | "SS"
+//     year:     2026,
+//     opensAt:  "2026-08-01",                // Bewerbung öffnet
+//     deadline: "2026-09-15",                // Bewerbungsschluss
+//     startsAt: "2026-10-15",                // optional: Programmstart
+//     spots:    20,                          // optional
+//     applyUrl: "https://…",                 // Bewerbungsformular
+//   },
 export const applications: Application[] = [
   {
     id:       "munich-aim-connect-ws26",
@@ -76,44 +103,13 @@ export const applications: Application[] = [
     program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-08-01",
-    deadline: "2026-09-15",
-    startsAt: "2026-10-15",
-    spots:    20,
-    applyUrl: "https://example.com/apply",
-  },
-  {
-    id:       "munich-aim-code-ws26",
-    city:     "munich",
-    program:  "aim-code",
-    semester: "WS",
-    year:     2026,
     opensAt:  "2026-09-01",
-    deadline: "2026-10-01",
-    startsAt: "2026-10-20",
-    applyUrl: "https://example.com/apply",
-  },
-  {
-    id:       "aachen-aim-connect-ws26",
-    city:     "aachen",
-    program:  "aim-connect",
-    semester: "WS",
-    year:     2026,
-    opensAt:  "2026-08-10",
-    deadline: "2026-09-20",
-    startsAt: "2026-10-20",
-    spots:    15,
-    applyUrl: "https://example.com/apply",
-  },
-  {
-    id:       "aachen-aim-code-ws26",
-    city:     "aachen",
-    program:  "aim-code",
-    semester: "WS",
-    year:     2026,
-    opensAt:  "2026-10-01",
-    deadline: "2026-11-01",
-    applyUrl: "https://example.com/apply",
+    deadline: "2026-09-13",
+    interviewsFrom: "2026-09-18",
+    interviewsTo:   "2026-09-22",
+    decisionBy:     "2026-09-27",
+    startsAt: "2026-10-16",
+    // applyUrl: Bewerbungslink ergänzen
   },
   {
     id:       "frankfurt-aim-connect-ws26",
@@ -121,36 +117,26 @@ export const applications: Application[] = [
     program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-08-05",
+    opensAt:  "2026-09-01",
     deadline: "2026-09-25",
-    startsAt: "2026-10-20",
-    spots:    12,
-    applyUrl: "https://example.com/apply",
+    interviewsLabel: "Oct",
+    decisionBy: "2026-10-11",
+    startsAt: "2026-10-24",
+    // applyUrl: Bewerbungslink ergänzen
   },
   {
-    id:       "frankfurt-aim-code-ws26",
-    city:     "frankfurt",
-    program:  "aim-code",
+    id:       "aachen-aim-connect-ws26",
+    city:     "aachen",
+    program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-09-15",
-    deadline: "2026-10-15",
-    startsAt: "2026-11-01",
-    applyUrl: "https://example.com/apply",
-  },
-
-  // Abgelaufene Runde – bleibt als Historie und Vorlage stehen.
-  {
-    id:       "munich-aim-connect-ss26",
-    city:     "munich",
-    program:  "aim-connect",
-    semester: "SS",
-    year:     2026,
-    opensAt:  "2025-11-01",
-    deadline: "2026-01-01",
-    startsAt: "2026-04-01",
-    spots:    20,
-    applyUrl: "https://example.com/apply",
+    opensAt:  "2026-08-31",
+    deadline: "2026-09-21",
+    interviewsFrom: "2026-09-25",
+    interviewsTo:   "2026-09-27",
+    decisionBy:     "2026-09-27",
+    startsAt: "2026-10-23",
+    // applyUrl: Bewerbungslink ergänzen
   },
 ];
 
@@ -166,7 +152,7 @@ function day(iso: string): number {
 export function getStatus(app: Application, today: Date = new Date()): ApplicationStatus {
   const now = day(today.toISOString().slice(0, 10));
   if (now < day(app.opensAt))  return "upcoming";
-  if (now <= day(app.deadline)) return "open";
+  if (!app.deadline || now <= day(app.deadline)) return "open";
   return "closed";
 }
 
@@ -209,6 +195,7 @@ export function getApplicationTitle(app: Application): string {
 
 /** Verbleibende Tage bis zur Frist (negativ, wenn vorbei). */
 export function getDaysLeft(app: Application, today: Date = new Date()): number {
+  if (!app.deadline) return Number.POSITIVE_INFINITY;
   const ms = day(app.deadline) - day(today.toISOString().slice(0, 10));
   return Math.round(ms / 86_400_000);
 }
@@ -225,7 +212,7 @@ export function getOpenApplications(
   return applications
     .filter(matches(city, program))
     .filter(a => getStatus(a, today) === "open")
-    .sort((a, b) => day(a.deadline) - day(b.deadline));
+    .sort((a, b) => (a.deadline ? day(a.deadline) : Infinity) - (b.deadline ? day(b.deadline) : Infinity));
 }
 
 /** Kommende Runden, früheste Öffnung zuerst. */

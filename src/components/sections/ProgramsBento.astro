@@ -60,8 +60,12 @@ import { programs } from "../../data/programs";
               )}
 
               <span class="programs__body">
-                {p.badge && <span class="programs__badge">{p.badge}</span>}
-                <h3 class="programs__name">{p.name}</h3>
+                {p.badges && (
+                  <span class="programs__badges">
+                    {p.badges.map(b => <span class="programs__badge">{b}</span>)}
+                  </span>
+                )}
+                <h3 class="programs__name">{p.cardName ?? p.name}</h3>
                 <span class="programs__text">{p.text}</span>
               </span>
             </a>
@@ -75,7 +79,7 @@ import { programs } from "../../data/programs";
 <style>
   .programs {
     background:    var(--color-bg-surface);
-    padding-block: var(--space-8) var(--space-24);
+    padding-block: var(--space-4) var(--space-16);
     /* Sprungziel des Hero-Buttons: Abstand, damit die Überschrift
        nicht unter der klebenden Kopfzeile landet. */
     scroll-margin-top: var(--header-height);
@@ -190,6 +194,10 @@ import { programs } from "../../data/programs";
     line-height: 1.65;
     color:       var(--color-text-body);
   }
+
+  .programs__badges { display: flex; gap: 6px; align-self: flex-start; flex-wrap: wrap; }
+
+
 
   .programs__badge {
     align-self:     flex-start;

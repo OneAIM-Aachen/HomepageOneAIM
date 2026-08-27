@@ -129,7 +129,9 @@ const groups = [
       var status  = document.getElementById("partner-status");
       if (!toolbar || !search || !sort) return;
 
-      var groups = [].slice.call(document.querySelectorAll("[data-group]"));
+      // Nur die Partner-Gruppen – die Kopfzeile nutzt data-group ebenfalls
+      // (Dropdown-Buttons), die haben aber kein Raster.
+      var groups = [].slice.call(document.querySelectorAll(".partners-page__group[data-group]"));
       var views  = [].slice.call(toolbar.querySelectorAll("[data-view]"));
 
       // Erst jetzt einblenden: ab hier sind die Bedienelemente funktionsfähig.
