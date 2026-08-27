@@ -53,8 +53,12 @@ const card = app
   ? {
       status,
       statusLabel: status === "open" ? "Applications open" : "Applications not yet open",
-      title:       cityName,
-      subtitle:    `${getProgramName(app)} · ${getTermLabel(app)}`,
+      // Auf der Stadtseite (Hero) ist die Stadt redundant als Überschrift:
+      // dort steht das Programm groß und die Stadt in der Unterzeile.
+      title:       variant === "hero" ? getProgramName(app) : cityName,
+      subtitle:    variant === "hero"
+        ? `${cityName} · ${getTermLabel(app)}`
+        : `${getProgramName(app)} · ${getTermLabel(app)}`,
       rows: [
         ...(status !== "open"
           ? [{ label: "Applications open", value: dateFmt.format(new Date(app.opensAt)) }]
@@ -70,8 +74,8 @@ const card = app
   : {
       status: "upcoming" as const,
       statusLabel: "No open applications",
-      title: cityName,
-      subtitle: "The next round is being planned",
+      title: variant === "hero" ? "The next round is being planned" : cityName,
+      subtitle: variant === "hero" ? cityName : "The next round is being planned",
       rows: [],
       note: "New rounds are announced here and on Instagram as soon as the dates are set.",
       ctaLabel: "Contact us",

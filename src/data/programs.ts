@@ -131,7 +131,7 @@ export const programs: Program[] = [
     slug: "aim-educate",
     name: "AIM Educate",
     variant: "light",
-    text: "Open lectures on Medical AI in a relaxed, informal setting, open to everyone.",
+    text: "Open format lectures, events and workshops. No commitment needed.",
     intro:
       "AIM Educate is our open format: talks on medical AI with no prerequisites and " +
       "no registration. Come for a single evening, ask questions, and stay for the " +

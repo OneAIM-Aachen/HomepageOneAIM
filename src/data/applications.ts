@@ -136,7 +136,7 @@ export const applications: Application[] = [
     interviewsTo:   "2026-09-27",
     decisionBy:     "2026-09-27",
     startsAt: "2026-10-23",
-    // applyUrl: Bewerbungslink ergänzen
+    applyUrl: "https://tally.so/r/7RgbEL",
   },
 ];
 
