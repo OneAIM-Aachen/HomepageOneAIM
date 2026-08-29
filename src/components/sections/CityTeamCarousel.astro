@@ -129,47 +129,6 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
           row.scrollBy({ left: dir * row.clientWidth * 0.8, behavior: "smooth" });
         });
       });
-
-      // On mobile the row keeps moving by itself – otherwise you only see
-      // one card and do not suspect there are more members. Pauses on
-      // touch/scroll and respects reduced motion.
-      var row = root.querySelector('[data-scroll="team"]');
-      var mobile = window.matchMedia("(max-width: 760px)");
-      var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-      if (row) {
-        var paused = false;
-        var resumeTimer = null;
-        function pause() {
-          paused = true;
-          clearTimeout(resumeTimer);
-          resumeTimer = setTimeout(function () { paused = false; }, 4000);
-        }
-        ["pointerdown", "touchstart", "wheel"].forEach(function (ev) {
-          row.addEventListener(ev, pause, { passive: true });
-        });
-        [].slice.call(root.querySelectorAll("[data-nav]")).forEach(function (btn) {
-          btn.addEventListener("click", pause);
-        });
-        var SPEED = 35; // pixels per second
-        var last = null;
-        var pos = null; // own floating-point position: scrollLeft rounds,
-                        // subpixel steps would otherwise be lost
-        function tick(now) {
-          if (last === null) last = now;
-          var dt = Math.min(now - last, 100) / 1000;
-          last = now;
-          if (mobile.matches && !reduce.matches && !paused) {
-            if (pos === null || Math.abs(row.scrollLeft - pos) > 40) pos = row.scrollLeft;
-            var end = row.scrollWidth - row.clientWidth;
-            pos = pos >= end - 1 ? 0 : pos + SPEED * dt;
-            row.scrollTo({ left: pos, behavior: "instant" });
-          } else {
-            pos = null;
-          }
-          requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-      }
     })();
   </script>
 </section>
@@ -210,6 +169,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
       width:           100%;
       justify-content: space-between;
     }
+
   }
 
   .ctc__block { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -217,6 +177,12 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
   .ctc__head-actions { display: flex; align-items: center; gap: var(--space-6); }
 
   .ctc__nav { display: flex; gap: 8px; }
+
+  /* On phones you swipe the row directly, the arrows just take up space.
+     (Placed after the base rule above, which would otherwise win.) */
+  @media (max-width: 760px) {
+    .ctc__nav { display: none; }
+  }
 
   .ctc__nav-btn {
     width:           40px;

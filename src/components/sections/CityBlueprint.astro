@@ -600,6 +600,24 @@ const resolvedNews = news ?? (cityNews.length
     gap:                   var(--space-6);
   }
 
+  /* Mobile: one horizontal row instead of stacked cards, swipe to browse */
+  @media (max-width: 760px) {
+    .bp__news-grid {
+      display:          flex;
+      overflow-x:       auto;
+      scroll-snap-type: x proximity;
+      scrollbar-width:  none;
+      padding-bottom:   4px;
+    }
+
+    .bp__news-grid::-webkit-scrollbar { display: none; }
+
+    .bp__news-card {
+      flex:              0 0 85%;
+      scroll-snap-align: start;
+    }
+  }
+
   .bp__news-card {
     display:               grid;
     grid-template-columns: 120px minmax(0, 1fr);

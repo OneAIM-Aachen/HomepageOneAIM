@@ -329,8 +329,8 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         )}
       </div>
 
-      <div class={`cpp__secured ${showSecured ? "" : "cpp__secured--bare"}`}>
-        {showSecured && <>
+      {showSecured && (
+      <div class="cpp__secured">
         <div class="cpp__secured-head">
           <p class="cpp__label">Already on board for the next batch</p>
           <p class="cpp__secured-sub">These partners are secured for the semester you are applying to.</p>
@@ -363,12 +363,12 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
             </div>
           ))}
         </div>
-        </>}
-
-        {applicationsOpen && (
-          <a class="cpp__apply" href={resolvedApplyHref}>Apply for AIM Connect →</a>
-        )}
       </div>
+      )}
+
+      {applicationsOpen && (
+        <a class="cpp__apply" href={resolvedApplyHref}>Apply for AIM Connect →</a>
+      )}
     </div>
 
     <!-- Recap -->
@@ -952,12 +952,6 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     margin-top:     var(--space-6);
   }
 
-  /* Only the apply button, without "Already on board": border and surface removed */
-  .cpp__secured--bare {
-    background: transparent;
-    border:     none;
-    padding:    0;
-  }
 
   .cpp__secured-head { display: flex; flex-direction: column; gap: 6px; }
   .cpp__secured-sub { font-size: 15px; line-height: 1.5; color: var(--color-text-body); }
@@ -1078,7 +1072,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     background:      linear-gradient(90deg, var(--color-brand-blue), var(--color-accent-purple));
     border-radius:   var(--radius-pill);
     padding:         18px 32px;
-    margin-top:      4px;
+    margin-top:      var(--space-10, 40px);
     text-decoration: none;
     box-shadow:      0 8px 24px rgba(0, 82, 233, 0.35);
     transition:      transform var(--transition-fast), box-shadow var(--transition-fast);
