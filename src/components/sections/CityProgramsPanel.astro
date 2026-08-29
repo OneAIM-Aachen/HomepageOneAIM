@@ -332,7 +332,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       {showSecured && (
       <div class="cpp__secured">
         <div class="cpp__secured-head">
-          <p class="cpp__label">Already on board for the next batch</p>
+          <p class="cpp__label">Already on board for the upcoming batch</p>
           <p class="cpp__secured-sub">These partners are secured for the semester you are applying to.</p>
         </div>
 
@@ -1152,6 +1152,16 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     .cpp__panel--simple { grid-template-columns: minmax(0, 1fr); }
     .cpp__next { flex-direction: column; }
     .cpp__secured-split { grid-template-columns: minmax(0, 1fr); }
+
+    /* Stack all partner detail cards in the SAME grid cell and hide the
+       inactive ones only visually: the box then always keeps the height
+       of the tallest card instead of jumping while clicking through. */
+    .cpp__secured-split .cpp__pdetail { grid-column: 1; grid-row: 2; }
+    .cpp__secured-split .cpp__pdetail[hidden] {
+      display:        flex !important;
+      visibility:     hidden;
+      pointer-events: none;
+    }
     .cpp__fee  { width: 100%; }
     .cpp__past { grid-template-columns: minmax(0, 1fr); }
     .cpp__steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }

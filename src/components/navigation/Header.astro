@@ -91,7 +91,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     <!-- Actions: LinkedIn icon + burger button -->
     <div class="site-header__actions">
       <a
-        href="https://www.linkedin.com/company/oneaim"
+        href="https://www.linkedin.com/company/oneaimmunich"
         class="site-header__icon-link"
         target="_blank"
         rel="noopener noreferrer"
@@ -337,9 +337,27 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
 
   /* ── Mobile menu ──────────────────────────────────────────── */
   .site-header__mobile-nav {
+    /* Full-screen overlay below the header bar, scrollable within itself.
+       Without this the page behind kept scrolling while the short menu
+       stayed put. Body scrolling is locked via .menu-open (see script). */
+    /* Anchored to the sticky header itself: its backdrop-filter makes it
+       the containing block for fixed children, which collapsed the old
+       position: fixed overlay to the bar's height. */
+    position:                   absolute;
+    top:                        100%;
+    left:                       0;
+    right:                      0;
+    height:                     calc(100dvh - var(--header-height));
+    z-index:                    99;
+    overflow-y:                 auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior:        contain;
     border-top: 1px solid var(--color-border-subtle);
     background: var(--color-bg-surface);
   }
+
+  /* Set on <body> while the menu is open: freezes the page behind it */
+  :global(body.menu-open) { overflow: hidden; }
 
   .site-header__mobile-list {
     display:        flex;
@@ -437,12 +455,14 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     mobileNav?.removeAttribute("hidden");
     toggle?.setAttribute("aria-expanded", "true");
     toggle?.setAttribute("aria-label", "Menü schließen");
+    document.body.classList.add("menu-open");
   }
 
   function closeMenu() {
     mobileNav?.setAttribute("hidden", "");
     toggle?.setAttribute("aria-expanded", "false");
     toggle?.setAttribute("aria-label", "Menü öffnen");
+    document.body.classList.remove("menu-open");
   }
 
   toggle?.addEventListener("click", () => {

@@ -144,34 +144,6 @@ const news = getNewsByProgram("aim-innovate", 3);
                 data-active-label="Showing below ↓" data-idle-label="Explore the capabilities ↓">Showing below ↓</span>
             </button>
 
-            <button type="button" class="acv__pillar acv__pillar--sprint" data-pillar="1" aria-pressed="false">
-              <span class="acv__pillar-num acv__pillar-num--purple">02</span>
-              <span class="acv__pillar-title">Creation Sprints</span>
-              <span class="acv__pillar-text">
-                Hackathons, makeathons, and innovation challenges designed to
-                foster collaboration, test ideas rapidly, and turn concepts into
-                solutions.
-              </span>
-              <span class="acv__pillar-cta acv__pillar-cta--purple" data-pillar-label="1"
-                data-active-label="Showing below ↓" data-idle-label="See a sprint in action ↓">See a sprint in action ↓</span>
-            </button>
-
-            <button type="button" class="acv__pillar acv__pillar--inc" data-pillar="2" aria-pressed="false">
-              <span class="acv__pillar-toprow">
-                <span class="acv__pillar-num acv__pillar-num--magenta">03</span>
-                <span class="acv__soon">Coming soon</span>
-              </span>
-              <span class="acv__pillar-title">Start-up Incubation</span>
-              <span class="acv__pillar-text">
-                Through strategic partnerships and hands-on programs, we empower
-                teams to work on real-world healthcare challenges and transform
-                promising ideas into impactful HealthTech ventures.
-              </span>
-              <span class="acv__pillar-cta acv__pillar-cta--magenta" data-pillar-label="2"
-                data-active-label="Showing below ↓" data-idle-label="See how we incubate ↓">See how we incubate ↓</span>
-            </button>
-          </div>
-
           <!-- Detail: Capability Building -->
           <div class="acv__detail" data-pillar-panel="0">
             <p class="acv__detail-label acv__detail-label--blue">The capabilities we build</p>
@@ -189,6 +161,18 @@ const news = getNewsByProgram("aim-innovate", 3);
             </div>
           </div>
 
+            <button type="button" class="acv__pillar acv__pillar--sprint" data-pillar="1" aria-pressed="false">
+              <span class="acv__pillar-num acv__pillar-num--purple">02</span>
+              <span class="acv__pillar-title">Creation Sprints</span>
+              <span class="acv__pillar-text">
+                Hackathons, makeathons, and innovation challenges designed to
+                foster collaboration, test ideas rapidly, and turn concepts into
+                solutions.
+              </span>
+              <span class="acv__pillar-cta acv__pillar-cta--purple" data-pillar-label="1"
+                data-active-label="Showing below ↓" data-idle-label="See a sprint in action ↓">See a sprint in action ↓</span>
+            </button>
+
           <!-- Detail: Creation Sprints -->
           <div class="acv__detail" data-pillar-panel="1" hidden>
             <p class="acv__detail-label acv__detail-label--purple">What a sprint looks like</p>
@@ -205,6 +189,21 @@ const news = getNewsByProgram("aim-innovate", 3);
             </div>
           </div>
 
+            <button type="button" class="acv__pillar acv__pillar--inc" data-pillar="2" aria-pressed="false">
+              <span class="acv__pillar-toprow">
+                <span class="acv__pillar-num acv__pillar-num--magenta">03</span>
+                <span class="acv__soon">Coming soon</span>
+              </span>
+              <span class="acv__pillar-title">Start-up Incubation</span>
+              <span class="acv__pillar-text">
+                Through strategic partnerships and hands-on programs, we empower
+                teams to work on real-world healthcare challenges and transform
+                promising ideas into impactful HealthTech ventures.
+              </span>
+              <span class="acv__pillar-cta acv__pillar-cta--magenta" data-pillar-label="2"
+                data-active-label="Showing below ↓" data-idle-label="See how we incubate ↓">See how we incubate ↓</span>
+            </button>
+
           <!-- Detail: Start-up Incubation -->
           <div class="acv__detail" data-pillar-panel="2" hidden>
             <div class="acv__detail-labelrow">
@@ -220,6 +219,7 @@ const news = getNewsByProgram("aim-innovate", 3);
                 venture. The incubation program launches soon: stay tuned.
               </p>
             </div>
+          </div>
           </div>
         </section>
 
@@ -444,6 +444,14 @@ const news = getNewsByProgram("aim-innovate", 3);
     gap:                   20px;
   }
 
+  /* Desktop: cards in row 1, the open detail panel full-width in row 2.
+     The panels live right after their card in the DOM so that on mobile
+     (single column, auto placement) each panel sits directly below it. */
+  .acv__pillar--cap    { grid-column: 1; grid-row: 1; }
+  .acv__pillar--sprint { grid-column: 2; grid-row: 1; }
+  .acv__pillar--inc    { grid-column: 3; grid-row: 1; }
+  .acv__detail         { grid-column: 1 / -1; grid-row: 2; }
+
   .acv__pillar {
     background:     #EDF2FF;
     border:         2px solid transparent;
@@ -654,6 +662,8 @@ const news = getNewsByProgram("aim-innovate", 3);
     .acv__hero-img { height: 260px; }
     .acv__what { grid-template-columns: minmax(0, 1fr); }
     .acv__pillar-grid { grid-template-columns: minmax(0, 1fr); }
+    .acv__pillar,
+    .acv__detail { grid-column: auto; grid-row: auto; }
     .acv__skill-detail { grid-template-columns: minmax(0, 1fr); }
     .acv__apply-grid { grid-template-columns: minmax(0, 1fr); }
   }
@@ -679,8 +689,28 @@ const news = getNewsByProgram("aim-innovate", 3);
     });
   }
 
+  // Collapse everything (mobile: tapping the active card again closes it)
+  function collapseAll() {
+    pillarBtns.forEach(b => {
+      b.classList.remove("is-active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    pillarPanels.forEach(p => p.setAttribute("hidden", ""));
+    document.querySelectorAll<HTMLElement>("[data-pillar-label]").forEach(l => {
+      l.textContent = l.dataset.idleLabel ?? "";
+    });
+  }
+
   pillarBtns.forEach(b =>
-    b.addEventListener("click", () => { paused = true; showPillar(Number(b.dataset.pillar)); })
+    b.addEventListener("click", () => {
+      paused = true;
+      const isMobile = window.matchMedia("(max-width: 960px)").matches;
+      if (isMobile && b.classList.contains("is-active")) {
+        collapseAll();
+        return;
+      }
+      showPillar(Number(b.dataset.pillar));
+    })
   );
 
   let current = 0;
