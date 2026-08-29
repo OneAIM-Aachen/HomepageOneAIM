@@ -136,8 +136,8 @@ export const partners: Partner[] = [
   },
   {
     id: "csi-aachen",
-    type: "partner",
-    name: "CSI Aachen",
+    type: "sponsor",
+    name: "CSI",
     logo: "/images/partners/csi_logo.svg",
     logoAlt: "CSI Aachen – Platzhalter-Logo",
     website: "https://care4innovation.de/",
@@ -165,7 +165,7 @@ export const partners: Partner[] = [
   },
   {
     id: "strategyand",
-    type: "partner",
+    type: "sponsor",
     name: "Strategy&",
     logo: "/images/partners/strategyand.png",
     logoAlt: "Strategy& (PwC) – Logo",
@@ -565,6 +565,57 @@ export const partners: Partner[] = [
     logo: "/images/partners/digitalhub-aachen.svg",
     logoAlt: "digitalHUB Aachen – Logo",
     website: "https://digitalhub.de",
+  },
+
+  {
+    id: "abiomed",
+    type: "partner",
+    name: "Abiomed (J&J MedTech)",
+    logo: "/images/partners/abiomed.svg",
+    logoAlt: "Abiomed – Logo",
+    website: "https://www.abiomed.com/",
+  },
+
+  // ── Frankfurt ──────────────────────────────────────────────────────────
+  {
+    id: "cinven",
+    type: "partner",
+    name: "Cinven",
+    logo: "/images/partners/cinven.svg",
+    logoAlt: "Cinven – Logo",
+    website: "https://www.cinven.com/",
+  },
+  {
+    id: "nordic-capital",
+    type: "partner",
+    name: "Nordic Capital",
+    logo: "/images/partners/nordic-capital.svg",
+    logoAlt: "Nordic Capital – Logo",
+    website: "https://www.nordiccapital.com/",
+  },
+  {
+    id: "uniklinikum-frankfurt",
+    type: "partner",
+    name: "Uniklinikum Frankfurt",
+    logo: "/images/partners/uniklinikum-frankfurt.svg",
+    logoAlt: "Universitätsmedizin Frankfurt – Logo",
+    website: "https://www.kgu.de/",
+  },
+  {
+    id: "futury",
+    type: "partner",
+    name: "Futury",
+    logo: "/images/partners/futury.png",
+    logoAlt: "Futury – Logo",
+    website: "https://www.futury.eu/",
+  },
+  {
+    id: "goethe-university",
+    type: "partner",
+    name: "Goethe University Frankfurt",
+    logo: "/images/universities/goethe-uni.svg",
+    logoAlt: "Goethe-Universität Frankfurt – Logo",
+    website: "https://www.uni-frankfurt.de/",
   },
 ];
 

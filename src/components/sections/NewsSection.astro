@@ -5,9 +5,10 @@
 // "News from {City}"-Band der Standortseiten (CityBlueprint), aber
 // standortübergreifend: die neuesten Beiträge aus newsData.ts.
 
-import { getLatestNews } from "../../data/newsData";
+import { getSortedNews } from "../../data/newsData";
 
-const news = getLatestNews(4);
+// Alle Beiträge, neueste zuerst – sichtbar sind zwei, die Pfeile blättern.
+const news = getSortedNews();
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", {
   day: "numeric", month: "long", year: "numeric",
@@ -19,9 +20,13 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
     <div class="lnews__panel">
       <div class="lnews__head">
         <h2 id="lnews-heading">News from OneAIM</h2>
-        <a class="lnews__more" href="/news">All news →</a>
+        <div class="lnews__head-right">
+          <a class="lnews__more" href="/news">All news →</a>
+          <button type="button" class="lnews__nav-btn" data-lnews-nav="prev" aria-label="Scroll news back">←</button>
+          <button type="button" class="lnews__nav-btn" data-lnews-nav="next" aria-label="Scroll news forward">→</button>
+        </div>
       </div>
-      <div class="lnews__grid">
+      <div class="lnews__grid" data-lnews-row tabindex="0">
         {news.map(n => (
           <a class="lnews__card" href={`/news/${n.id}`}>
             <span class="lnews__thumb">
@@ -43,7 +48,7 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
 <style>
   .lnews {
     background:    var(--color-bg-surface);
-    padding-block: 0 var(--space-24);
+    padding-block: var(--space-6) var(--space-24);
   }
 
   .lnews__panel {
@@ -69,14 +74,54 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
   .lnews__more { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); }
 
   .lnews__grid {
-    display:               grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap:                   var(--space-6);
+    display:          flex;
+    gap:              var(--space-6);
+    overflow-x:       auto;
+    scroll-behavior:  smooth;
+    scrollbar-width:  none;
+    scroll-snap-type: x proximity;
+  }
+
+  .lnews__grid::-webkit-scrollbar { display: none; }
+
+  /* Zwei Karten sichtbar, die Pfeile blättern durch den Rest */
+  .lnews__card {
+    flex:              0 0 calc(50% - var(--space-6) / 2);
+    scroll-snap-align: start;
   }
 
   @media (max-width: 760px) {
-    .lnews__grid { grid-template-columns: minmax(0, 1fr); }
+    .lnews__card { flex-basis: 100%; }
   }
+
+  .lnews__head-right { display: flex; align-items: center; gap: 12px; }
+
+  /* Mobil bricht die Kopfzeile um – dann Link links, Pfeile rechts */
+  @media (max-width: 760px) {
+    .lnews__head-right {
+      width:           100%;
+      justify-content: space-between;
+    }
+    .lnews__nav-btn:first-of-type { margin-left: auto; }
+  }
+
+  .lnews__nav-btn {
+    width:           40px;
+    height:          40px;
+    border-radius:   50%;
+    border:          1px solid #DEE3ED;
+    background:      var(--color-bg-surface);
+    color:           var(--color-text-heading);
+    font-size:       16px;
+    font-weight:     800;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    cursor:          pointer;
+    transition:      border-color var(--transition-fast), color var(--transition-fast);
+  }
+
+  .lnews__nav-btn:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
 
   .lnews__card {
     display:               grid;
@@ -117,3 +162,21 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
     .lnews__thumb { height: 140px; }
   }
 </style>
+
+<script is:inline>
+  (function () {
+    // Das Script steht im DOM NACH der Section – closest() griffe ins Leere.
+    var root = document.querySelector(".lnews");
+    if (!root) return;
+    var row = root.querySelector("[data-lnews-row]");
+    if (!row) return;
+    [].slice.call(root.querySelectorAll("[data-lnews-nav]")).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var card = row.querySelector(".lnews__card");
+        var step = card ? card.offsetWidth + 24 : row.clientWidth / 2;
+        var dir = btn.getAttribute("data-lnews-nav") === "next" ? 1 : -1;
+        row.scrollBy({ left: dir * step, behavior: "smooth" });
+      });
+    });
+  })();
+</script>

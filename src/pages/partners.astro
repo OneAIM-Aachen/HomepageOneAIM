@@ -61,19 +61,15 @@ const groups = [
       </div>
 
       <div class="partners-toolbar__controls">
-        <label class="partners-toolbar__field">
+        <div class="partners-toolbar__field">
           <span>Sort</span>
-          <select id="partner-sort" autocomplete="off">
-            <option value="default">Featured</option>
-            <option value="asc">Name A–Z</option>
-            <option value="desc">Name Z–A</option>
-          </select>
-        </label>
-
-        <div class="partners-toolbar__view" role="group" aria-label="View">
-          <button type="button" data-view="grid" aria-pressed="true">Grid</button>
-          <button type="button" data-view="list" aria-pressed="false">List</button>
+          <div class="partners-toolbar__view" role="group" aria-label="Sort order" id="partner-sort">
+            <button type="button" data-sort="default" aria-pressed="true">Featured</button>
+            <button type="button" data-sort="asc" aria-pressed="false">A–Z</button>
+            <button type="button" data-sort="desc" aria-pressed="false">Z–A</button>
+          </div>
         </div>
+
       </div>
     </div>
 
@@ -125,14 +121,14 @@ const groups = [
     (function () {
       var toolbar = document.getElementById("partners-toolbar");
       var search  = document.getElementById("partner-search");
-      var sort    = document.getElementById("partner-sort");
+      var sortBtns = [].slice.call(document.querySelectorAll("[data-sort]"));
+      var sortMode = "default";
       var status  = document.getElementById("partner-status");
-      if (!toolbar || !search || !sort) return;
+      if (!toolbar || !search || !sortBtns.length) return;
 
       // Nur die Partner-Gruppen – die Kopfzeile nutzt data-group ebenfalls
       // (Dropdown-Buttons), die haben aber kein Raster.
       var groups = [].slice.call(document.querySelectorAll(".partners-page__group[data-group]"));
-      var views  = [].slice.call(toolbar.querySelectorAll("[data-view]"));
 
       // Erst jetzt einblenden: ab hier sind die Bedienelemente funktionsfähig.
       toolbar.hidden = false;
@@ -151,7 +147,7 @@ const groups = [
 
       function apply() {
         var q = norm(search.value.trim());
-        var mode = sort.value;
+        var mode = sortMode;
         var cmp = collator();
         var total = 0;
 
@@ -192,20 +188,13 @@ const groups = [
         }
       }
 
-      function setView(view) {
-        groups.forEach(function (group) {
-          group.querySelector("[data-grid]")
-            .classList.toggle("partners-page__grid--list", view === "list");
-        });
-        views.forEach(function (b) {
-          b.setAttribute("aria-pressed", String(b.getAttribute("data-view") === view));
-        });
-      }
-
       search.addEventListener("input", apply);
-      sort.addEventListener("change", apply);
-      views.forEach(function (b) {
-        b.addEventListener("click", function () { setView(b.getAttribute("data-view")); });
+      sortBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          sortMode = btn.getAttribute("data-sort");
+          sortBtns.forEach(function (b) { b.setAttribute("aria-pressed", String(b === btn)); });
+          apply();
+        });
       });
 
       // Escape leert das Suchfeld.
@@ -299,19 +288,8 @@ const groups = [
     color:       var(--color-text-muted);
   }
 
-  .partners-toolbar__field select {
-    padding:       var(--space-2) var(--space-4);
-    font-family:   var(--font-body);
-    font-size:     var(--fs-small);
-    font-weight:   var(--fw-semibold);
-    color:         var(--color-text-heading);
-    background:    var(--color-bg-surface);
-    border:        1px solid var(--color-border-subtle);
-    border-radius: var(--radius-pill);
-    cursor:        pointer;
-  }
 
-  /* Segmentierter Umschalter Grid / List */
+
   .partners-toolbar__view {
     display:       inline-flex;
     border:        1px solid var(--color-border-subtle);
@@ -431,33 +409,32 @@ const groups = [
   /* ── Listenansicht ────────────────────────────────────────────
      Eine Spalte, Logo und Name nebeneinander. Nur Layout – es wird
      dieselbe Karte umgeschaltet, kein zweites Markup.            */
-  .partners-page__grid--list {
-    grid-template-columns: 1fr;
-    gap:                   var(--space-3);
-  }
+  /* Ohne Umschalter: Desktop zeigt das Raster, Mobil automatisch die Liste */
+  @media (max-width: 760px) {
+    .partners-page__grid {
+      grid-template-columns: 1fr;
+      gap:                   var(--space-3);
+    }
 
-  .partners-page__grid--list .partners-page__card:hover {
-    transform: none;
-  }
+    .partners-page__card:hover { transform: none; }
 
-  .partners-page__grid--list .partners-page__card > * {
-    flex-direction: row;
-    align-items:    center;
-    gap:            var(--space-6);
-    padding:        var(--space-4) var(--space-6);
-  }
+    .partners-page__card > * {
+      flex-direction: row;
+      align-items:    center;
+      gap:            var(--space-6);
+      padding:        var(--space-4) var(--space-6);
+    }
 
-  .partners-page__grid--list .partners-page__logo {
-    flex:   0 0 120px;
-    height: 44px;
-  }
+    .partners-page__logo {
+      flex:   0 0 120px;
+      height: 44px;
+    }
 
-  .partners-page__grid--list .partners-page__logo img {
-    max-height: 44px;
-  }
+    .partners-page__logo img { max-height: 44px; }
 
-  .partners-page__grid--list .partners-page__name {
-    text-align: left;
-    font-size:  var(--fs-body);
+    .partners-page__name {
+      text-align: left;
+      font-size:  var(--fs-body);
+    }
   }
 </style>

@@ -28,9 +28,11 @@ interface Props {
   ctaVerb?: string;
   /** "hero" = kräftiger Schatten für die Karte auf dem Hero-Foto */
   variant?: "hero";
+  /** true = im Leerzustand (keine Runde) keinen Button zeigen */
+  hideEmptyCta?: boolean;
 }
 
-const { city, cityName, program, ctaVerb = "Apply", variant } = Astro.props as Props;
+const { city, cityName, program, ctaVerb = "Apply", variant, hideEmptyCta = false } = Astro.props as Props;
 
 // Kurzform ohne Jahr ("1 Sep") – das Semester steht im Kartentitel; en-GB
 // kürzt September als "Sept" ab, daher auf drei Buchstaben normalisiert.
@@ -74,8 +76,8 @@ const card = app
   : {
       status: "upcoming" as const,
       statusLabel: "No open applications",
-      title: variant === "hero" ? "The next round is being planned" : cityName,
-      subtitle: variant === "hero" ? cityName : "The next round is being planned",
+      title: variant === "hero" ? "New applications opening soon" : cityName,
+      subtitle: variant === "hero" ? cityName : "New applications opening soon",
       rows: [],
       note: "New rounds are announced here and on Instagram as soon as the dates are set.",
       ctaLabel: "Contact us",
@@ -101,7 +103,9 @@ const card = app
     </dl>
   )}
   {card.note && <p class="appc__note">{card.note}</p>}
-  <a class="appc__btn" href={card.ctaHref}>{card.ctaLabel}</a>
+  {!(hideEmptyCta && !app) && (
+    <a class="appc__btn" href={card.ctaHref}>{card.ctaLabel}</a>
+  )}
   <slot />
 </div>
 

@@ -11,6 +11,7 @@
 //   5. JoinSection     – Abschluss-Banner "Sounds interesting?"
 
 import BaseLayout        from "../layouts/BaseLayout.astro";
+import AnnouncementBanner from "../components/sections/AnnouncementBanner.astro";
 import MapHero           from "../components/sections/MapHero.astro";
 import PartnersSection   from "../components/sections/PartnersSection.astro";
 import WhatIsOneAIM      from "../components/sections/WhatIsOneAIM.astro";
@@ -24,6 +25,9 @@ import NewsSection       from "../components/sections/NewsSection.astro";
   title="Home"
   description="OneAIM – Germany's first student-led interdisciplinary initiative in MedTech. Active in Munich, Aachen and Frankfurt."
 >
+  <!-- ⓪ Ankündigungsband: offene/angekündigte AIM-Connect-Runden -->
+  <AnnouncementBanner />
+
   <!-- ① Hero: Headline, Branding, CTA-Buttons -->
   <MapHero />
 

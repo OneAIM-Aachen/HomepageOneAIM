@@ -32,7 +32,6 @@ interface TimelineRow {
   /** "hollow" = Bewerbungsschritt, "filled" = Termin, "accent" = Höhepunkt */
   dot?: "hollow" | "filled" | "accent";
   /** Zeigt den "Fixed"-Chip hinter dem Titel */
-  fixed?: boolean;
   /** Partnerzeilen unter dem Eintrag (Name + optional Person/Rolle).
       `wide` = rechteckige Kachel für Wortmarken statt quadratischer. */
   partners?: { name: string; detail?: string; logo?: string; wide?: boolean }[];
@@ -67,10 +66,10 @@ const SECURED_PLACEHOLDER: SecuredPartner[] = [1, 2, 3, 4, 5].map(n => ({
 }));
 
 const UPCOMING_PLACEHOLDER: TimelineRow[] = [
-    { date: "[24–26 Oct]", dot: "filled", fixed: true, title: "Kickoff Weekend", text: "Meet the cohort: team building and intro talks." },
+    { date: "[24–26 Oct]", dot: "filled", title: "Kickoff Weekend", text: "Meet the cohort: team building and intro talks." },
     { date: "[Week 1–8]", dot: "filled", title: "Partner visits & workshops", text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups." },
-    { date: "[06–08 Feb]", dot: "accent", fixed: true, title: "Make-A-Thon", text: "48-hour build weekend. Your team turns its project into a prototype." },
-    { date: "[20 Feb]", dot: "accent", fixed: true, title: "Summit", text: "The closing event: final pitches in front of partners and guests." },
+    { date: "[06–08 Feb]", dot: "accent", title: "Make-A-Thon", text: "48-hour build weekend. Your team turns its project into a prototype." },
+    { date: "[20 Feb]", dot: "accent", title: "Summit", text: "The closing event: final pitches in front of partners and guests." },
   ];
 
 const PAST_PLACEHOLDER: TimelineRow[] = [
@@ -183,6 +182,9 @@ const codeComingSoon = citySlug ? Boolean(cityData[citySlug]?.codeComingSoon) : 
 // AIM Code an diesem Standort anzeigen? (cityData.ts → showCode, Standard: ja)
 const showCode = citySlug ? cityData[citySlug]?.showCode !== false : true;
 
+// "Already on board"-Abschnitt anzeigen? (cityData.ts, Standard: ja)
+const showSecured = citySlug ? cityData[citySlug]?.connectShowSecuredPartners !== false : true;
+
 // AIM Educate: kommende Events dieses Standorts (Events ohne Stadt = überall)
 const educateEvents = citySlug
   ? getUpcomingEvents().filter(e => !e.city || e.city === citySlug)
@@ -267,9 +269,8 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       <p class="cpp__label">Three key components</p>
       <p class="cpp__text cpp__text--wide">
         Every AIM Connect semester is built on three pillars: the kickoff weekend to form
-        your cohort, regular partner visits and workshops, and a team project, prepared in
-        dedicated sessions, built intensively at the Make-A-Thon weekend, and pitched at the
-        closing summit.
+        your cohort, regular partner visits and workshops, and a team project, built
+        intensively at the Make-A-Thon weekend, and pitched at the closing summit.
       </p>
       <div class="cpp__steps">
         <div class="cpp__steps-line" aria-hidden="true"></div>
@@ -312,7 +313,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
                 <span class="cpp__line" aria-hidden="true"></span>
               </span>
               <div class="cpp__row-body">
-                <h4>{row.title} {row.fixed && <span class="cpp__fixed">Fixed</span>}</h4>
+                <h4>{row.title}</h4>
                 <p>{row.text}</p>
               </div>
             </div>
@@ -328,7 +329,8 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         )}
       </div>
 
-      <div class="cpp__secured">
+      <div class={`cpp__secured ${showSecured ? "" : "cpp__secured--bare"}`}>
+        {showSecured && <>
         <div class="cpp__secured-head">
           <p class="cpp__label">Already on board for the next batch</p>
           <p class="cpp__secured-sub">These partners are secured for the semester you are applying to.</p>
@@ -343,7 +345,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
                 data-pt={String(i)}
                 aria-pressed={i === 0 ? "true" : "false"}
               >
-                <span class="cpp__prow-logo">
+                <span class={`cpp__prow-logo ${p.wide ? "cpp__prow-logo--wide" : ""}`}>
                   {p.logo ? <img src={p.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}
                 </span>
                 <span>{p.name}</span>
@@ -353,19 +355,15 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
           {securedPartners.map((p, i) => (
             <div class="cpp__pdetail" data-ptcard={String(i)} hidden={i !== 0}>
-              <span class="cpp__pdetail-logo">
+              <span class={`cpp__pdetail-logo ${p.wide ? "cpp__pdetail-logo--wide" : ""}`}>
                 {p.logo ? <img src={p.logo} alt="" loading="lazy" decoding="async" /> : <span>LOGO</span>}
               </span>
               <h4>{p.name}</h4>
               <p>{p.text}</p>
-              {p.chips && (
-                <div class="cpp__pchips">
-                  {p.chips.map(c => <span class="cpp__pchip">{c}</span>)}
-                </div>
-              )}
             </div>
           ))}
         </div>
+        </>}
 
         {applicationsOpen && (
           <a class="cpp__apply" href={resolvedApplyHref}>Apply for AIM Connect →</a>
@@ -883,16 +881,6 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   .cpp__row-body h4 { font-size: 15px; }
   .cpp__row-body p  { font-size: 13px; line-height: 1.5; margin-top: 2px; }
 
-  .cpp__fixed {
-    background:     #EDF2FF;
-    color:          var(--color-brand-blue);
-    font-size:      11px;
-    font-weight:    800;
-    padding:        2px 8px;
-    border-radius:  var(--radius-pill);
-    vertical-align: 2px;
-    white-space:    nowrap;
-  }
 
   /* Partner-Miniaturen im Rückblick */
   .cpp__mini-partners { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
@@ -964,6 +952,13 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     margin-top:     var(--space-6);
   }
 
+  /* Nur der Apply-Button, ohne "Already on board": Rahmen und Fläche weg */
+  .cpp__secured--bare {
+    background: transparent;
+    border:     none;
+    padding:    0;
+  }
+
   .cpp__secured-head { display: flex; flex-direction: column; gap: 6px; }
   .cpp__secured-sub { font-size: 15px; line-height: 1.5; color: var(--color-text-body); }
 
@@ -1019,6 +1014,10 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   .cpp__prow-logo img { max-width: 30px; max-height: 30px; object-fit: contain; }
 
+  /* Breite Kachel für Wortmarken-Logos (z. B. Cinven, Nordic Capital) */
+  .cpp__prow-logo--wide { width: 84px; }
+  .cpp__prow-logo--wide img { max-width: 76px; }
+
   /* Detailkarte auf hellblauer Fläche */
   .cpp__pdetail {
     background:      #EDF2FF;
@@ -1056,20 +1055,13 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   .cpp__pdetail-logo img { max-width: 52px; max-height: 52px; object-fit: contain; }
 
+  .cpp__pdetail-logo--wide { width: 132px; }
+  .cpp__pdetail-logo--wide img { max-width: 116px; }
+
   .cpp__pdetail h4 { font-size: 20px; color: var(--color-brand-blue-dark); }
   .cpp__pdetail p  { font-size: 14px; line-height: 1.65; color: var(--color-brand-blue-dark); }
 
-  .cpp__pchips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 
-  .cpp__pchip {
-    background:    var(--color-bg-surface);
-    color:         var(--color-brand-blue);
-    font-size:     13px;
-    font-weight:   var(--fw-bold);
-    padding:       6px 14px;
-    border-radius: var(--radius-pill);
-    white-space:   nowrap;
-  }
 
   /* Voller Gradient-Apply über die ganze Breite */
   .cpp__apply {

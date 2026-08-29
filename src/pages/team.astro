@@ -468,6 +468,13 @@ const hasMembers = tiles.length > 0;
       apply();
     }));
 
+    // Deep-Link: /team?city=aachen (oder /team#aachen) wählt den
+    // Stadt-Filter direkt vor – für die "Full team"-Buttons der Stadtseiten.
+    const preselect = new URLSearchParams(location.search).get("city")
+      ?? location.hash.replace("#", "");
+    const preselectPill = cityPills.find(p => p.dataset.cityPill === preselect);
+    if (preselectPill) preselectPill.click();
+
     rolePills.forEach(pill => pill.addEventListener("click", () => {
       role = pill.dataset.rolePill ?? "all";
       rolePills.forEach(p => p.classList.toggle("is-active", p === pill));

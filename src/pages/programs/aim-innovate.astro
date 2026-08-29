@@ -235,7 +235,7 @@ const news = getNewsByProgram("aim-innovate", 3);
           </div>
           <div class="acv__apply-grid">
             {cities.filter(c => c.showInnovate).map(city => (
-              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-innovate" />
+              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-innovate" hideEmptyCta />
             ))}
           </div>
         </section>

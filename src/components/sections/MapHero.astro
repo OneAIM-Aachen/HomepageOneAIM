@@ -40,7 +40,7 @@ const partnerStat =
       </p>
       <div class="map-hero__actions">
         <Button href="#programs" variant="primary">Our Programs</Button>
-        <Button href="/about" variant="secondary">About Us</Button>
+        <Button href="/news" variant="secondary">News</Button>
       </div>
       <div class="map-hero__stats">
         <div><span class="map-hero__stat-n">{cities.length}</span><span class="map-hero__stat-l">Cities</span></div>
@@ -213,5 +213,8 @@ const partnerStat =
   @media (max-width: 900px) {
     .map-hero__inner { grid-template-columns: 1fr; }
     .map-hero__map { height: 420px; }
+    /* Die Karte schrumpft mit – größere Beschriftung hält die
+       Stadtnamen auf kleinen Displays lesbar. */
+    .map-hero-citylbl { font-size: 18px; }
   }
 </style>

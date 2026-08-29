@@ -30,9 +30,7 @@ import { programs } from "../../data/programs";
         </h2>
         <p class="programs__lead">
           Each chapter runs its own programs on the shared OneAIM blueprint: the
-          same formats in every city, with local partners, projects and dates. The
-          chapters work closely together, with joint events, shared speakers and
-          projects that span locations.
+          same formats in every city, with local partners, projects and dates.
         </p>
       </header>
 
@@ -67,6 +65,7 @@ import { programs } from "../../data/programs";
                 )}
                 <h3 class="programs__name">{p.cardName ?? p.name}</h3>
                 <span class="programs__text">{p.text}</span>
+                <span class="programs__more">Learn more <span class="programs__more-arrow" aria-hidden="true">→</span></span>
               </span>
             </a>
           </li>
@@ -79,7 +78,7 @@ import { programs } from "../../data/programs";
 <style>
   .programs {
     background:    var(--color-bg-surface);
-    padding-block: var(--space-4) var(--space-16);
+    padding-block: var(--space-6) var(--space-6);
     /* Sprungziel des Hero-Buttons: Abstand, damit die Überschrift
        nicht unter der klebenden Kopfzeile landet. */
     scroll-margin-top: var(--header-height);
@@ -155,6 +154,32 @@ import { programs } from "../../data/programs";
   }
 
   .programs__card:hover { text-decoration: none; transform: translateY(-2px); }
+
+  /* Immer sichtbarer Klick-Hinweis – funktioniert auch ohne Hover (mobil) */
+  .programs__more {
+    display:     inline-flex;
+    align-items: center;
+    gap:         6px;
+    margin-top:  6px;
+    font-family: var(--font-display);
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+  }
+
+  .programs__more-arrow { transition: transform var(--transition-fast); }
+  .programs__card:hover .programs__more-arrow { transform: translateX(4px); }
+
+  /* Auf Foto- und Verlaufs-Karten: weißer Text auf dunklem Chip,
+     damit der Hinweis auch über Foto/Verlauf genug Kontrast hat */
+  .programs__cell--photo .programs__more,
+  .programs__cell--gradient .programs__more {
+    color:         #fff;
+    background:    rgba(11, 14, 24, 0.45);
+    padding:       5px 12px;
+    border-radius: var(--radius-pill);
+    align-self:    flex-start;
+  }
 
   .programs__body {
     display:        flex;

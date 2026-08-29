@@ -165,7 +165,7 @@ const resolvedApplication = application ?? (featured
     ? {
         status: "upcoming" as const,
         statusLabel: "No open applications",
-        title: "The next round is being planned",
+        title: "New applications opening soon",
         rows: [],
         note: "New rounds are announced here and on Instagram as soon as the dates are set.",
         ctaLabel: "Contact us",
@@ -321,7 +321,7 @@ const resolvedNews = news ?? (cityNews.length
       <CityProgramsPanel city={city} citySlug={citySlug} contactHref={contactHref} />
 
       <!-- ④ Team (Entwurf 3a, City Team Options: zwei Scroll-Reihen) -->
-      <CityTeamCarousel city={city} citySlug={citySlug} teamHref={teamHref} />
+      <CityTeamCarousel city={city} citySlug={citySlug} teamHref={teamHref ?? (citySlug ? `/team?city=${citySlug}` : undefined)} />
 
       <!-- ⑤ News -->
       <section class="bp__news" aria-labelledby="bp-news">

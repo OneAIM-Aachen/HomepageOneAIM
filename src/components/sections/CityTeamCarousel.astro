@@ -85,7 +85,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
       <h2 id="ctc-heading">The people behind OneAIM {city}</h2>
     </div>
     <div class="ctc__head-actions">
-      {teamHref && <a class="ctc__all" href={teamHref}>Full team →</a>}
+      {teamHref && <a class="ctc__all" href={teamHref}>Full team overview →</a>}
       <div class="ctc__nav">
         <button type="button" class="ctc__nav-btn" data-nav="prev" data-row="team" aria-label="Scroll team back">←</button>
         <button type="button" class="ctc__nav-btn" data-nav="next" data-row="team" aria-label="Scroll team forward">→</button>
@@ -129,6 +129,47 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
           row.scrollBy({ left: dir * row.clientWidth * 0.8, behavior: "smooth" });
         });
       });
+
+      // Mobil läuft die Reihe von selbst weiter – sonst sieht man nur eine
+      // Karte und ahnt nicht, dass es mehr Mitglieder gibt. Pausiert bei
+      // Berührung/Scrollen und respektiert reduzierte Bewegung.
+      var row = root.querySelector('[data-scroll="team"]');
+      var mobile = window.matchMedia("(max-width: 760px)");
+      var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+      if (row) {
+        var paused = false;
+        var resumeTimer = null;
+        function pause() {
+          paused = true;
+          clearTimeout(resumeTimer);
+          resumeTimer = setTimeout(function () { paused = false; }, 4000);
+        }
+        ["pointerdown", "touchstart", "wheel"].forEach(function (ev) {
+          row.addEventListener(ev, pause, { passive: true });
+        });
+        [].slice.call(root.querySelectorAll("[data-nav]")).forEach(function (btn) {
+          btn.addEventListener("click", pause);
+        });
+        var SPEED = 35; // Pixel pro Sekunde
+        var last = null;
+        var pos = null; // eigene Gleitkomma-Position: scrollLeft rundet,
+                        // Subpixel-Schritte gingen sonst verloren
+        function tick(now) {
+          if (last === null) last = now;
+          var dt = Math.min(now - last, 100) / 1000;
+          last = now;
+          if (mobile.matches && !reduce.matches && !paused) {
+            if (pos === null || Math.abs(row.scrollLeft - pos) > 40) pos = row.scrollLeft;
+            var end = row.scrollWidth - row.clientWidth;
+            pos = pos >= end - 1 ? 0 : pos + SPEED * dt;
+            row.scrollTo({ left: pos, behavior: "instant" });
+          } else {
+            pos = null;
+          }
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
     })();
   </script>
 </section>
@@ -162,6 +203,14 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
   }
 
   .ctc__all { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); white-space: nowrap; }
+
+  /* Mobil bricht die Kopfzeile um – dann Link links, Pfeile rechts */
+  @media (max-width: 760px) {
+    .ctc__head-actions {
+      width:           100%;
+      justify-content: space-between;
+    }
+  }
 
   .ctc__block { display: flex; flex-direction: column; gap: var(--space-4); }
 

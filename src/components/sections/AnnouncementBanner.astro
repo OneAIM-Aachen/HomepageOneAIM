@@ -1,0 +1,78 @@
+---
+// src/components/sections/AnnouncementBanner.astro
+//
+// Schmales Ankündigungsband ganz oben auf der Startseite: weist auf die
+// AIM-Connect-Bewerbungsrunden hin. Komplett datengetrieben aus
+// applications.ts – ohne Runden verschwindet das Band von selbst:
+//   • alle Runden offen      → "… are open in all locations."
+//   • Runden angekündigt     → "… open in all locations on <Datum>."
+//   • gemischt (teils offen) → "… are open."
+
+import { cities } from "../../data/cityData";
+import { getApplicationFor, getStatus } from "../../data/applications";
+
+const rounds = cities
+  .map(c => getApplicationFor(c.slug, "aim-connect"))
+  .filter((r): r is NonNullable<typeof r> => Boolean(r));
+
+const allCities = rounds.length === cities.length;
+const openCount = rounds.filter(r => getStatus(r) === "open").length;
+
+const fmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" });
+const earliestOpen = rounds.length
+  ? fmt.format(new Date([...rounds].sort((a, b) => a.opensAt.localeCompare(b.opensAt))[0].opensAt))
+  : "";
+
+const message =
+  rounds.length === 0 ? "" :
+  openCount > 0
+    ? "AIM Connect applications are open."
+    : `AIM Connect applications open on ${earliestOpen}.`;
+---
+
+{message && (
+  <a class="announce" href="/programs/aim-connect#apply">
+    <span class="announce__text">{message}</span>
+    <span class="announce__cta">Click here to apply →</span>
+  </a>
+)}
+
+<style>
+  .announce {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             10px;
+    flex-wrap:       wrap;
+    padding:         10px clamp(var(--space-4), 4vw, var(--space-8));
+    background:      linear-gradient(90deg, var(--color-brand-blue), var(--color-accent-purple));
+    color:           #fff;
+    text-align:      center;
+    text-decoration: none;
+  }
+
+  .announce:hover { text-decoration: none; }
+
+  .announce__text {
+    font-family: var(--font-display);
+    font-size:   14px;
+    font-weight: 800;
+  }
+
+  .announce__cta {
+    font-size:   14px;
+    font-weight: 700;
+    color:       rgba(255, 255, 255, 0.9);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .announce:hover .announce__cta { color: #fff; }
+
+  /* Mobil: alles in EINER Zeile – kleinere Schrift statt Umbruch */
+  @media (max-width: 760px) {
+    .announce { flex-wrap: nowrap; gap: 6px; padding-inline: 10px; }
+    .announce__text,
+    .announce__cta { font-size: 12px; white-space: nowrap; }
+  }
+</style>

@@ -153,7 +153,7 @@ type CardState = "open" | "upcoming" | "planned";
           </div>
           <div class="acd__register-grid">
             {cities.map(city => (
-              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-code" ctaVerb="Register" />
+              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-code" ctaVerb="Register" hideEmptyCta />
             ))}
           </div>
         </section>

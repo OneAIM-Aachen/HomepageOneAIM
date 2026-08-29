@@ -122,7 +122,7 @@ export const applications: Application[] = [
     interviewsLabel: "Oct",
     decisionBy: "2026-10-11",
     startsAt: "2026-10-24",
-    // applyUrl: Bewerbungslink ergänzen
+    applyUrl: "https://tally.so/r/WOVevk",
   },
   {
     id:       "aachen-aim-connect-ws26",
@@ -130,7 +130,7 @@ export const applications: Application[] = [
     program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-08-31",
+    opensAt:  "2026-08-29",
     deadline: "2026-09-21",
     interviewsFrom: "2026-09-25",
     interviewsTo:   "2026-09-27",

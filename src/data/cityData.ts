@@ -30,7 +30,6 @@ export interface TimelineRow {
   text: string;
   /** "hollow" = Bewerbungsschritt, "filled" = Termin, "accent" = Höhepunkt */
   dot?: "hollow" | "filled" | "accent";
-  fixed?: boolean;
   partners?: { name: string; detail?: string; logo?: string; wide?: boolean }[];
 }
 
@@ -41,6 +40,8 @@ export interface SecuredPartner {
   /** Weiße Chips in der Detailkarte, z. B. ["Company visit", "Name · Position"] */
   chips?: string[];
   logo?: string;
+  /** true = breite Logo-Kachel für Wortmarken (statt quadratisch) */
+  wide?: boolean;
 }
 
 /** Kanonische Standort-Slugs – überall im Projekt dieselben. */
@@ -92,6 +93,8 @@ export interface CityData {
   connectExampleFrom?: CitySlug[];
   /** Semester des letzten Jahrgangs, z. B. "SS 26" – Beschriftung über dem Rückblick */
   connectPastTerm?: string;
+  /** false = Abschnitt "Already on board for the next batch" ausblenden */
+  connectShowSecuredPartners?: boolean;
   /** "Already on board for the next batch" – gesicherte Partner der kommenden Runde */
   connectSecuredPartners?: SecuredPartner[];
   /** Feste Termine der kommenden Runde (nach den Bewerbungsschritten in der Timeline) */
@@ -298,7 +301,7 @@ const aachenConnectTimeline: TimelineRow[] = [
       { date: "30 Jun", dot: "accent", title: "OneAIM x CSI Summit",
         text: "The closing event: final pitches in front of partners and guests.",
         partners: [
-          { name: "CSI Aachen",
+          { name: "CSI",
             detail: "Host",
             logo: "/images/partners/csi_logo.svg",
             wide: true },
@@ -308,6 +311,7 @@ const aachenConnectTimeline: TimelineRow[] = [
 export const cityData: Record<CitySlug, CityData> = {
   munich: {
     slug:        "munich",
+    connectShowSecuredPartners: false,
     displayName: "Munich",
     coords:      { lon: 11.582, lat: 48.1351 },
     uniShort:    "LMU · TUM",
@@ -336,13 +340,13 @@ export const cityData: Record<CitySlug, CityData> = {
     connectImage:    "/images/cities/munich-connect.jpg",
     connectImageAlt: "AIM Connect Munich cohort at the Brandenburg Gate during the Berlin kickoff weekend",
     connectUpcomingEvents: [
-      { date: "16–18 Oct", dot: "filled", fixed: true, title: "Kickoff Weekend in Berlin",
+      { date: "16–18 Oct", dot: "filled", title: "Kickoff Weekend in Berlin",
         text: "Meet the cohort: team building and intro talks." },
       { date: "Week 1–8", dot: "filled", title: "Partner visits & workshops",
         text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups. Visits take place on Tuesdays at 5 pm." },
-      { date: "11–13 Dec", dot: "accent", fixed: true, title: "Make-A-Thon",
+      { date: "11–13 Dec", dot: "accent", title: "Make-A-Thon",
         text: "An intensive build weekend. Your team turns its project into a prototype." },
-      { date: "15 Dec", dot: "accent", fixed: true, title: "Summit",
+      { date: "15 Dec", dot: "accent", title: "Summit",
         text: "The closing event: final pitches in front of partners and guests." },
     ],
     connectPastTerm: "SS 26",
@@ -370,13 +374,13 @@ export const cityData: Record<CitySlug, CityData> = {
     codeComingSoon: true,
     connectShowFee: true,
     connectUpcomingEvents: [
-      { date: "23–25 Oct", dot: "filled", fixed: true, title: "Kickoff Weekend in Berlin",
+      { date: "23–25 Oct", dot: "filled", title: "Kickoff Weekend in Berlin",
         text: "Meet the cohort: team building and intro talks." },
       { date: "[Week 1–8]", dot: "filled", title: "Partner visits & workshops",
         text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups. Most visits take place on Tuesday afternoons; exact times will be communicated in October." },
-      { date: "15–17 Jan", dot: "accent", fixed: true, title: "Make-A-Thon",
+      { date: "15–17 Jan", dot: "accent", title: "Make-A-Thon",
         text: "An intensive build weekend. Your team turns its project into a prototype." },
-      { date: "19 Jan", dot: "accent", fixed: true, title: "OneAIM x CSI Summit",
+      { date: "19 Jan", dot: "accent", title: "OneAIM x CSI Summit",
         text: "The closing event: final pitches in front of partners and guests." },
     ],
     connectSecuredPartners: [
@@ -385,7 +389,7 @@ export const cityData: Record<CitySlug, CityData> = {
         chips: ["Company visit", "Dr. Thorsten Sieß · Founder & CTO"],
         logo: "/images/partners/abiomed.svg" },
       { name: "Harvard University",
-        text: "Presentation and discussion with Prof. Leo Celi on the risks and benefits of AI in healthcare.",
+        text: "Presentation and discussion with the Harvard/MIT professor for AI in critical care Leo Celi on the risks and benefits of AI in healthcare.",
         chips: ["Presentation & discussion", "Prof. Leo Celi · Professor for AI in Critical Care"],
         logo: "/images/partners/harvard-shield.svg" },
       { name: "Uniklinik RWTH Aachen",
@@ -397,7 +401,7 @@ export const cityData: Record<CitySlug, CityData> = {
         chips: ["Startup visit", "Organ perfusion"],
         logo: "/images/partners/vivalyx.png" },
       { name: "RWTH Aachen",
-        text: "MRI & AI session with Prof. Daniel Truhn: how AI is changing medical image analysis.",
+        text: "MRI & AI session with professor for AI in Medicine Daniel Truhn: how AI is changing medical image analysis.",
         chips: ["MRI & AI", "Prof. Daniel Truhn · Professor for AI in Medicine"],
         logo: "/images/partners/rwth-aachen.svg" },
     ],
@@ -408,7 +412,7 @@ export const cityData: Record<CitySlug, CityData> = {
     story:
       "As the first chapter beyond Munich, Aachen turned OneAIM from a " +
       "local initiative into a growing network across Germany. Today the " +
-      "team runs AIM Connect and AIM Code right here in the city, hand in " +
+      "team runs multiple successful programs right here in the city, hand in " +
       "hand with Aachen's remarkable MedTech scene: global players like " +
       "Abiomed (Johnson & Johnson MedTech), Uniklinik RWTH Aachen, a " +
       "vibrant startup community and many more local and international " +
@@ -438,7 +442,7 @@ export const cityData: Record<CitySlug, CityData> = {
       "AIM Connect, but Frankfurt will run its sessions with local partners.",
     connectExampleFrom: ["munich", "aachen"],
     connectUpcomingEvents: [
-      { date: "24–25 Oct", dot: "filled", fixed: true, title: "Kickoff Weekend in Frankfurt",
+      { date: "24–25 Oct", dot: "filled", title: "Kickoff Weekend in Frankfurt",
         text: "Meet the cohort: team building and intro talks." },
       { date: "[Week 1–8]", dot: "filled", title: "Partner visits & workshops",
         text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups. Exact dates will be announced." },
@@ -446,6 +450,23 @@ export const cityData: Record<CitySlug, CityData> = {
         text: "An intensive build weekend. Your team turns its project into a prototype. The exact date will be announced." },
       { date: "Jan", dot: "accent", title: "Summit",
         text: "The closing event: final pitches in front of partners and guests. The exact date will be announced." },
+    ],
+    connectSecuredPartners: [
+      { name: "Cinven", wide: true,
+        text: "International private equity firm and one of the world's leading healthcare investors.",
+        logo: "/images/partners/cinven.svg" },
+      { name: "Uniklinikum Frankfurt", wide: true,
+        text: "The university hospital of Goethe University: clinical care, research and teaching under one roof.",
+        logo: "/images/partners/uniklinikum-frankfurt.svg" },
+      { name: "Futury",
+        text: "Frankfurt-based venture builder turning talent and ideas into start-ups.",
+        logo: "/images/partners/futury-icon.png" },
+      { name: "Goethe University Frankfurt",
+        text: "Frankfurt's largest university and the academic home of the chapter.",
+        logo: "/images/universities/goethe-uni-icon.svg" },
+      { name: "Nordic Capital", wide: true,
+        text: "Leading private equity investor with a strong focus on healthcare and technology.",
+        logo: "/images/partners/nordic-capital.svg" },
     ],
     displayName: "Frankfurt",
     coords:      { lon: 8.6821, lat: 50.1109 },
