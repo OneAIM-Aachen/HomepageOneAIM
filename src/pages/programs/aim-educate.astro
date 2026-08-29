@@ -1,17 +1,17 @@
 ---
 // src/pages/programs/aim-educate.astro
 //
-// Dedizierte AIM-Educate-Seite (Entwurf 1a, "AIM Educate Page Options":
-// Light editorial, passend zu den anderen Programmseiten). Ersetzt die
-// generische Programmseite aus [program].astro (dort ausgenommen).
+// Dedicated AIM Educate page (draft 1a, "AIM Educate Page Options":
+// light editorial, matching the other program pages). Replaces the
+// generic program page from [program].astro (excluded there).
 //
-// Bänder:
-//   ① Hero            – hellblaues Band, Foto rechts, CTAs
+// Bands:
+//   ① Hero            – light blue band, photo on the right, CTAs
 //   ② What it is
-//   ③ Upcoming events – automatisch aus eventsData.ts (Datum ≥ heute),
-//                       sonst Leerzustand
-//   ④ Past events     – horizontal scrollbare Karten aus eventsData.ts
-//   ⑤ Never miss      – Instagram je Standort (cityData.ts) + LinkedIn
+//   ③ Upcoming events – automatically from eventsData.ts (date ≥ today),
+//                       otherwise empty state
+//   ④ Past events     – horizontally scrollable cards from eventsData.ts
+//   ⑤ Never miss      – Instagram per location (cityData.ts) + LinkedIn
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { cities, cityData } from "../../data/cityData";
@@ -22,7 +22,7 @@ const past     = getPastEvents();
 
 const cityName = (slug?: string) => (slug ? cityData[slug as keyof typeof cityData]?.displayName : undefined);
 
-// Instagram-Buttons je Standort – nur Städte mit hinterlegtem Handle.
+// Instagram buttons per location – only cities with a stored handle.
 const instagramCities = cities.filter(c => c.instagramHref);
 const linkedInHref = "https://www.linkedin.com/company/oneaim";
 ---
@@ -75,7 +75,7 @@ const linkedInHref = "https://www.linkedin.com/company/oneaim";
           </p>
         </section>
 
-        <!-- ③ Upcoming events – automatisch aus eventsData.ts -->
+        <!-- ③ Upcoming events – automatically from eventsData.ts -->
         <section class="ace__upcoming" id="upcoming" aria-labelledby="ace-upcoming">
           <div class="ace__section-head">
             <p class="ace__overline">Coming up</p>
@@ -111,7 +111,7 @@ const linkedInHref = "https://www.linkedin.com/company/oneaim";
           )}
         </section>
 
-        <!-- ④ Past events – horizontal scrollbar -->
+        <!-- ④ Past events – horizontally scrollable -->
         <section class="ace__past" id="past" aria-labelledby="ace-past">
           <div class="ace__past-head">
             <div class="ace__section-head">
@@ -144,7 +144,7 @@ const linkedInHref = "https://www.linkedin.com/company/oneaim";
           </div>
         </section>
 
-        <!-- ⑤ Never miss an event – Instagram je Standort -->
+        <!-- ⑤ Never miss an event – Instagram per location -->
         <section class="ace__follow" aria-labelledby="ace-follow">
           <div class="ace__follow-copy">
             <h2 id="ace-follow" class="ace__follow-title">Never miss an event</h2>
@@ -170,7 +170,7 @@ const linkedInHref = "https://www.linkedin.com/company/oneaim";
 </BaseLayout>
 
 <style>
-  .ace { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+  .ace { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-12); }
 
   .ace__panel {
     background:     var(--color-bg-surface);
@@ -443,8 +443,8 @@ const linkedInHref = "https://www.linkedin.com/company/oneaim";
 </style>
 
 <script>
-  // Pfeil-Navigation der Past-Events-Reihe: scrollt um eine Kartenbreite,
-  // an den Enden wird der jeweilige Pfeil deaktiviert.
+  // Arrow navigation for the past-events row: scrolls by one card width,
+  // at the ends the respective arrow is disabled.
   const row  = document.querySelector<HTMLElement>("[data-past-row]");
   const prev = document.querySelector<HTMLButtonElement>("[data-past-prev]");
   const next = document.querySelector<HTMLButtonElement>("[data-past-next]");
@@ -452,7 +452,7 @@ const linkedInHref = "https://www.linkedin.com/company/oneaim";
   if (row && prev && next) {
     const step = () => {
       const card = row.querySelector<HTMLElement>(".ace__past-card");
-      return (card?.offsetWidth ?? 300) + 20; // Kartenbreite + gap
+      return (card?.offsetWidth ?? 300) + 20; // card width + gap
     };
 
     function update() {

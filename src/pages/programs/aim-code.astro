@@ -1,20 +1,20 @@
 ---
 // src/pages/programs/aim-code.astro
 //
-// Dedizierte AIM-Code-Seite (Entwurf 1a, "AIM Code Page Options":
-// Light editorial, passend zur AIM-Connect-Seite). Ersetzt die
-// generische Programmseite aus [program].astro (dort ausgenommen).
+// Dedicated AIM Code page (draft 1a, "AIM Code Page Options":
+// light editorial, matching the AIM Connect page). Replaces the
+// generic program page from [program].astro (excluded there).
 //
-// Bänder:
-//   ① Hero            – hellblaues Band, Foto rechts, CTAs
-//   ② Why AIM Code    – Heading + 94%-Statistik + vier Vorteils-Karten
+// Bands:
+//   ① Hero            – light blue band, photo on the right, CTAs
+//   ② Why AIM Code    – heading + 94% statistic + four benefit cards
 //   ③ Our courses     – AIM DataLab (Beginner) / AIM CodeLab (Advanced)
-//   ④ Registrations   – EINE Karte je Standort, automatisch aus
+//   ④ Registrations   – ONE card per location, automatically from
 //                       applications.ts (program "aim-code")
 //
-// Registrierungs-Karten wie auf der Connect-Seite: neue Runde mit
-// program: "aim-code" in applications.ts anlegen → erscheint hier
-// automatisch (offen / öffnet am … / in Planung).
+// Registration cards like on the Connect page: create a new round with
+// program: "aim-code" in applications.ts → it appears here
+// automatically (open / opens on … / in planning).
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ApplicationCard from "../../components/ApplicationCard.astro";
@@ -141,7 +141,7 @@ type CardState = "open" | "upcoming" | "planned";
           </div>
         </section>
 
-        <!-- ④ Registrations – automatisch aus applications.ts -->
+        <!-- ④ Registrations – automatically from applications.ts -->
         <section class="acd__register" id="register" aria-labelledby="acd-register">
           <div class="acd__register-head">
             <p class="acd__overline">Open registrations</p>
@@ -165,7 +165,7 @@ type CardState = "open" | "upcoming" | "planned";
 </BaseLayout>
 
 <style>
-  .acd { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+  .acd { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-12); }
 
   .acd__panel {
     background:     var(--color-bg-surface);

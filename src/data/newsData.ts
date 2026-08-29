@@ -1,67 +1,67 @@
 // src/data/newsData.ts
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// Einzige Datenquelle für alle News-Beiträge.
+// Single data source for all news posts.
 //
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  NEUEN BEITRAG ERGÄNZEN – zwei Schritte:                                 ║
+// ║  ADDING A NEW POST – two steps:                                          ║
 // ║                                                                          ║
-// ║  1. Bild nach public/images/news/ legen (optional, aber empfohlen)       ║
-// ║  2. Einen Eintrag in das Array unten schreiben – Position egal,          ║
-// ║     sortiert wird automatisch nach `date` (neueste zuerst).              ║
-// ║     Der Volltext gehört in `body` (ein String je Absatz).                ║
+// ║  1. Put the image into public/images/news/ (optional, but recommended)   ║
+// ║  2. Write an entry into the array below – position does not matter,      ║
+// ║     sorting happens automatically by `date` (newest first).              ║
+// ║     The full text belongs in `body` (one string per paragraph).          ║
 // ║                                                                          ║
-// ║  Danach passiert von selbst:                                             ║
-// ║    • der neueste Beitrag wird zur großen Aufmacher-Story                 ║
-// ║    • die drei folgenden erscheinen im Karten-Raster                      ║
-// ║    • alle älteren rutschen in die Liste "Older news"                     ║
-// ║    • die Filterleiste kennt Stadt und Programm automatisch               ║
-// ║    • unter /news/<id> entsteht automatisch die Artikelseite              ║
+// ║  After that, the following happens automatically:                        ║
+// ║    • the newest post becomes the big lead story                          ║
+// ║    • the next three appear in the card grid                              ║
+// ║    • all older ones move into the "Older news" list                      ║
+// ║    • the filter bar knows city and program automatically                 ║
+// ║    • the article page is created automatically under /news/<id>          ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 //
-// WICHTIG zu den Feldern `cities` und `programs`:
-// Dort stehen SLUGS, keine Anzeigenamen. Die Beschriftung der Filter kommt
-// aus den kanonischen Quellen (navData.ts bzw. programs.ts) – so heißt eine
-// Stadt überall gleich und ein neuer Standort taucht ohne Zutun im Filter auf.
-//   Städte:    "munich" | "aachen" | "frankfurt"   (siehe navData.ts)
-//   Programme: "aim-connect" | "aim-code" | "aim-innovate" | …  (programs.ts)
+// IMPORTANT about the fields `cities` and `programs`:
+// They contain SLUGS, not display names. The filter labels come from the
+// canonical sources (navData.ts and programs.ts) – that way a city is named
+// the same everywhere and a new location shows up in the filter automatically.
+//   Cities:    "munich" | "aachen" | "frankfurt"   (see navData.ts)
+//   Programs:  "aim-connect" | "aim-code" | "aim-innovate" | …  (programs.ts)
 //
-// `tags` ist für alles Übrige gedacht (Makeathon, Partnership, Workshop …).
-// Diese Tags erscheinen auf den Karten, aber nicht als eigene Filter.
+// `tags` is meant for everything else (Makeathon, Partnership, Workshop …).
+// These tags appear on the cards, but not as their own filters.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Kanonische Slugs liegen in cityData.ts (Standort-Datenbank) und werden
-// hier nur re-exportiert, damit bestehende Importe weiter funktionieren.
+// Canonical slugs live in cityData.ts (location database) and are only
+// re-exported here so that existing imports keep working.
 import type { CitySlug } from "./cityData";
 export type { CitySlug };
 
 export interface NewsItem {
-  /** Eindeutiger Bezeichner (URL-sicher) */
+  /** Unique identifier (URL-safe) */
   id: string;
-  /** Titel des Beitrags */
+  /** Title of the post */
   title: string;
-  /** ISO-Datum YYYY-MM-DD – bestimmt Sortierung und Jahresfilter */
+  /** ISO date YYYY-MM-DD – determines sorting and the year filter */
   date: string;
-  /** Kurzbeschreibung / Teaser – erscheint auf Karten und in der Vorschau */
+  /** Short description / teaser – appears on cards and in the preview */
   excerpt: string;
   /**
-   * Volltext des Beitrags, ein Eintrag je Absatz.
-   * Fehlt das Feld, zeigt die Artikelseite nur den Teaser.
+   * Full text of the post, one entry per paragraph.
+   * If the field is missing, the article page shows only the teaser.
    */
   body?: string[];
-  /** Pfad zum Bild (relativ zu /public) */
+  /** Path to the image (relative to /public) */
   image?: string;
   imageAlt?: string;
-  /** Standorte, auf die sich der Beitrag bezieht (Slugs) */
+  /** Locations the post relates to (slugs) */
   cities?: CitySlug[];
-  /** Programme, auf die sich der Beitrag bezieht (Slugs aus programs.ts) */
+  /** Programs the post relates to (slugs from programs.ts) */
   programs?: string[];
-  /** Freie Zusatz-Tags – erscheinen auf der Karte, sind aber kein Filter */
+  /** Free-form extra tags – appear on the card, but are not a filter */
   tags?: string[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// News-Beiträge
+// News posts
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const newsItems: NewsItem[] = [
@@ -218,26 +218,26 @@ export const newsItems: NewsItem[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hilfsfunktionen
+// Helper functions
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Alle Beiträge, neueste zuerst. */
+/** All posts, newest first. */
 export function getSortedNews(): NewsItem[] {
   return [...newsItems].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 }
 
-/** Die N neuesten Beiträge (z. B. für eine "Latest News"-Sektion). */
+/** The N newest posts (e.g. for a "Latest News" section). */
 export function getLatestNews(count = 3): NewsItem[] {
   return getSortedNews().slice(0, count);
 }
 
 /**
- * Die neuesten Beiträge zu einem Standort – speist das News-Band auf den
- * Standortseiten (CityBlueprint.astro). Gefiltert wird über das Feld
- * `cities`, sortiert nach Datum. Ein neuer Beitrag mit passendem Slug
- * erscheint dort damit automatisch, ohne die Seite anzufassen.
+ * The newest posts for a location – feeds the news band on the
+ * location pages (CityBlueprint.astro). Filtering happens via the
+ * `cities` field, sorted by date. A new post with a matching slug
+ * therefore appears there automatically, without touching the page.
  */
 export function getNewsByCity(city: CitySlug, count = 2): NewsItem[] {
   return getSortedNews()
@@ -245,14 +245,14 @@ export function getNewsByCity(city: CitySlug, count = 2): NewsItem[] {
     .slice(0, count);
 }
 
-/** Die neuesten Beiträge zu einem Programm (Slug aus programs.ts) – für die Programmseiten. */
+/** The newest posts for a program (slug from programs.ts) – for the program pages. */
 export function getNewsByProgram(program: string, count = 3): NewsItem[] {
   return getSortedNews()
     .filter(item => item.programs?.includes(program))
     .slice(0, count);
 }
 
-/** Alle im Bestand vorkommenden Jahre, absteigend – für den Jahresfilter. */
+/** All years occurring in the data, descending – for the year filter. */
 export function getNewsYears(): number[] {
   const years = new Set(newsItems.map(n => Number(n.date.slice(0, 4))));
   return [...years].sort((a, b) => b - a);

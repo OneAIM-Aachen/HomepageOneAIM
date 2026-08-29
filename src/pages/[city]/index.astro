@@ -1,17 +1,17 @@
 ---
 // src/pages/[city]/index.astro
 //
-// Standortseite – erzeugt automatisch eine Seite pro Eintrag in der
-// Standort-Datenbank (src/data/cityData.ts), aktuell /munich, /aachen
-// und /frankfurt.
+// City page – automatically generates one page per entry in the
+// city database (src/data/cityData.ts), currently /munich, /aachen
+// and /frankfurt.
 //
-// Die Seite besteht nur aus der Blaupause CityBlueprint.astro. Alle
-// Inhalte kommen aus den zentralen Datenbanken:
-//   • cityData.ts     – Hero-Foto, Uni, Instagram, Gründungsjahr, Story …
-//   • applications.ts – Bewerbungskarte + "Coming up"-Zeile
-//   • newsData.ts     – News-Band
-//   • teamData.ts     – Team-Karussell
-// Solange Felder in cityData.ts fehlen, zeigt die Blaupause Platzhalter.
+// The page consists only of the blueprint CityBlueprint.astro. All
+// content comes from the central databases:
+//   • cityData.ts     – hero photo, university, Instagram, founding year, story …
+//   • applications.ts – application card + "Coming up" line
+//   • newsData.ts     – news band
+//   • teamData.ts     – team carousel
+// As long as fields are missing in cityData.ts, the blueprint shows placeholders.
 
 import BaseLayout     from "../../layouts/BaseLayout.astro";
 import CityBlueprint  from "../../components/sections/CityBlueprint.astro";

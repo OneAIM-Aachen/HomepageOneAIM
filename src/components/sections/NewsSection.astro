@@ -1,13 +1,13 @@
 ---
 // src/components/sections/NewsSection.astro
 //
-// News-Band am Ende der Startseite – gleiche Kartenoptik wie das
-// "News from {City}"-Band der Standortseiten (CityBlueprint), aber
-// standortübergreifend: die neuesten Beiträge aus newsData.ts.
+// News band at the end of the homepage – same card look as the
+// "News from {City}" band of the location pages (CityBlueprint), but
+// cross-location: the latest posts from newsData.ts.
 
 import { getSortedNews } from "../../data/newsData";
 
-// Alle Beiträge, neueste zuerst – sichtbar sind zwei, die Pfeile blättern.
+// All posts, newest first – two are visible, the arrows page through.
 const news = getSortedNews();
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", {
@@ -48,7 +48,7 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
 <style>
   .lnews {
     background:    var(--color-bg-surface);
-    padding-block: var(--space-6) var(--space-24);
+    padding-block: var(--space-6) var(--space-12);
   }
 
   .lnews__panel {
@@ -84,7 +84,7 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
 
   .lnews__grid::-webkit-scrollbar { display: none; }
 
-  /* Zwei Karten sichtbar, die Pfeile blättern durch den Rest */
+  /* Two cards visible, the arrows page through the rest */
   .lnews__card {
     flex:              0 0 calc(50% - var(--space-6) / 2);
     scroll-snap-align: start;
@@ -96,7 +96,7 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
 
   .lnews__head-right { display: flex; align-items: center; gap: 12px; }
 
-  /* Mobil bricht die Kopfzeile um – dann Link links, Pfeile rechts */
+  /* On mobile the head row wraps – then link on the left, arrows on the right */
   @media (max-width: 760px) {
     .lnews__head-right {
       width:           100%;
@@ -165,7 +165,7 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
 
 <script is:inline>
   (function () {
-    // Das Script steht im DOM NACH der Section – closest() griffe ins Leere.
+    // The script sits in the DOM AFTER the section – closest() would come up empty.
     var root = document.querySelector(".lnews");
     if (!root) return;
     var row = root.querySelector("[data-lnews-row]");

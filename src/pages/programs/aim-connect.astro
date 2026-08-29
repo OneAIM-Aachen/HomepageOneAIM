@@ -1,25 +1,25 @@
 ---
 // src/pages/programs/aim-connect.astro
 //
-// Dedizierte AIM-Connect-Seite (Entwurf 1a, "AIM Connect Page Options":
-// Light editorial). Ersetzt die generische Programmseite aus
-// [program].astro (dort per Filter ausgenommen).
+// Dedicated AIM Connect page (draft 1a, "AIM Connect Page Options":
+// light editorial). Replaces the generic program page from
+// [program].astro (excluded there via filter).
 //
-// Bänder:
-//   ① Hero            – hellblaues Band, Foto rechts, CTAs
-//   ② What it is      – Text + Fakten-Pills
-//   ③ Components      – drei Karten (Kickoff / Visits / Makeathon)
-//   ④ Exemplary       – drei Karten mit Detailboxen, rotiert alle 5 s
-//   ⑤ Applications    – EINE Karte je Standort, automatisch aus
-//                       applications.ts: Runde mit program "aim-connect"
-//                       und passender Stadt → offen/kommend/geplant.
+// Bands:
+//   ① Hero            – light blue band, photo on the right, CTAs
+//   ② What it is      – text + fact pills
+//   ③ Components      – three cards (Kickoff / Visits / Makeathon)
+//   ④ Exemplary       – three cards with detail boxes, rotates every 5 s
+//   ⑤ Applications    – ONE card per location, automatically from
+//                       applications.ts: round with program "aim-connect"
+//                       and matching city → open/upcoming/planned.
 //
-// Bewerbungslogik (Wunsch: alles automatisch aus der Datenbank):
-//   • Neue Runde in applications.ts mit program: "aim-connect" anlegen –
-//     sie erscheint hier ohne weitere Änderung in der Stadt-Karte.
-//   • Offen      → "Applications open", Deadline, Apply-Button
-//   • Kommend    → "Opens [date]" mit Datum aus opensAt
-//   • Keine/vorbei → "Applications starting soon"
+// Application logic (goal: everything automatic from the database):
+//   • Create a new round in applications.ts with program: "aim-connect" –
+//     it appears here in the city card without further changes.
+//   • Open        → "Applications open", deadline, apply button
+//   • Upcoming    → "Opens [date]" with date from opensAt
+//   • None/past   → "Applications starting soon"
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ApplicationCard from "../../components/ApplicationCard.astro";
@@ -35,10 +35,10 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
 });
 const shortFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" });
 
-// Eine Karte je Standort – Zustand aus der Bewerbungs-Datenbank abgeleitet.
+// One card per location – state derived from the applications database.
 type CardState = "open" | "upcoming" | "planned";
 
-// FAQ – übernommen von der alten Programmseite (one-aim.org/program).
+// FAQ – taken over from the old program page (one-aim.org/program).
 const faqs: { q: string; a: string }[] = [
   { q: "Who can apply to AIM Connect?",
     a: "AIM Connect is open to students from all disciplines who have a genuine interest in HealthTech and healthcare innovation. Whether you're studying medicine, engineering, business, or any other field, we welcome your unique perspective." },
@@ -306,7 +306,7 @@ const faqs: { q: string; a: string }[] = [
           </div>
         </section>
 
-        <!-- ⑤ Applications by city – automatisch aus applications.ts -->
+        <!-- ⑤ Applications by city – automatically from applications.ts -->
         <section class="acp__apply" id="apply" aria-labelledby="acp-apply">
           <div class="acp__apply-head">
             <p class="acp__overline">Open applications</p>
@@ -319,7 +319,7 @@ const faqs: { q: string; a: string }[] = [
           </div>
         </section>
 
-        <!-- ⑥ FAQ – von der alten Programmseite übernommen -->
+        <!-- ⑥ FAQ – taken over from the old program page -->
         <section class="acp__faq" aria-labelledby="acp-faq">
           <div class="acp__faq-head">
             <p class="acp__overline">FAQ</p>
@@ -344,9 +344,9 @@ const faqs: { q: string; a: string }[] = [
 </BaseLayout>
 
 <style>
-  .acp { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+  .acp { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-12); }
 
-  /* CSS mit display-Wert schlägt das hidden-Attribut – daher der Riegel. */
+  /* CSS with a display value beats the hidden attribute – hence this guard. */
   .acp [hidden] { display: none !important; }
 
   .acp__panel {
@@ -376,7 +376,7 @@ const faqs: { q: string; a: string }[] = [
 
   .acp__h2--blue { color: #232ACF; }
 
-  /* Ablagefläche für noch fehlende Fotos. */
+  /* Placeholder area for photos that are still missing. */
   .acp__slot {
     display:         flex;
     align-items:     center;
@@ -568,10 +568,10 @@ const faqs: { q: string; a: string }[] = [
 
   .acp__sem-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
 
-  /* Karten + Detailboxen in EINEM Grid: am Desktop stehen die drei
-     Karten in Zeile 1, die jeweils sichtbare Box spannt darunter über
-     alle Spalten. Mobil (einspaltig) folgt jede Box direkt auf ihre
-     Karte – Quellreihenfolge ist Karte→Box je Paar. */
+  /* Cards + detail boxes in ONE grid: on desktop the three cards sit
+     in row 1, and the currently visible box spans all columns below
+     them. On mobile (single column) each box directly follows its
+     card – source order is card→box per pair. */
   .acp__sem-flow {
     display:               grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -828,7 +828,7 @@ const faqs: { q: string; a: string }[] = [
     .acp__what { grid-template-columns: minmax(0, 1fr); }
     .acp__comp-grid, .acp__apply-grid { grid-template-columns: minmax(0, 1fr); }
     .acp__sem-flow { grid-template-columns: minmax(0, 1fr); }
-    /* Einspaltig: Quellreihenfolge (Karte, dann ihre Box) gilt wieder. */
+    /* Single column: source order (card, then its box) applies again. */
     .acp__sem-card:nth-of-type(1),
     .acp__sem-card:nth-of-type(2),
     .acp__sem-card:nth-of-type(3) { grid-column: auto; grid-row: auto; }
@@ -838,9 +838,9 @@ const faqs: { q: string; a: string }[] = [
 </style>
 
 <script>
-  // "Exemplary semester": genau eine Detailbox sichtbar. Rotiert alle 5 s
-  // automatisch weiter; sobald jemand selbst klickt, stoppt die Rotation.
-  // Erneuter Klick auf die aktive Karte klappt die Box zu.
+  // "Exemplary semester": exactly one detail box visible. Rotates
+  // automatically every 5 s; as soon as someone clicks, rotation stops.
+  // Clicking the active card again collapses the box.
   const cards  = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-sem-pick]"));
   const panels = Array.from(document.querySelectorAll<HTMLElement>("[data-sem-panel]"));
 

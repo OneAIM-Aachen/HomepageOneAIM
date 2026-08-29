@@ -1,17 +1,17 @@
 ---
 // src/pages/news/index.astro
 //
-// News-Übersicht – Umsetzung von Entwurf 6A aus dem Claude-Design-Projekt
-// ("What is OneAIM Options.dc.html", Abschnitt 6A).
+// News overview – implementation of draft 6A from the Claude design project
+// ("What is OneAIM Options.dc.html", section 6A).
 //
-// Aufbau:
-//   1. Kopf + Filterleiste (Alle / Städte / Programme)
-//   2. Aufmacher: der neueste Beitrag, groß mit Foto
-//   3. Raster: die drei folgenden Beiträge
-//   4. "Older news": alle weiteren als kompakte Zeilenliste
+// Structure:
+//   1. Header + filter bar (all / cities / programs)
+//   2. Feature: the latest post, large with photo
+//   3. Grid: the next three posts
+//   4. "Older news": all remaining posts as a compact row list
 //
-// Neue Beiträge werden ausschließlich in src/data/newsData.ts gepflegt –
-// diese Datei muss dafür nicht angefasst werden.
+// New posts are maintained exclusively in src/data/newsData.ts –
+// this file does not need to be touched for that.
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSortedNews, getNewsYears } from "../../data/newsData";
@@ -24,22 +24,22 @@ const recent  = rest.slice(0, 3);
 const archive = rest.slice(3);
 const years   = getNewsYears();
 
-// Nur für die Beschriftung der Stadt-Chips auf den Karten. Die Städte
-// kommen aus navData.locationItems, damit ein Standort überall gleich heißt.
+// Only for labeling the city chips on the cards. The cities come from
+// navData.locationItems so that a chapter is named the same everywhere.
 const cityFilters = locationItems.map(item => ({
   slug:  item.href.replace(/^\//, ""),
   label: item.label,
 }));
 
-// Nur noch für die Beschriftung der Programm-Chips auf den Karten –
-// die Filterleiste enthält bewusst keine Programme mehr.
+// Only used for labeling the program chips on the cards anymore –
+// the filter bar deliberately no longer contains programs.
 const programFilters = programs.map(p => ({ slug: p.slug, label: p.name }));
 
-// Anzeigenamen für die Chips auf den Karten
+// Display names for the chips on the cards
 const cityLabel = new Map(cityFilters.map(c => [c.slug, c.label]));
 const programLabel = new Map(programFilters.map(p => [p.slug, p.label]));
 
-// Englische Datumsformate – die Seite ist durchgehend englisch.
+// English date formats – the page is entirely in English.
 const dateFmt = new Intl.DateTimeFormat("en-GB", {
   day: "numeric", month: "long", year: "numeric",
 });
@@ -56,13 +56,13 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
   <section class="news">
     <div class="container news__panel">
 
-      <!-- ① Kopf + Filter -->
+      <!-- ① Header + filters -->
       <header class="news__head">
         <p class="news__overline">Stay up to date</p>
         <h1 class="news__title">News</h1>
       </header>
 
-      <!-- ② Aufmacher -->
+      <!-- ② Feature -->
       {featured && (
         <a class="news__featured" href={`/news/${featured.id}`}>
           {featured.image && (
@@ -86,7 +86,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
         </a>
       )}
 
-      <!-- ③ Raster der nächsten drei -->
+      <!-- ③ Grid of the next three -->
       {recent.length > 0 && (
         <ul class="news__grid">
           {recent.map(item => (
@@ -116,7 +116,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
         </ul>
       )}
 
-      <!-- ④ Archiv -->
+      <!-- ④ Archive -->
       {archive.length > 0 && (
         <section class="news__archive" aria-labelledby="archive-heading">
           <div class="news__archive-head">
@@ -159,9 +159,9 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
 
   <script is:inline>
     (function () {
-      // Einziger Filter auf dieser Seite: das Jahr, und der wirkt nur auf
-      // die Liste "Older news". Aufmacher und Karten-Raster bleiben immer
-      // sichtbar.
+      // The only filter on this page: the year, and it only affects the
+      // "Older news" list. The feature and the card grid always remain
+      // visible.
       var year  = document.getElementById("news-year");
       var empty = document.getElementById("news-empty");
       if (!year) return;
@@ -187,7 +187,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
 <style>
   .news {
     background:    var(--color-bg-page);
-    padding-block: var(--space-12) var(--space-24);
+    padding-block: var(--space-12) var(--space-12);
   }
 
   .news__panel {
@@ -196,7 +196,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
     gap:            var(--space-12);
   }
 
-  /* ── Kopf ─────────────────────────────────────────────────── */
+  /* ── Header ───────────────────────────────────────────────── */
   .news__head {
     display:        flex;
     flex-direction: column;
@@ -217,7 +217,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
     letter-spacing: -0.01em;
   }
 
-  /* ── Aufmacher ────────────────────────────────────────────── */
+  /* ── Feature ──────────────────────────────────────────────── */
   .news__featured {
     position:        relative;
     display:         block;
@@ -285,7 +285,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
     color:       rgba(255, 255, 255, 0.7);
   }
 
-  /* ── Chips auf Karten ─────────────────────────────────────── */
+  /* ── Chips on cards ───────────────────────────────────────── */
   .news__chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
   .news__tag {
@@ -309,7 +309,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
   .news__tag--program { color: var(--color-accent-purple);   background: #F1E5FE; }
   .news__tag--other   { color: var(--color-brand-blue-dark); background: var(--color-brand-blue-light); }
 
-  /* ── Raster ───────────────────────────────────────────────── */
+  /* ── Grid ─────────────────────────────────────────────────── */
   .news__grid {
     display:               grid;
     grid-template-columns: repeat(3, 1fr);
@@ -365,7 +365,7 @@ const dateShort = new Intl.DateTimeFormat("en-GB", {
 
   .news__card-date { font-size: 13px; color: var(--color-text-muted); }
 
-  /* ── Archiv ───────────────────────────────────────────────── */
+  /* ── Archive ──────────────────────────────────────────────── */
   .news__archive-head {
     display:         flex;
     align-items:     baseline;

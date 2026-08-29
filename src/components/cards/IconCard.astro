@@ -1,7 +1,7 @@
 ---
 // src/components/cards/IconCard.astro
-// Wiederverwendbare Karte: Gradient-Icon + Titel + Bullet-Liste.
-// Eingesetzt in "Our Mission" und "Our Approach" auf der Homepage.
+// Reusable card: gradient icon + title + bullet list.
+// Used in "Our Mission" and "Our Approach" on the homepage.
 
 interface Bullet {
   label: string;
@@ -11,7 +11,7 @@ interface Bullet {
 interface Props {
   title: string;
   bullets: Bullet[];
-  iconPath?: string; // optionaler SVG-Pfad, sonst Standard-Punkt-Icon
+  iconPath?: string; // optional SVG path, otherwise default dot icon
 }
 
 const { title, bullets, iconPath } = Astro.props;

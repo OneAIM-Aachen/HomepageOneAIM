@@ -1,46 +1,46 @@
 // src/data/partners.ts
 //
-// Einzige Quelle aller Partner- und Sponsorendaten.
+// Single source of all partner and sponsor data.
 //
 // ╔══════════════════════════════════════════════════════════╗
-// ║  NEUEN PARTNER ERGÄNZEN – zwei Schritte:                 ║
-// ║  1. Logo als SVG/PNG nach public/images/partners/ legen  ║
-// ║  2. Einen Eintrag in das Array unten hinzufügen          ║
-// ║  → Keine Komponente muss angefasst werden.               ║
+// ║  ADDING A NEW PARTNER – two steps:                       ║
+// ║  1. Put the logo as SVG/PNG into public/images/partners/ ║
+// ║  2. Add an entry to the array below                      ║
+// ║  → No component needs to be touched.                     ║
 // ╚══════════════════════════════════════════════════════════╝
 //
-// Das Interface ist absichtlich mit dem CarouselItem-Interface
-// aus Carousel.astro kompatibel, sodass der Mapping-Schritt
-// in PartnersSection.astro minimal bleibt.
+// The interface is intentionally compatible with the CarouselItem
+// interface from Carousel.astro, so that the mapping step
+// in PartnersSection.astro stays minimal.
 
-/** Sponsoren stehen auf /partners in der oberen Liste, Partner darunter. */
+/** Sponsors appear in the upper list on /partners, partners below. */
 export type PartnerType = "partner" | "sponsor";
 
 export interface Partner {
-  /** Eindeutiger Bezeichner (URL-sicher, keine Leerzeichen) */
+  /** Unique identifier (URL-safe, no spaces) */
   id: string;
-  /** Einordnung: "sponsor" oder "partner" – steuert die Gruppe auf /partners */
+  /** Classification: "sponsor" or "partner" – controls the group on /partners */
   type: PartnerType;
   /**
-   * true = erscheint im Logo-Laufband auf der Startseite.
-   * Fehlt das Feld, ist der Eintrag NUR auf /partners zu sehen. Das ist
-   * Absicht: so wächst das Laufband nicht ungewollt mit jedem neuen Eintrag.
+   * true = appears in the logo marquee on the home page.
+   * If the field is missing, the entry is ONLY visible on /partners. This is
+   * intentional: the marquee does not grow unintentionally with each new entry.
    */
   onLanding?: boolean;
-  /** Anzeigename des Partners */
+  /** Display name of the partner */
   name: string;
-  /** Pfad relativ zu /public – wird direkt als <img src> verwendet */
+  /** Path relative to /public – used directly as <img src> */
   logo: string;
-  /** Alt-Text für Screenreader; Standard: "[name] Logo" */
+  /** Alt text for screen readers; default: "[name] Logo" */
   logoAlt?: string;
-  /** Externe Partnerseite (optional – Logo wird dann verlinkt) */
+  /** External partner website (optional – the logo is then linked) */
   website?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Partnerliste
-// HINWEIS: Alle Logos sind aktuell Platzhalter.
-// Echte Logos austauschen: gleichen Dateinamen beibehalten und Datei ersetzen.
+// Partner list
+// NOTE: All logos are currently placeholders.
+// To swap in real logos: keep the same file name and replace the file.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const partners: Partner[] = [
@@ -144,8 +144,8 @@ export const partners: Partner[] = [
   },
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Aus der alten Website (one-aim.org) übernommen, Stand 17.08.2026.
-  // Logos sind die Originaldateien von dort – keine Platzhalter.
+  // Carried over from the old website (one-aim.org), as of 17.08.2026.
+  // Logos are the original files from there – not placeholders.
   // ───────────────────────────────────────────────────────────────────────────
   {
     id: "yzr-capital",
@@ -217,9 +217,9 @@ export const partners: Partner[] = [
     id: "amino-collective",
     type: "partner",
     name: "Amino Collective",
-    // TODO: Ersatz durch ein echtes Logo. Diese Datei ist das Open-Graph-
-    // Banner der alten Website (dunkler Verlauf mit Schrift) – als einziges
-    // Logo im Band mit Hintergrundfläche fällt es optisch aus der Reihe.
+    // TODO: replace with a real logo. This file is the Open Graph
+    // banner of the old website (dark gradient with text) – as the only
+    // logo in the marquee with a background area it visually stands out.
     logo: "/images/partners/amino-collective.jpg",
     logoAlt: "Amino Collective – Logo",
     website: "https://www.aminocollective.com",
@@ -290,8 +290,8 @@ export const partners: Partner[] = [
   },
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Ergänzt am 20.08.2026 – Partnerliste aus dem Team (Munich + Aachen).
-  // Logos von den offiziellen Seiten/Wikimedia geladen; Nutzung freigegeben.
+  // Added on 20.08.2026 – partner list from the team (Munich + Aachen).
+  // Logos downloaded from the official sites/Wikimedia; usage approved.
   // ───────────────────────────────────────────────────────────────────────────
   {
     id: "lmu",
@@ -544,8 +544,8 @@ export const partners: Partner[] = [
     type: "partner",
     name: "Harvard University",
     onLanding: true,
-    // Volles Wortmarken-Logo für die Partner-Übersicht; das Wappen allein
-    // (harvard-shield.svg) bleibt für ikonhafte Verwendungen (Timelines).
+    // Full wordmark logo for the partner overview; the shield alone
+    // (harvard-shield.svg) remains for icon-like uses (timelines).
     logo: "/images/partners/harvard.png",
     logoAlt: "Harvard University – Coat of arms",
     website: "https://hsph.harvard.edu/ala/faculty/leo-anthony-celi/",
@@ -620,14 +620,14 @@ export const partners: Partner[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Abgeleitete Listen – Reihenfolge folgt immer dem Array oben.
+// Derived lists – order always follows the array above.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Nur Sponsoren – obere Liste auf /partners. */
+/** Sponsors only – upper list on /partners. */
 export const sponsors: Partner[] = partners.filter(p => p.type === "sponsor");
 
-/** Nur Partner – untere Liste auf /partners. */
+/** Partners only – lower list on /partners. */
 export const partnersOnly: Partner[] = partners.filter(p => p.type === "partner");
 
-/** Auswahl für das Laufband auf der Startseite (onLanding: true). */
+/** Selection for the marquee on the home page (onLanding: true). */
 export const landingPartners: Partner[] = partners.filter(p => p.onLanding);

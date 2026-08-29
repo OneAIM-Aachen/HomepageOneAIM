@@ -1,27 +1,27 @@
 ---
 // src/components/navigation/Header.astro
 //
-// Globale Navigation – auf jeder Seite über BaseLayout eingebunden.
-// Navigationsstruktur kommt aus navData.ts (Single Source of Truth).
+// Global navigation – included on every page via BaseLayout.
+// Navigation structure comes from navData.ts (single source of truth).
 //
-// Besonderheit "Contact Us":
-//   href="#contact" → Anker-Link, kein Seitennavigation.
-//   isActive() gibt false zurück (Anker ≠ Pfad) → kein aria-current.
-//   Das Mobile-Menü schließt auch bei Hash-Links per JS (siehe <script>).
+// Special case "Contact Us":
+//   href="#contact" → anchor link, no page navigation.
+//   isActive() returns false (anchor ≠ path) → no aria-current.
+//   The mobile menu also closes for hash links via JS (see <script>).
 
 import { globalNavItems as navItems } from "./navData";
 
 const currentPath = new URL(Astro.request.url).pathname;
 
 function isActive(href: string): boolean {
-  // Hash-Links (#...) sind nie "aktiv" im Sinne der aktuellen Seite
+  // Hash links (#...) are never "active" in the sense of the current page
   if (!href || href.startsWith("#")) return false;
   if (href === "/") return currentPath === "/";
   return currentPath === href || currentPath.startsWith(href + "/");
 }
 
-// Ein Gruppeneintrag ("Locations") gilt als aktiv, sobald einer seiner
-// Untereinträge die aktuelle Seite ist.
+// A group entry ("Locations") counts as active as soon as one of its
+// sub-entries is the current page.
 function isGroupActive(item: { children?: { href: string }[] }): boolean {
   return (item.children ?? []).some(child => isActive(child.href));
 }
@@ -41,7 +41,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
       />
     </a>
 
-    <!-- Desktop-Navigation -->
+    <!-- Desktop navigation -->
     <nav class="site-header__nav" aria-label="Hauptnavigation">
       <ul class="site-header__nav-list">
         {navItems.map(item => item.children ? (
@@ -88,7 +88,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
       </ul>
     </nav>
 
-    <!-- Aktionen: LinkedIn-Icon + Burger-Button -->
+    <!-- Actions: LinkedIn icon + burger button -->
     <div class="site-header__actions">
       <a
         href="https://www.linkedin.com/company/oneaim"
@@ -121,7 +121,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     </div>
   </div>
 
-  <!-- Mobile-Navigation (via Burger-Menü) -->
+  <!-- Mobile navigation (via burger menu) -->
   <nav
     id="mobile-nav"
     class="site-header__mobile-nav"
@@ -131,8 +131,8 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     <ul class="site-header__mobile-list">
       {navItems.map(item => item.children ? (
         <li>
-          {/* Kein Dropdown im Mobilmenü: die Standorte stehen direkt
-              untereinander, das spart einen zusätzlichen Tap. */}
+          {/* No dropdown in the mobile menu: the locations are listed
+              directly below each other, saving an extra tap. */}
           <span class="site-header__mobile-group">{item.label}</span>
           <ul>
             {item.children.map(child => (
@@ -164,7 +164,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
 </header>
 
 <style>
-  /* ── Äußerer Header ───────────────────────────────────────── */
+  /* ── Outer header ─────────────────────────────────────────── */
   .site-header {
     position:         sticky;
     top:              0;
@@ -174,7 +174,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     box-shadow:       var(--shadow-header);
   }
 
-  /* ── Innere Zeile: Logo | Nav | Aktionen ──────────────────── */
+  /* ── Inner row: logo | nav | actions ──────────────────────── */
   .site-header__inner {
     display:     flex;
     align-items: center;
@@ -202,7 +202,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     transition: opacity var(--transition-fast);
   }
 
-  /* ── Desktop-Nav ──────────────────────────────────────────── */
+  /* ── Desktop nav ──────────────────────────────────────────── */
   .site-header__nav {
     flex:            1;
     display:         flex;
@@ -230,10 +230,10 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     color: var(--color-brand-blue);
   }
 
-  /* ── Locations-Dropdown ───────────────────────────────────────
-     Öffnet bei Hover, bei Tastaturfokus (:focus-within) und per
-     Klick (.is-open, gesetzt vom Script). Der Klick-Pfad ist für
-     Touch-Geräte nötig, die kein Hover kennen.                    */
+  /* ── Locations dropdown ───────────────────────────────────────
+     Opens on hover, on keyboard focus (:focus-within) and via
+     click (.is-open, set by the script). The click path is needed
+     for touch devices, which have no hover.                       */
   .site-header__dropdown { position: relative; }
 
   .site-header__dropdown-toggle {
@@ -263,8 +263,8 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     left:          50%;
     transform:     translateX(-50%) translateY(-4px);
     min-width:     180px;
-    /* Der Abstand liegt als padding INNEN, damit zwischen Button und
-       Menü keine Lücke entsteht, über der der Hover abreißt. */
+    /* The spacing sits as padding INSIDE, so no gap opens up between
+       button and menu over which the hover would break. */
     margin-top:    0;
     padding:       var(--space-2);
     background:    var(--color-bg-surface);
@@ -305,7 +305,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
 
   .site-header__dropdown-link[aria-current="page"] { color: var(--color-brand-blue); }
 
-  /* ── Aktionen (Icon + Burger) ─────────────────────────────── */
+  /* ── Actions (icon + burger) ──────────────────────────────── */
   .site-header__actions {
     display:     flex;
     align-items: center;
@@ -335,7 +335,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     cursor:        pointer;
   }
 
-  /* ── Mobile-Menü ──────────────────────────────────────────── */
+  /* ── Mobile menu ──────────────────────────────────────────── */
   .site-header__mobile-nav {
     border-top: 1px solid var(--color-border-subtle);
     background: var(--color-bg-surface);
@@ -388,11 +388,11 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
   const toggle    = document.getElementById("menu-toggle");
   const mobileNav = document.getElementById("mobile-nav");
 
-  // ── Locations-Dropdown ─────────────────────────────────────
+  // ── Locations dropdown ─────────────────────────────────────
   //
-  // Hover und Tastaturfokus erledigt CSS. Hier kommt nur der Klick-Pfad
-  // dazu: Touch-Geräte kennen kein Hover, dort wäre das Menü sonst nicht
-  // erreichbar.
+  // Hover and keyboard focus are handled by CSS. Only the click path is
+  // added here: touch devices have no hover, so the menu would otherwise
+  // be unreachable there.
 
   const dropdowns = Array.from(
     document.querySelectorAll<HTMLElement>(".site-header__dropdown")
@@ -416,7 +416,7 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
       closeDropdowns(dropdown);
     });
 
-    // Verlässt der Fokus die Gruppe per Tab, schließt sie wieder.
+    // If focus leaves the group via Tab, it closes again.
     dropdown.addEventListener("focusout", event => {
       const next = event.relatedTarget as Node | null;
       if (next && dropdown.contains(next)) return;
@@ -425,13 +425,13 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     });
   });
 
-  // Klick irgendwo sonst schließt offene Dropdowns.
+  // A click anywhere else closes open dropdowns.
   document.addEventListener("click", event => {
     const target = event.target as Node;
     if (!dropdowns.some(d => d.contains(target))) closeDropdowns();
   });
 
-  // ── Burger-Toggle ──────────────────────────────────────────
+  // ── Burger toggle ──────────────────────────────────────────
 
   function openMenu() {
     mobileNav?.removeAttribute("hidden");
@@ -450,29 +450,29 @@ function isGroupActive(item: { children?: { href: string }[] }): boolean {
     isOpen ? closeMenu() : openMenu();
   });
 
-  // ── Menü schließen wenn Link geklickt ─────────────────────
+  // ── Close menu when a link is clicked ──────────────────────
   //
-  // Bei normalen Links schließt das Menü automatisch durch den
-  // Seitenneulad. Bei Hash-Links (#contact) bleibt die Seite
-  // identisch – daher müssen wir das Menü explizit schließen.
+  // For normal links the menu closes automatically through the
+  // page reload. For hash links (#contact) the page stays the
+  // same – so we have to close the menu explicitly.
 
   mobileNav?.querySelectorAll("a").forEach(link => {
     link.addEventListener("click", () => closeMenu());
   });
 
-  // ── Menü schließen bei Resize auf Desktop-Breite ──────────
+  // ── Close menu on resize to desktop width ─────────────────
 
   window.matchMedia("(min-width: 881px)").addEventListener("change", e => {
     if (e.matches) closeMenu();
   });
 
-  // ── Escape-Taste schließt Menü ─────────────────────────────
+  // ── Escape key closes the menu ─────────────────────────────
 
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
     if (toggle?.getAttribute("aria-expanded") === "true") {
       closeMenu();
-      toggle?.focus();   // Fokus zurück auf den Toggle-Button
+      toggle?.focus();   // Focus back on the toggle button
     }
     closeDropdowns();
   });

@@ -1,7 +1,7 @@
 /* ==========================================================================
-   Globale Basis-Styles — OneAIM
-   Importiert tokens.css. Definiert Reset, Typografie-Hierarchie, Layout-
-   Helfer und Accessibility-Utilities.
+   Global base styles, OneAIM
+   Imports tokens.css. Defines reset, typography hierarchy, layout
+   helpers and accessibility utilities.
    ========================================================================== */
 
 @import "./tokens.css";
@@ -28,14 +28,14 @@ html {
   }
 }
 
-/* ---- Grundstruktur (Sticky Footer) ---- */
+/* ---- Base structure (sticky footer) ---- */
 
 body {
   margin: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  /* Light Blue als Standard-Seitenfarbe, laut Guide bevorzugte BG-Farbe */
+  /* Light Blue as default page color, per the guide the preferred BG color */
   background: var(--color-bg-page);
   color: var(--color-text-body);
   font-family: var(--font-body);
@@ -49,9 +49,9 @@ body {
   flex: 1 0 auto;
 }
 
-/* ---- Typografie-Hierarchie ---- */
-/* Raleway wird ausschließlich verwendet (Style Guide S. 3–4).          */
-/* Farben: Überschriften in Dark Blue (#232ACF), Text in Blaugrau.      */
+/* ---- Typography hierarchy ---- */
+/* Raleway is used exclusively (Style Guide p. 3–4).                    */
+/* Colors: headings in Dark Blue (#232ACF), text in blue-gray.          */
 
 h1, h2, h3, h4 {
   margin: 0;
@@ -66,14 +66,14 @@ h1 { font-size: var(--fs-h1); }
 h2 { font-size: var(--fs-h2); }
 h3 { font-size: var(--fs-h3); }
 
-/* Highlight-Akzent: Teile von Überschriften in AIM Blue hervorheben    */
-/* Verwendung: <span class="text-accent">...</span> in Headings         */
+/* Highlight accent: emphasize parts of headings in AIM Blue            */
+/* Usage: <span class="text-accent">...</span> in headings              */
 .text-accent {
   color: var(--color-brand-blue);  /* AIM Blue #0052E9 */
 }
 
-/* Auf Light-Blue-Hintergründen: Überschriften in Dark Blue             */
-/* (Style Guide S. 8: Dark Blue als Schriftfarbe auf Light Blue)        */
+/* On Light Blue backgrounds: headings in Dark Blue                     */
+/* (Style Guide p. 8: Dark Blue as font color on Light Blue)            */
 .on-brand h1,
 .on-brand h2,
 .on-brand h3 {
@@ -82,7 +82,7 @@ h3 { font-size: var(--fs-h3); }
 
 p {
   margin: 0;
-  font-size: var(--fs-body-lg);   /* Guide: 20px für Body-Text         */
+  font-size: var(--fs-body-lg);   /* Guide: 20px for body text         */
   color: var(--color-text-body);
 }
 
@@ -111,7 +111,7 @@ ul {
   list-style: none;
 }
 
-/* ---- Accessibility: sichtbarer Fokus-Ring überall ---- */
+/* ---- Accessibility: visible focus ring everywhere ---- */
 
 :focus-visible {
   outline: none;
@@ -119,7 +119,7 @@ ul {
   border-radius: var(--radius-sm);
 }
 
-/* ---- Skip-Link ---- */
+/* ---- Skip link ---- */
 
 .skip-link {
   position: absolute;
@@ -139,7 +139,7 @@ ul {
   top: var(--space-4);
 }
 
-/* ---- Layout-Utilities ---- */
+/* ---- Layout utilities ---- */
 
 .container {
   width: 100%;
@@ -148,7 +148,7 @@ ul {
   padding-inline: var(--container-padding);
 }
 
-/* ---- Accessibility: visuell verborgen, für Screenreader sichtbar ---- */
+/* ---- Accessibility: visually hidden, visible to screen readers ---- */
 
 .visually-hidden {
   position: absolute;
@@ -162,8 +162,8 @@ ul {
   border: 0;
 }
 
-/* ---- Karten-Basis (geerbt von allen Card-Komponenten) ---- */
-/* Einheitlicher Schatten und Radius für Cards im gesamten Projekt.     */
+/* ---- Card base (inherited by all card components) ---- */
+/* Uniform shadow and radius for cards across the whole project.        */
 
 .card-base {
   background: var(--color-bg-surface);
@@ -172,7 +172,7 @@ ul {
   border: 1px solid var(--color-border-subtle);
 }
 
-/* ---- Section-Hintergrundvarianten ---- */
+/* ---- Section background variants ---- */
 
 .section--page    { background: var(--color-bg-page);    }
 .section--subtle  { background: var(--color-bg-subtle);  }  /* Light Blue */

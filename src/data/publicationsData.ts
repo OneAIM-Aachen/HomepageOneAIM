@@ -1,39 +1,39 @@
 // src/data/publicationsData.ts
 //
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  NEUE PUBLIKATION ERGÄNZEN – zwei Schritte:                              ║
+// ║  ADDING A NEW PUBLICATION – two steps:                                   ║
 // ║                                                                          ║
-// ║  1. Cover nach public/images/publications/ legen                         ║
-// ║  2. Einen Eintrag in das Array unten schreiben – Position egal,          ║
-// ║     sortiert wird automatisch nach `year` (neueste zuerst).              ║
+// ║  1. Put the cover into public/images/publications/                       ║
+// ║  2. Write an entry into the array below – position does not matter,      ║
+// ║     sorting happens automatically by `year` (newest first).              ║
 // ║                                                                          ║
-// ║  Danach passiert von selbst:                                             ║
-// ║    • die neueste Publikation wird zum Spotlight oben auf /publications   ║
-// ║    • alle weiteren erscheinen in der Liste "All publications"            ║
-// ║    • unter /publications/<id> entsteht die Detailseite                   ║
+// ║  After that, the following happens automatically:                        ║
+// ║    • the newest publication becomes the spotlight at the top of          ║
+// ║      /publications; all others appear in the "All publications" list     ║
+// ║    • the detail page is created under /publications/<id>                 ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 //
-// `id` ist zugleich das URL-Segment – bitte englisch und URL-sicher halten.
+// `id` is also the URL segment – please keep it English and URL-safe.
 
 export interface Publication {
-  /** Eindeutiger Bezeichner – wird zur URL /publications/<id> */
+  /** Unique identifier – becomes the URL /publications/<id> */
   id: string;
   title: string;
-  /** Namen immer als "V. Nachname" – erster Buchstabe des Vornamens, Punkt, Nachname. */
+  /** Names always as "F. Lastname" – first letter of the first name, dot, last name. */
   authors: string[];
   year: number;
-  /** Kurzbeschreibung – erscheint im Spotlight und in der Liste */
+  /** Short description – appears in the spotlight and in the list */
   description: string;
-  /** Pfad zum Cover (relativ zu /public) */
+  /** Path to the cover (relative to /public) */
   image: string;
   imageAlt?: string;
-  /** Art der Veröffentlichung, z. B. "Book", "Course material", "Paper" */
+  /** Kind of publication, e.g. "Book", "Course material", "Paper" */
   kind?: string;
-  /** Label für das Spotlight, z. B. "New release" */
+  /** Label for the spotlight, e.g. "New release" */
   badge?: string;
-  /** Externer Bezugslink (Verlag, DOI, Download) */
+  /** External link (publisher, DOI, download) */
   link?: { label: string; href: string };
-  /** Volltext der Detailseite, ein Eintrag je Absatz */
+  /** Full text of the detail page, one entry per paragraph */
   body?: string[];
 }
 
@@ -56,24 +56,9 @@ export const publications: Publication[] = [
       "Published as \"Künstliche Intelligenz in der Medizin: Anwendungen, Algorithmen und Programmierung\" by Urban & Fischer / Elsevier (ISBN 978-3-437-41208-0).",
     ],
   },
-  {
-    id:          "ml-medical-imaging-2025",
-    title:       "Machine learning in medical imaging: an introduction for students",
-    authors:     ["S. Bauer", "F. Schmidt", "M. Lindner"],
-    year:        2025,
-    kind:        "Course material",
-    description: "Supplementary material from the AIM Code bootcamp on the fundamentals of image classification and AI-assisted diagnosis.",
-    image:       "/images/publications/pub-2.svg",
-    imageAlt:    "Cover: machine learning in medical imaging (placeholder)",
-    body: [
-      "This is the written companion to the imaging module of the AIM Code bootcamp. It assumes no prior background in machine learning and starts from what an image actually is to a model.",
-      "The material works through image classification on real diagnostic datasets: preparing data, training a first model, and, the part most introductions skip, reading the result honestly. Class imbalance, leakage between training and test sets, and metrics that flatter a model are covered as first-class topics rather than footnotes.",
-      "A closing section deals with what changes when a model is intended for clinical use: how performance claims are evaluated, and why a strong test score is the beginning of the argument rather than the end of it.",
-    ],
-  },
 ];
 
-/** Alle Publikationen, neueste zuerst (nach Jahr absteigend). */
+/** All publications, newest first (by year, descending). */
 export function getSortedPublications(): Publication[] {
   return [...publications].sort((a, b) => b.year - a.year);
 }

@@ -1,148 +1,148 @@
 // src/data/cityData.ts
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// Standort-Datenbank – einzige Quelle für alles Standortspezifische.
+// Location database – single source for everything location-specific.
 //
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  NEUEN STANDORT ERGÄNZEN – ein Schritt:                                  ║
+// ║  ADDING A NEW LOCATION – one step:                                       ║
 // ║                                                                          ║
-// ║  Slug zum Typ CitySlug hinzufügen und einen Eintrag in `cityData`        ║
-// ║  schreiben. Danach passiert von selbst:                                  ║
-// ║    • die Seite /<slug> entsteht (Blaupause mit Platzhaltern)             ║
-// ║    • der Standort erscheint im "Locations"-Dropdown der Kopfzeile        ║
-// ║    • der Pin erscheint auf der Karte der Startseite                      ║
-// ║    • der Städte-Zähler im Hero zählt hoch                                ║
-// ║    • News-/Bewerbungs-/Team-Einträge können den Slug verwenden           ║
+// ║  Add the slug to the CitySlug type and write an entry in `cityData`.     ║
+// ║  After that, the following happens automatically:                        ║
+// ║    • the page /<slug> is created (blueprint with placeholders)           ║
+// ║    • the location appears in the header's "Locations" dropdown           ║
+// ║    • the pin appears on the home page map                                ║
+// ║    • the city counter in the hero counts up                              ║
+// ║    • news/application/team entries can use the slug                      ║
 // ║                                                                          ║
-// ║  Optionale Felder leer lassen → die Blaupause zeigt Platzhalter.         ║
+// ║  Leave optional fields empty → the blueprint shows placeholders.         ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 //
-// Die Inhalte der Standortseite kommen aus DREI Schichten (in dieser
-// Reihenfolge): explizite Props an <CityBlueprint /> → dieser Eintrag hier
-// → eckige Platzhalter. Bewerbungen, News und Team füllen sich weiterhin
-// automatisch aus applications.ts, newsData.ts und teamData.ts.
+// The content of a location page comes from THREE layers (in this
+// order): explicit props on <CityBlueprint /> → this entry here
+// → bracketed placeholders. Applications, news and team still fill in
+// automatically from applications.ts, newsData.ts and teamData.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Zeile der Programm-Timeline ("How the last batch went" im Connect-Panel). */
+/** Row of the program timeline ("How the last batch went" in the Connect panel). */
 export interface TimelineRow {
   date: string;
   title: string;
   text: string;
-  /** "hollow" = Bewerbungsschritt, "filled" = Termin, "accent" = Höhepunkt */
+  /** "hollow" = application step, "filled" = scheduled event, "accent" = highlight */
   dot?: "hollow" | "filled" | "accent";
   partners?: { name: string; detail?: string; logo?: string; wide?: boolean }[];
 }
 
-/** Gesicherter Partner der kommenden Runde (Connect-Panel, "Already on board"). */
+/** Confirmed partner of the upcoming round (Connect panel, "Already on board"). */
 export interface SecuredPartner {
   name: string;
   text: string;
-  /** Weiße Chips in der Detailkarte, z. B. ["Company visit", "Name · Position"] */
+  /** White chips in the detail card, e.g. ["Company visit", "Name · Position"] */
   chips?: string[];
   logo?: string;
-  /** true = breite Logo-Kachel für Wortmarken (statt quadratisch) */
+  /** true = wide logo tile for wordmarks (instead of square) */
   wide?: boolean;
 }
 
-/** Kanonische Standort-Slugs – überall im Projekt dieselben. */
+/** Canonical location slugs – the same everywhere in the project. */
 export type CitySlug = "munich" | "aachen" | "frankfurt";
 
 export interface CityData {
   slug: CitySlug;
-  /** Anzeigename, z. B. "Munich" */
+  /** Display name, e.g. "Munich" */
   displayName: string;
 
-  // ── Karte auf der Startseite (MapHero) ─────────────────────
-  /** Koordinaten des Pins */
+  // ── Map on the home page (MapHero) ─────────────────────────
+  /** Coordinates of the pin */
   coords: { lon: number; lat: number };
-  /** Kurzlabel unter dem Pin, z. B. "RWTH" oder "LMU · TUM" */
+  /** Short label under the pin, e.g. "RWTH" or "LMU · TUM" */
   uniShort: string;
 
-  // ── Hero der Standortseite (Entwurf 15A) ───────────────────
+  // ── Hero of the location page (draft 15A) ──────────────────
   heroImage?: string;
   heroImageAlt?: string;
-  /** Logo der Universität – weißer Chip im Hero */
+  /** University logo – white chip in the hero */
   universityLogo?: string;
   /**
-   * Mehrere Hochschul-Logos – je ein weißer Chip im Hero, in dieser
-   * Reihenfolge. Hat Vorrang vor `universityLogo` (Einzel-Logo).
+   * Multiple university logos – one white chip each in the hero, in this
+   * order. Takes precedence over `universityLogo` (single logo).
    */
   universityLogos?: { src: string; alt: string }[];
-  /** Voller Name der Universität – Alt-Text bzw. Ersatz ohne Logo */
+  /** Full name of the university – alt text or fallback without a logo */
   university?: string;
-  /** Instagram-Handle, z. B. "@oneaim.munich" */
+  /** Instagram handle, e.g. "@oneaim.munich" */
   instagram?: string;
   instagramHref?: string;
-  /** Kontakt-E-Mail des Standorts – erscheint auf /contact */
+  /** Contact e-mail of the location – appears on /contact */
   contactEmail?: string;
 
-  // ── Programm-Panel (Entwurf 6a) ────────────────────────────
-  /** Foto neben dem AIM-Connect-Intro ("AIM Connect is an exclusive …") */
+  // ── Program panel (draft 6a) ───────────────────────────────
+  /** Photo next to the AIM Connect intro ("AIM Connect is an exclusive …") */
   connectImage?: string;
   connectImageAlt?: string;
-  /** Rückblick "How the last batch went" – ersetzt die Platzhalter-Timeline */
+  /** Recap "How the last batch went" – replaces the placeholder timeline */
   connectPastTimeline?: TimelineRow[];
-  /** Beschriftung des Rückblick-Umschalters (Standard: "How the last batch went") */
+  /** Label of the recap toggle (default: "How the last batch went") */
   connectPastToggleLabel?: string;
-  /** Hinweistext über dem Rückblick, z. B. "Beispielprogramm aus München" */
+  /** Note above the recap, e.g. "Example program from Munich" */
   connectPastNote?: string;
   /**
-   * Rückblick durch die Timelines anderer Städte ersetzen (mit Umschalter),
-   * z. B. ["munich", "aachen"] für Standorte ohne eigenen Jahrgang.
+   * Replace the recap with the timelines of other cities (with a toggle),
+   * e.g. ["munich", "aachen"] for locations without their own batch.
    */
   connectExampleFrom?: CitySlug[];
-  /** Semester des letzten Jahrgangs, z. B. "SS 26" – Beschriftung über dem Rückblick */
+  /** Semester of the last batch, e.g. "SS 26" – label above the recap */
   connectPastTerm?: string;
-  /** false = Abschnitt "Already on board for the next batch" ausblenden */
+  /** false = hide the "Already on board for the next batch" section */
   connectShowSecuredPartners?: boolean;
-  /** "Already on board for the next batch" – gesicherte Partner der kommenden Runde */
+  /** "Already on board for the next batch" – confirmed partners of the upcoming round */
   connectSecuredPartners?: SecuredPartner[];
-  /** Feste Termine der kommenden Runde (nach den Bewerbungsschritten in der Timeline) */
+  /** Fixed dates of the upcoming round (after the application steps in the timeline) */
   connectUpcomingEvents?: TimelineRow[];
   /**
-   * true = AIM-Innovate-Tab im Programm-Panel anzeigen (Standorte, die
-   * das Programm anbieten – aktuell München).
+   * true = show the AIM Innovate tab in the program panel (locations that
+   * offer the program – currently Munich).
    */
   showInnovate?: boolean;
   /**
-   * true = Teilnahmegebühr-Karte im Connect-Panel anzeigen (Betrag und
-   * Leistungen stehen im Panel). Ohne Flag entfällt die Karte.
+   * true = show the participation fee card in the Connect panel (amount and
+   * benefits are defined in the panel). Without the flag the card is omitted.
    */
   connectShowFee?: boolean;
   /**
-   * true = AIM Code ist an diesem Standort noch im Aufbau: das Code-Panel
-   * zeigt statt Rückblick und Anmelde-Button einen "Coming soon"-Hinweis.
-   * Entfernen, sobald der erste Kurs feststeht.
+   * true = AIM Code is still being set up at this location: the Code panel
+   * shows a "Coming soon" note instead of the recap and sign-up button.
+   * Remove once the first course is fixed.
    */
   codeComingSoon?: boolean;
 
   /**
-   * false = AIM Code an diesem Standort komplett ausblenden (kein Tab im
-   * Programm-Panel). Weglassen oder true = Tab wird angezeigt.
+   * false = hide AIM Code entirely at this location (no tab in the
+   * program panel). Omit or true = the tab is shown.
    */
   showCode?: boolean;
 
-  // ── "The chapter"-Band (Entwurf 2a) ────────────────────────
-  /** Eigene Überschrift statt "Rooted in [City], part of something bigger" */
+  // ── "The chapter" band (draft 2a) ──────────────────────────
+  /** Custom heading instead of "Rooted in [City], part of something bigger" */
   introHeading?: string;
   /**
-   * Kompletter Absatz statt des Standardsatzes ("… was founded in … by
-   * students of …") plus `story`. Wer das setzt, schreibt den ganzen Text.
+   * Complete paragraph instead of the default sentence ("… was founded in … by
+   * students of …") plus `story`. Whoever sets this writes the whole text.
    */
   introText?: string;
-  /** Gründungsjahr des Chapters, z. B. 2025 */
+  /** Founding year of the chapter, e.g. 2025 */
   foundedYear?: number | string;
-  /** Gründende Hochschule(n) als Fließtext, z. B. "RWTH Aachen" */
+  /** Founding university/universities as prose, e.g. "RWTH Aachen" */
   universities?: string;
-  /** 1–2 freie Sätze: Entstehung, heutige Aktivitäten, lokale Partner */
+  /** 1–2 free-form sentences: origins, current activities, local partners */
   story?: string;
   introImage?: string;
   introImageAlt?: string;
 }
 
-// AIM-Connect-Rückblick des Münchner Jahrgangs. Wird auch auf der
-// Frankfurt-Seite als Beispielprogramm eingebunden, solange es dort
-// noch keinen eigenen Jahrgang gibt.
+// AIM Connect recap of the Munich batch. Also embedded on the
+// Frankfurt page as an example program as long as there is no
+// batch of its own there yet.
 const munichConnectTimeline: TimelineRow[] = [
       { date: "24–26 Apr", dot: "filled", title: "Kickoff Weekend",
         text: "Three days in Berlin: intro talks, team building and the first partner sessions.",
@@ -227,7 +227,7 @@ const munichConnectTimeline: TimelineRow[] = [
         text: "The closing event: final pitches in front of partners and guests." },
     ];
 
-// AIM-Connect-Rückblick des Aachener Jahrgangs (auch Beispielprogramm für Frankfurt).
+// AIM Connect recap of the Aachen batch (also the example program for Frankfurt).
 const aachenConnectTimeline: TimelineRow[] = [
       { date: "24–26 Apr", dot: "filled", title: "Kickoff Weekend",
         text: "Getting to know the Berlin MedTech startup scene, from seed round to unicorn.",
@@ -315,11 +315,11 @@ export const cityData: Record<CitySlug, CityData> = {
     displayName: "Munich",
     coords:      { lon: 11.582, lat: 48.1351 },
     uniShort:    "LMU · TUM",
-    // Bild: "Frauenkirche Munich - View from Peterskirche Tower" von Diliff
-    // (Wikimedia Commons, CC BY 2.5) – Bildnachweis siehe Impressum.
+    // Image: "Frauenkirche Munich - View from Peterskirche Tower" by Diliff
+    // (Wikimedia Commons, CC BY 2.5) – image credit see the imprint page.
     heroImage:    "/images/cities/munich-hero.jpg",
     heroImageAlt: "View over Munich with the Frauenkirche",
-    // Hochschul-Logos: TUM/LMU liegen bereits unter /images/partners/.
+    // University logos: TUM/LMU already live under /images/partners/.
     universityLogos: [
       { src: "/images/partners/tum.png", alt: "Technische Universität München (TUM)" },
       { src: "/images/universities/lmu-icon.svg", alt: "Ludwig-Maximilians-Universität München (LMU)" },
@@ -362,8 +362,8 @@ export const cityData: Record<CitySlug, CityData> = {
     displayName: "Aachen",
     coords:      { lon: 6.0839, lat: 50.7753 },
     uniShort:    "RWTH",
-    // Bild: "Aachen, Dom -- 2016 -- 2768" von Dietmar Rabich
-    // (Wikimedia Commons, CC BY-SA 4.0) – Bildnachweis siehe Impressum.
+    // Image: "Aachen, Dom -- 2016 -- 2768" by Dietmar Rabich
+    // (Wikimedia Commons, CC BY-SA 4.0) – image credit see the imprint page.
     heroImage:    "/images/cities/aachen-hero.jpg",
     heroImageAlt: "Aachen Cathedral",
     universityLogos: [
@@ -471,8 +471,8 @@ export const cityData: Record<CitySlug, CityData> = {
     displayName: "Frankfurt",
     coords:      { lon: 8.6821, lat: 50.1109 },
     uniShort:    "Goethe Uni",
-    // Bild: "Frankfurt am Main, Römer -- 2015 -- 6695-9" von Dietmar Rabich
-    // (Wikimedia Commons, CC BY-SA 4.0) – Bildnachweis siehe Impressum.
+    // Image: "Frankfurt am Main, Römer -- 2015 -- 6695-9" by Dietmar Rabich
+    // (Wikimedia Commons, CC BY-SA 4.0) – image credit see the imprint page.
     heroImage:    "/images/cities/frankfurt-hero.jpg",
     heroImageAlt: "The Römer in Frankfurt am Main",
     universityLogos: [
@@ -488,15 +488,15 @@ export const cityData: Record<CitySlug, CityData> = {
   },
 };
 
-/** Alle Standorte als Array – Reihenfolge = Reihenfolge im Dropdown. */
+/** All locations as an array – order = order in the dropdown. */
 export const cities: CityData[] = Object.values(cityData);
 
-/** Einzelnen Standort nachschlagen (undefined bei unbekanntem Slug). */
+/** Look up a single location (undefined for an unknown slug). */
 export function getCity(slug: CitySlug): CityData {
   return cityData[slug];
 }
 
-/** Statische Pfade für /[city] – eine Seite pro Eintrag oben. */
+/** Static paths for /[city] – one page per entry above. */
 export function getCityStaticPaths() {
   return cities.map(city => ({
     params: { city: city.slug },

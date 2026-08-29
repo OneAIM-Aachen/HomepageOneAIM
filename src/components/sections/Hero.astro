@@ -1,18 +1,18 @@
 ---
 // src/components/sections/Hero.astro
 //
-// Generische Hero-Sektion.
-// Hintergrund: bestehender Gradient + langsame Wellenanimation via
-// ::before / ::after CSS-Pseudoelemente.
-// Farben bleiben vollständig identisch – nur die Bewegung ist neu.
+// Generic hero section.
+// Background: existing gradient + slow wave animation via
+// ::before / ::after CSS pseudo-elements.
+// Colors stay fully identical – only the motion is new.
 
 
 interface Props {
   headline:         string;
   subtext?:         string;
   /**
-   * Aufbereitete Bewerbungsdaten. Kommen aus CityLayout, das sie aus
-   * src/data/applications.ts holt – Hero selbst kennt die Datenbank nicht.
+   * Prepared application data. Comes from CityLayout, which fetches it from
+   * src/data/applications.ts – Hero itself does not know the database.
    */
   applicationData?: {
     status:   "open" | "upcoming" | "closed";
@@ -29,16 +29,16 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
 <section class="hero" aria-label="Hero-Bereich">
 
   <!--
-    Wellenebenen: zwei unabhängig animierte Blobs, die langsam
-    über den Hintergrundgradienten driften.
-    Liegen unter dem Inhalt (z-index: 0), Inhalt ist z-index: 1.
+    Wave layers: two independently animated blobs that slowly
+    drift over the background gradient.
+    Sit below the content (z-index: 0), content is z-index: 1.
   -->
   <div class="hero__wave hero__wave--a" aria-hidden="true"></div>
   <div class="hero__wave hero__wave--b" aria-hidden="true"></div>
 
   <div class="container hero__inner">
 
-    <!-- Logo (nur Startseite) -->
+    <!-- Logo (homepage only) -->
     {showLogo && (
       <img
         src="/logo.png"
@@ -59,14 +59,14 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
       <p class="hero__subtext">{subtext}</p>
     )}
 
-    <!-- Slot: CTA-Buttons (Startseite) -->
+    <!-- Slot: CTA buttons (homepage) -->
     {Astro.slots.has("default") && (
       <div class="hero__actions">
         <slot />
       </div>
     )}
 
-    <!-- Bewerbungsbereich (AIM Connect / Übersicht) -->
+    <!-- Application area (AIM Connect / overview) -->
     {applicationData !== null && (
       <aside class="hero__application" aria-label="Bewerbungsinformationen">
         {applicationData.status === "open" ? (
@@ -111,7 +111,7 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
 </section>
 
 <style>
-  /* ── Hero-Container ───────────────────────────────── */
+  /* ── Hero container ───────────────────────────────── */
   .hero {
     background:    var(--gradient-hero);
     padding-block: var(--space-24);
@@ -119,29 +119,29 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
     display:       flex;
     align-items:   center;
 
-    /* Nötig damit die Wellenebenen (absolute) nicht über den Rand laufen */
+    /* Needed so the wave layers (absolute) do not run over the edge */
     position:      relative;
     overflow:      hidden;
   }
 
-  /* ── Wellenebenen ─────────────────────────────────────────────────────
-     Drei Gradienten-Blobs driften langsam über den Hintergrund.
-     Farben bleiben identisch – nur Position und Helligkeit variieren.
+  /* ── Wave layers ──────────────────────────────────────────────────────
+     Three gradient blobs drift slowly over the background.
+     Colors stay identical – only position and brightness vary.
 
-     Geschwindigkeit anpassen: animation-duration Wert erhöhen = langsamer
-     Intensität anpassen:      rgba opacity-Wert (z.B. 0.40 → subtiler/auffälliger)
-     Bewegungsweite:           translate()-Werte in den @keyframes
+     Adjust speed:     increase animation-duration value = slower
+     Adjust intensity: rgba opacity value (e.g. 0.40 → subtler/more prominent)
+     Motion range:     translate() values in the @keyframes
   ──────────────────────────────────────────────────────────────────── */
   .hero__wave {
     position:       absolute;
-    inset:         -40%;   /* größer als Container → Kanten nie sichtbar */
+    inset:         -40%;   /* larger than container → edges never visible */
     border-radius: 50%;
     pointer-events: none;
     z-index:       0;
     will-change:   transform;
   }
 
-  /* Welle A: sanfter Blau-Blob – auf hellem Hintergrund sichtbar */
+  /* Wave A: gentle blue blob – visible on a light background */
   .hero__wave--a {
     background: radial-gradient(
       ellipse 50% 45% at 25% 40%,
@@ -152,7 +152,7 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
     animation: wave-drift-a 8s ease-in-out infinite;
   }
 
-  /* Welle B: sanfter Rosa/Pink-Blob */
+  /* Wave B: gentle rose/pink blob */
   .hero__wave--b {
     background: radial-gradient(
       ellipse 48% 52% at 70% 60%,
@@ -181,20 +181,20 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
     100% { transform: translate(0%,   0%)   scale(1.00); }
   }
 
-  /* prefers-reduced-motion: Animation deaktivieren für Nutzer
-     die in den Systemeinstellungen "Bewegung reduzieren" aktiviert haben.
-     Falls du die Animation im Localhost NICHT siehst, prüfe diese Einstellung
-     in deinem Betriebssystem (macOS: Systemeinstellungen → Bedienungshilfen). */
+  /* prefers-reduced-motion: disable the animation for users
+     who have enabled "reduce motion" in their system settings.
+     If you do NOT see the animation on localhost, check this setting
+     in your operating system (macOS: System Settings → Accessibility). */
   @media (prefers-reduced-motion: reduce) {
     .hero__wave {
       animation: none;
     }
   }
 
-  /* ── Inhalt über den Wellen ───────────────────────── */
+  /* ── Content above the waves ──────────────────────── */
   .hero__inner {
     position:       relative;
-    z-index:        1;   /* liegt über den Wellenebenen */
+    z-index:        1;   /* sits above the wave layers */
     display:        flex;
     flex-direction: column;
     align-items:    center;
@@ -233,7 +233,7 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
     margin:      0;
   }
 
-  /* ── Slot-Buttons ─────────────────────────────────── */
+  /* ── Slot buttons ─────────────────────────────────── */
   .hero__actions {
     display:         flex;
     gap:             var(--space-4);
@@ -242,7 +242,7 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
     margin-top:      var(--space-4);
   }
 
-  /* ── Bewerbungsbereich ────────────────────────────── */
+  /* ── Application area ─────────────────────────────── */
   .hero__application {
     margin-top:      var(--space-8);
     padding:         var(--space-6) var(--space-8);
@@ -300,7 +300,7 @@ const { headline, subtext, applicationData = null, showLogo = false } = Astro.pr
   }
 
   .hero__app-text strong {
-    color:       var(--color-brand-blue);   /* Datum: kräftiges Blau, sichtbar auf weißem Hintergrund */
+    color:       var(--color-brand-blue);   /* date: strong blue, visible on a white background */
     font-weight: var(--fw-bold);
   }
 

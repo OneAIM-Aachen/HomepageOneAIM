@@ -1,14 +1,14 @@
 ---
 // src/pages/index.astro
 //
-// Startseite von OneAIM.
+// OneAIM home page.
 //
-// Reihenfolge der Sections:
-//   1. MapHero         – DACH-Karte mit Standort-Pins, Headline, CTAs
-//   2. PartnersSection – Logo-Laufband (Auswahl aus partners.ts)
-//   3. WhatIsOneAIM    – Foto + Scrim, "What is OneAIM?"
-//   4. ProgramsBento   – Bento-Raster aller Programme
-//   5. JoinSection     – Abschluss-Banner "Sounds interesting?"
+// Order of the sections:
+//   1. MapHero         – DACH map with location pins, headline, CTAs
+//   2. PartnersSection – logo marquee (selection from partners.ts)
+//   3. WhatIsOneAIM    – photo + scrim, "What is OneAIM?"
+//   4. ProgramsBento   – bento grid of all programs
+//   5. JoinSection     – closing banner "Sounds interesting?"
 
 import BaseLayout        from "../layouts/BaseLayout.astro";
 import AnnouncementBanner from "../components/sections/AnnouncementBanner.astro";
@@ -18,32 +18,32 @@ import WhatIsOneAIM      from "../components/sections/WhatIsOneAIM.astro";
 import ProgramsBento     from "../components/sections/ProgramsBento.astro";
 import JoinSection       from "../components/sections/JoinSection.astro";
 import NewsSection       from "../components/sections/NewsSection.astro";
-// LogoGallery wurde bewusst entfernt – ersetzt durch PartnersSection mit Karussell.
+// LogoGallery was deliberately removed – replaced by PartnersSection with a carousel.
 ---
 
 <BaseLayout
   title="Home"
   description="OneAIM – Germany's first student-led interdisciplinary initiative in MedTech. Active in Munich, Aachen and Frankfurt."
 >
-  <!-- ⓪ Ankündigungsband: offene/angekündigte AIM-Connect-Runden -->
+  <!-- ⓪ Announcement band: open/announced AIM Connect rounds -->
   <AnnouncementBanner />
 
-  <!-- ① Hero: Headline, Branding, CTA-Buttons -->
+  <!-- ① Hero: headline, branding, CTA buttons -->
   <MapHero />
 
-  <!-- ② Sponsoren/Partner-Karussell – direkt unter dem Hero -->
+  <!-- ② Sponsor/partner carousel – directly below the hero -->
   <PartnersSection />
 
-  <!-- ③ Introduction – Wer sind wir? (Entwurf 2A: Foto + Scrim) -->
+  <!-- ③ Introduction – who are we? (draft 2A: photo + scrim) -->
   <WhatIsOneAIM />
 
-  <!-- ④ Programme – Bento-Mosaik (Entwurf 4A) -->
+  <!-- ④ Programs – bento mosaic (draft 4A) -->
   <ProgramsBento />
 
-  <!-- ⑤ Abschluss-Banner: Wege zu OneAIM (Entwurf 9A) -->
+  <!-- ⑤ Closing banner: ways to OneAIM (draft 9A) -->
   <JoinSection />
 
-  <!-- ⑥ News-Band: neueste Beiträge aller Standorte -->
+  <!-- ⑥ News band: latest posts from all chapters -->
   <NewsSection />
 
 </BaseLayout>

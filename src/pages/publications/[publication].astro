@@ -1,7 +1,7 @@
 ---
 // src/pages/publications/[publication].astro
-// Detailseite je Publikation – erzeugt aus src/data/publicationsData.ts.
-// Neue Publikation dort ergänzen, die Seite entsteht automatisch.
+// Detail page per publication – generated from src/data/publicationsData.ts.
+// Add a new publication there, the page is created automatically.
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSortedPublications, type Publication } from "../../data/publicationsData";
@@ -70,7 +70,7 @@ const paragraphs = item.body ?? [item.description];
 <style>
   .pub {
     background:    var(--color-bg-surface);
-    padding-block: var(--space-8) var(--space-24);
+    padding-block: var(--space-8) var(--space-12);
   }
 
   .pub__back {
@@ -153,7 +153,7 @@ const paragraphs = item.body ?? [item.description];
 
   .pub__body p { font-size: var(--fs-body-lg); line-height: 1.75; }
 
-  /* ── Weitere Publikationen ────────────────────────────────── */
+  /* ── More publications ────────────────────────────────────── */
   .pub__more {
     margin-top:  var(--space-16);
     padding-top: var(--space-8);

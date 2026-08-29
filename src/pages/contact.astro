@@ -1,9 +1,9 @@
 ---
 // src/pages/contact.astro
 //
-// Kontaktseite: eine Karte je Standort mit Instagram und E-Mail.
-// Alles kommt aus der Standort-Datenbank (cityData.ts): instagramHref
-// und contactEmail dort pflegen – ein neuer Standort erscheint automatisch.
+// Contact page: one card per chapter with Instagram and email.
+// Everything comes from the city database (cityData.ts): maintain
+// instagramHref and contactEmail there – a new chapter appears automatically.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { cities } from "../data/cityData";
@@ -13,7 +13,7 @@ import { cities } from "../data/cityData";
   title="Contact Us"
   description="Contact OneAIM: Instagram and email for the chapters in Munich, Aachen and Frankfurt."
 >
-  <!-- Kopfbereich -->
+  <!-- Header area -->
   <section class="contact-header" aria-labelledby="contact-page-heading">
     <div class="container contact-header__inner">
       <h1 id="contact-page-heading">Contact Us</h1>
@@ -24,7 +24,7 @@ import { cities } from "../data/cityData";
     </div>
   </section>
 
-  <!-- Standort-Karten -->
+  <!-- Chapter cards -->
   <section class="contact-locations" aria-label="Contact details per chapter">
     <div class="container contact-locations__grid">
       {cities.map(city => (
@@ -79,7 +79,7 @@ import { cities } from "../data/cityData";
 </BaseLayout>
 
 <style>
-  /* ── Kopfbereich ────────────────────────────────────── */
+  /* ── Header area ────────────────────────────────────── */
   .contact-header {
     background:    var(--color-bg-subtle);
     padding-block: var(--space-16) var(--space-12);
@@ -96,10 +96,10 @@ import { cities } from "../data/cityData";
     margin:    0;
   }
 
-  /* ── Standort-Grid ──────────────────────────────────── */
+  /* ── Chapter grid ───────────────────────────────────── */
   .contact-locations {
     background:    var(--color-bg-page);
-    padding-block: var(--space-12) var(--space-24);
+    padding-block: var(--space-12) var(--space-12);
   }
 
   .contact-locations__grid {
@@ -108,7 +108,7 @@ import { cities } from "../data/cityData";
     gap:                   var(--space-6);
   }
 
-  /* ── Einzelne Kontaktkarte ──────────────────────────── */
+  /* ── Single contact card ────────────────────────────── */
   .contact-card {
     display:        flex;
     flex-direction: column;

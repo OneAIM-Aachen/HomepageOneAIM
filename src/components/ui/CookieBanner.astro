@@ -1,14 +1,14 @@
 ---
 // src/components/ui/CookieBanner.astro
 //
-// Cookie-Banner – erscheint beim ersten Besuch der Website.
-// Entscheidung wird in localStorage gespeichert (kein eigener Cookie).
+// Cookie banner – appears on the first visit to the website.
+// The decision is stored in localStorage (no cookie of its own).
 //
-// BANNER AKTIVIEREN / DEAKTIVIEREN:
-//   In BaseLayout.astro: <CookieBanner /> einkommentieren oder auskommentieren.
+// TO ENABLE / DISABLE THE BANNER:
+//   In BaseLayout.astro: comment <CookieBanner /> in or out.
 //
-// BANNER-TEXT ANPASSEN:
-//   Den Text zwischen den <p>-Tags unten direkt bearbeiten.
+// TO ADJUST THE BANNER TEXT:
+//   Edit the text between the <p> tags below directly.
 ---
 
 <div id="cookie-banner" class="cookie-banner" role="dialog"
@@ -120,7 +120,7 @@
   const btnAccept   = document.getElementById("cookie-accept");
   const btnDecline  = document.getElementById("cookie-decline");
 
-  // Banner nur anzeigen wenn noch keine Entscheidung getroffen wurde
+  // Only show the banner if no decision has been made yet
   if (!localStorage.getItem(STORAGE_KEY)) {
     banner?.removeAttribute("hidden");
   }

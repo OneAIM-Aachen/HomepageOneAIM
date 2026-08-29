@@ -1,24 +1,24 @@
 ---
 // src/components/sections/CityTeamCarousel.astro
 //
-// Team-Sektion der Standortseiten – Umsetzung von Entwurf 3a
+// Team section of the location pages – implementation of draft 3a
 // ("City Team Options.dc.html", "Lead row + team row, arrow scrolling").
 //
-// EINE horizontal scrollende Reihe mit allen Mitgliedern (President und
-// Team Leads nicht abgetrennt – sie stehen vorn und tragen ihre Rolle in
-// der Beschreibung; die President-Karte bleibt blau). Pfeiltasten scrollen
-// die Reihe; beim Überfahren einer Person erscheint ein LinkedIn-Overlay
-// (nur wenn ein Link hinterlegt ist).
+// ONE horizontally scrolling row with all members (President and
+// Team Leads not separated – they stand at the front and carry their role
+// in the description; the President card stays blue). Arrow buttons scroll
+// the row; hovering over a person reveals a LinkedIn overlay
+// (only if a link is stored).
 //
-// Rollenzeile unter dem Namen:
+// Role line below the name:
 //   President  → "President | <Team>"
 //   Team Lead  → "Team Lead | <Team>"
-//   sonst      → "<Team>"
+//   otherwise  → "<Team>"
 //
-// Datenquelle ist src/data/teamData.ts: ist `citySlug` gesetzt, füllt
-// sich die Reihe automatisch (President zuerst, dann Team Leads, dann
-// alle übrigen). Solange die Datenbank für den Standort leer ist, bleiben
-// die Platzhalter-Karten stehen. `members` überschreibt die Datenbank.
+// The data source is src/data/teamData.ts: if `citySlug` is set, the
+// row fills itself automatically (President first, then Team Leads, then
+// all remaining). As long as the database is empty for the location, the
+// placeholder cards remain. `members` overrides the database.
 
 import { getLeadsByCity, getMembersByCity } from "../../data/teamData";
 import type { TeamMember as DbMember } from "../../data/teamData";
@@ -26,7 +26,7 @@ import type { CitySlug } from "../../data/cityData";
 
 interface CardMember {
   name: string;
-  /** Angezeigte Zeile unter dem Namen – das Team der Person */
+  /** Displayed line below the name – the person's team */
   position: string;
   photo?: string;
   linkedin?: string;
@@ -36,7 +36,7 @@ interface CardMember {
 interface Props {
   city?: string;
   citySlug?: CitySlug;
-  /** Optionaler Link zur separaten Teamseite */
+  /** Optional link to the separate team page */
   teamHref?: string;
   members?: CardMember[];
 }
@@ -48,8 +48,8 @@ const {
   members,
 } = Astro.props as Props;
 
-// Rollenzeile aus den Flags ableiten – "Team Lead | AIM Connect" usw.
-// Ein gesetztes `position`-Feld in der Datenbank überschreibt die Ableitung.
+// Derive the role line from the flags – "Team Lead | AIM Connect" etc.
+// A set `position` field in the database overrides the derivation.
 const roleLine = (m: DbMember): string =>
   m.position
   ?? (m.president ? `President | ${m.team}`
@@ -64,12 +64,12 @@ const fromDb = (m: DbMember): CardMember => ({
   president: m.president,
 });
 
-// Reihenfolge: President, dann Team Leads, dann alle übrigen.
+// Order: President, then Team Leads, then all remaining.
 const dbAll = citySlug
   ? [...getLeadsByCity(citySlug), ...getMembersByCity(citySlug)].map(fromDb)
   : [];
 
-// Props → Datenbank → Platzhalter (solange die Datenbank leer ist)
+// Props → database → placeholders (as long as the database is empty)
 const resolvedMembers = members ?? (dbAll.length ? dbAll : [
   { name: "[Name]", position: "President | [Team]", president: true },
   { name: "[Name]", position: "Team Lead | [Team]" },
@@ -124,15 +124,15 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
           var row = root.querySelector('[data-scroll="' + btn.getAttribute("data-row") + '"]');
           if (!row) return;
           var dir = btn.getAttribute("data-nav") === "next" ? 1 : -1;
-          // Etwa eine Bildschirmbreite der Reihe, damit Karten nicht
-          // halb angeschnitten stehen bleiben.
+          // Roughly one screen width of the row, so cards do not
+          // end up half cut off.
           row.scrollBy({ left: dir * row.clientWidth * 0.8, behavior: "smooth" });
         });
       });
 
-      // Mobil läuft die Reihe von selbst weiter – sonst sieht man nur eine
-      // Karte und ahnt nicht, dass es mehr Mitglieder gibt. Pausiert bei
-      // Berührung/Scrollen und respektiert reduzierte Bewegung.
+      // On mobile the row keeps moving by itself – otherwise you only see
+      // one card and do not suspect there are more members. Pauses on
+      // touch/scroll and respects reduced motion.
       var row = root.querySelector('[data-scroll="team"]');
       var mobile = window.matchMedia("(max-width: 760px)");
       var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -150,10 +150,10 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
         [].slice.call(root.querySelectorAll("[data-nav]")).forEach(function (btn) {
           btn.addEventListener("click", pause);
         });
-        var SPEED = 35; // Pixel pro Sekunde
+        var SPEED = 35; // pixels per second
         var last = null;
-        var pos = null; // eigene Gleitkomma-Position: scrollLeft rundet,
-                        // Subpixel-Schritte gingen sonst verloren
+        var pos = null; // own floating-point position: scrollLeft rounds,
+                        // subpixel steps would otherwise be lost
         function tick(now) {
           if (last === null) last = now;
           var dt = Math.min(now - last, 100) / 1000;
@@ -204,7 +204,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
 
   .ctc__all { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); white-space: nowrap; }
 
-  /* Mobil bricht die Kopfzeile um – dann Link links, Pfeile rechts */
+  /* On mobile the head row wraps – then link on the left, arrows on the right */
   @media (max-width: 760px) {
     .ctc__head-actions {
       width:           100%;
@@ -235,7 +235,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
 
   .ctc__nav-btn:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
 
-  /* Scrollende Reihe – Scrollbar versteckt, Tastatur behält Zugriff */
+  /* Scrolling row – scrollbar hidden, keyboard keeps access */
   .ctc__scroll {
     display:         flex;
     gap:             20px;
@@ -264,7 +264,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
     border:          2px dashed var(--color-border-subtle);
   }
 
-  /* ── Lead-Karten ──────────────────────────────────────────── */
+  /* ── Lead cards ───────────────────────────────────────────── */
   .ctc__lead {
     position:       relative;
     flex:           0 0 220px;
@@ -295,7 +295,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
   .ctc__lead--president .ctc__lead-role { color: #A6BEFF; }
   .ctc__lead--president .ctc__slot { background: rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.75); border-color: rgba(255, 255, 255, 0.4); }
 
-  /* ── LinkedIn-Overlay ─────────────────────────────────────── */
+  /* ── LinkedIn overlay ─────────────────────────────────────── */
   .ctc__overlay {
     position:        absolute;
     inset:           0;

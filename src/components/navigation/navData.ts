@@ -1,9 +1,9 @@
 // src/components/navigation/navData.ts
 //
-// Einzige Quelle der Navigationsstruktur (Single Source of Truth).
+// Single source of the navigation structure (Single Source of Truth).
 //
-// Die Programm-Einträge kommen aus src/data/programs.ts, damit ein neues
-// Programm nicht an zwei Stellen gepflegt werden muss.
+// The program entries come from src/data/programs.ts, so that a new
+// program does not have to be maintained in two places.
 
 import { programNavItems } from "../../data/programs";
 import { cities }          from "../../data/cityData";
@@ -12,16 +12,16 @@ export interface NavItem {
   label: string;
   href:  string;
   /**
-   * Untereinträge. Ist das Feld gesetzt, rendert der Header statt eines
-   * Links einen Auf-/Zuklapp-Button mit Dropdown (siehe Header.astro).
+   * Sub-entries. If the field is set, the header renders an expand/collapse
+   * button with a dropdown instead of a link (see Header.astro).
    */
   children?: NavItem[];
 }
 
 /**
- * Standorte – Ziel des "Locations"-Dropdowns in der Kopfzeile.
- * Abgeleitet aus der Standort-Datenbank (cityData.ts): ein neuer Eintrag
- * dort erscheint hier automatisch.
+ * Locations – target of the "Locations" dropdown in the header.
+ * Derived from the location database (cityData.ts): a new entry
+ * there appears here automatically.
  */
 export const locationItems: NavItem[] = cities.map(city => ({
   label: city.displayName,
@@ -29,9 +29,9 @@ export const locationItems: NavItem[] = cities.map(city => ({
 }));
 
 /**
- * Community – Menschen und Institutionen rund um OneAIM.
- * "/partners" existiert bereits; "/team" und "/participants" sind
- * vorerst Stub-Seiten (Inhalte folgen).
+ * Community – people and institutions around OneAIM.
+ * "/partners" already exists; "/team" and "/participants" are
+ * stub pages for now (content to follow).
  */
 export const communityItems: NavItem[] = [
   { label: "Partners & Sponsors", href: "/partners"     },
@@ -40,14 +40,14 @@ export const communityItems: NavItem[] = [
 ];
 
 /**
- * Globale Top-Level-Navigation.
+ * Global top-level navigation.
  *
- * "Contact Us", "Datenschutz" und "Impressum" stehen bewusst nur noch im
- * Footer (siehe Footer.astro) – die Kopfzeile bleibt auf Inhalte beschränkt.
+ * "Contact Us", "Datenschutz" and "Impressum" deliberately live only in the
+ * footer (see Footer.astro) – the header stays limited to content.
  *
- * "Locations" und "Programs" bündeln nur ihre Untereinträge und haben
- * bewusst kein eigenes Ziel (href leer): Es gibt keine Übersichtsseite,
- * die Einzelseiten sind direkt über das Dropdown erreichbar.
+ * "Locations" and "Programs" only bundle their sub-entries and deliberately
+ * have no target of their own (href empty): there is no overview page,
+ * the individual pages are reachable directly via the dropdown.
  */
 export const globalNavItems: NavItem[] = [
   { label: "Locations",    href: "",              children: locationItems },

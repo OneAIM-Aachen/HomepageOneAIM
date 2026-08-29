@@ -1,7 +1,7 @@
 ---
 // src/pages/news/[article].astro
-// Eine Seite je News-Beitrag – erzeugt aus src/data/newsData.ts.
-// Neuer Beitrag dort ergänzen, die Seite entsteht automatisch unter /news/<id>.
+// One page per news post – generated from src/data/newsData.ts.
+// Add a new post there, the page is created automatically at /news/<id>.
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSortedNews, type NewsItem } from "../../data/newsData";
@@ -14,7 +14,7 @@ export function getStaticPaths() {
     params: { article: item.id },
     props: {
       item,
-      // Nachbarn für die Blättern-Leiste am Seitenende
+      // Neighbors for the pagination bar at the bottom of the page
       newer: i > 0 ? all[i - 1] : null,
       older: i < all.length - 1 ? all[i + 1] : null,
     },
@@ -90,7 +90,7 @@ const paragraphs = item.body ?? [item.excerpt];
 <style>
   .article {
     background:    var(--color-bg-surface);
-    padding-block: var(--space-8) var(--space-24);
+    padding-block: var(--space-8) var(--space-12);
   }
 
   .article__inner { max-width: 760px; }
@@ -161,7 +161,7 @@ const paragraphs = item.body ?? [item.excerpt];
 
   .article__body p { font-size: var(--fs-body-lg); line-height: 1.75; }
 
-  /* Anreißer optisch abgesetzt vom Fließtext */
+  /* Teaser visually set apart from the body text */
   .article__lead {
     font-weight:   var(--fw-semibold);
     color:         var(--color-text-heading);

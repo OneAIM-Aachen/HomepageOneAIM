@@ -1,25 +1,25 @@
 ---
 // src/components/sections/CityProgramsPanel.astro
 //
-// "Our programs in [City]" – Umsetzung von Entwurf 6a
+// "Our programs in [City]" – implementation of draft 6a
 // ("City Past Programs Options.dc.html", "Full Connect panel").
 //
-// Aufbau:
-//   • Programm-Pills (AIM Connect / AIM Code) schalten Panels um
-//   • AIM Connect: Intro + Foto → "Three key components" (nummerierte Leiste)
-//     → Semester-Timeline mit Umschalter "Upcoming batch" / "How the last
-//     year went" → Kostenkarte → "Already on board"-Partnerwahl → Apply
-//   • Die Partnerwahl zeigt LOGOS als Buttons und blättert automatisch
-//     durch die Partner (alle 4 s). Ein Klick wählt manuell und stoppt
-//     das Blättern; bei prefers-reduced-motion läuft es gar nicht erst.
-//   • AIM Code: Intro + "Last semester"-Rückblick + CTA + Foto
+// Structure:
+//   • Program pills (AIM Connect / AIM Code) switch panels
+//   • AIM Connect: intro + photo → "Three key components" (numbered bar)
+//     → semester timeline with toggle "Upcoming batch" / "How the last
+//     year went" → fee card → "Already on board" partner picker → Apply
+//   • The partner picker shows LOGOS as buttons and automatically cycles
+//     through the partners (every 4 s). A click selects manually and stops
+//     the cycling; with prefers-reduced-motion it never starts at all.
+//   • AIM Code: intro + "Last semester" recap + CTA + photo
 //
-// ZUSTAND: Gerüst. Stadtspezifische Fakten (Termine, Partner, Gebühr) stehen
-// als [Platzhalter] bzw. kommen – wo vorhanden – aus src/data/applications.ts
-// (Bewerbungsöffnung und -frist für AIM Connect). Die erklärenden Programm-
-// texte sind bewusst fest: sie sind an allen Standorten gleich.
+// STATE: scaffold. City-specific facts (dates, partners, fee) appear as
+// [placeholders] or come – where available – from src/data/applications.ts
+// (application opening and deadline for AIM Connect). The explanatory program
+// texts are deliberately fixed: they are the same at all locations.
 //
-// Interaktivität ist reines Inline-JS (hidden-Attribute) – kein Framework.
+// Interactivity is pure inline JS (hidden attributes) – no framework.
 
 import { getApplicationFor, getStatus, getTermLabel } from "../../data/applications";
 import { getUpcomingEvents, getEventDateLabel } from "../../data/eventsData";
@@ -29,18 +29,18 @@ interface TimelineRow {
   date: string;
   title: string;
   text: string;
-  /** "hollow" = Bewerbungsschritt, "filled" = Termin, "accent" = Höhepunkt */
+  /** "hollow" = application step, "filled" = date, "accent" = highlight */
   dot?: "hollow" | "filled" | "accent";
-  /** Zeigt den "Fixed"-Chip hinter dem Titel */
-  /** Partnerzeilen unter dem Eintrag (Name + optional Person/Rolle).
-      `wide` = rechteckige Kachel für Wortmarken statt quadratischer. */
+  /** Shows the "Fixed" chip behind the title */
+  /** Partner rows below the entry (name + optional person/role).
+      `wide` = rectangular tile for wordmarks instead of a square one. */
   partners?: { name: string; detail?: string; logo?: string; wide?: boolean }[];
 }
 
 interface SecuredPartner {
   name: string;
   text: string;
-  /** Weiße Chips in der Detailkarte, z. B. ["OP visit", "Week 4", "Dr. X · Position"] */
+  /** White chips in the detail card, e.g. ["OP visit", "Week 4", "Dr. X · Position"] */
   chips?: string[];
   logo?: string;
 }
@@ -50,9 +50,9 @@ interface Props {
   citySlug?: CitySlug;
   contactHref?: string;
   applyHref?: string;
-  /** Rückblick-Timeline "How the last batch went" */
+  /** Recap timeline "How the last batch went" */
   pastTimeline?: TimelineRow[];
-  /** Feste Termine des kommenden Semesters (nach den Bewerbungsschritten) */
+  /** Fixed dates of the upcoming semester (after the application steps) */
   upcomingEvents?: TimelineRow[];
   fee?: { amount: string; note: string; includes: string[] };
   securedPartners?: SecuredPartner[];
@@ -116,37 +116,37 @@ const {
   codeRecap    = { term: "[Term]", text: "[What the last edition looked like: courses, workshops, outcomes]" },
 } = Astro.props as Props;
 
-// Gesicherte Partner der kommenden Runde: Prop → Standort-Datenbank → Platzhalter.
+// Secured partners of the upcoming round: prop → location database → placeholder.
 const securedPartners =
   (Astro.props as Props).securedPartners
   ?? (citySlug ? cityData[citySlug]?.connectSecuredPartners : undefined)
   ?? SECURED_PLACEHOLDER;
 
-// Feste Termine der kommenden Runde: Prop → Standort-Datenbank → Platzhalter.
+// Fixed dates of the upcoming round: prop → location database → placeholder.
 const upcomingEvents =
   (Astro.props as Props).upcomingEvents
   ?? (citySlug ? cityData[citySlug]?.connectUpcomingEvents : undefined)
   ?? UPCOMING_PLACEHOLDER;
 
-// Rückblick-Timeline: explizite Prop → Standort-Datenbank → Platzhalter.
+// Recap timeline: explicit prop → location database → placeholder.
 const pastTimeline =
   (Astro.props as Props).pastTimeline
   ?? (citySlug ? cityData[citySlug]?.connectPastTimeline : undefined)
   ?? PAST_PLACEHOLDER;
 
-// Bewerbungsschritte: Termine kommen aus der Bewerbungs-Datenbank, sobald es
-// dort eine Aim-Connect-Runde für diesen Standort gibt.
+// Application steps: dates come from the applications database as soon as
+// there is an Aim Connect round for this location there.
 const round = citySlug ? getApplicationFor(citySlug, "aim-connect") : undefined;
 
-// Gleiches Format wie die festen Termine ("23–25 Oct"): Tag zuerst, Monat kurz.
-// en-GB kürzt September als "Sept" ab – auf drei Buchstaben normalisieren,
-// damit es zu den handgepflegten Terminen ("23–25 Oct") passt.
+// Same format as the fixed dates ("23–25 Oct"): day first, month short.
+// en-GB abbreviates September as "Sept" – normalize to three letters
+// so it matches the hand-maintained dates ("23–25 Oct").
 const fmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 const compact = { format: (x: Date) => fmt.format(x).replace("Sept", "Sep") };
 const dayNum  = new Intl.DateTimeFormat("en-GB", { day: "numeric" });
 const d = (iso?: string) => (iso ? compact.format(new Date(iso)) : "[Date]");
 
-// Zeitraum im selben Format wie die festen Termine: "18–22 Sep" bzw. "19 Oct–13 Dec".
+// Range in the same format as the fixed dates: "18–22 Sep" or "19 Oct–13 Dec".
 const dRange = (from?: string, to?: string) => {
   if (!from || !to) return "[Date]";
   const a = new Date(from), b = new Date(to);
@@ -163,55 +163,55 @@ const applicationSteps: TimelineRow[] = [
 ];
 
 const upcomingLabel = round ? `The upcoming batch (${getTermLabel(round)})` : "The upcoming batch ([Term])";
-// Rückblick: Beschriftung des Umschalters und optionaler Hinweistext
-// (cityData.ts → connectPastToggleLabel / connectPastNote). Frankfurt zeigt
-// so das Münchner Beispielprogramm statt eines eigenen Jahrgangs.
+// Recap: label of the toggle and optional note text
+// (cityData.ts → connectPastToggleLabel / connectPastNote). Frankfurt thereby
+// shows the Munich example program instead of a batch of its own.
 const pastToggleLabel = (citySlug ? cityData[citySlug]?.connectPastToggleLabel : undefined) ?? "How the last batch went";
 const pastNote        = citySlug ? cityData[citySlug]?.connectPastNote : undefined;
 
-// AIM-Innovate-Tab anzeigen? (cityData.ts → showInnovate)
+// Show the AIM Innovate tab? (cityData.ts → showInnovate)
 const showInnovate = citySlug ? Boolean(cityData[citySlug]?.showInnovate) : false;
 const innovateRound = citySlug && showInnovate ? getApplicationFor(citySlug, "aim-innovate") : undefined;
 
-// Teilnahmegebühr-Karte anzeigen? (cityData.ts → connectShowFee)
+// Show the participation fee card? (cityData.ts → connectShowFee)
 const showFee = citySlug ? Boolean(cityData[citySlug]?.connectShowFee) : true;
 
-// AIM Code noch im Aufbau? (cityData.ts → codeComingSoon)
+// AIM Code still being set up? (cityData.ts → codeComingSoon)
 const codeComingSoon = citySlug ? Boolean(cityData[citySlug]?.codeComingSoon) : false;
 
-// AIM Code an diesem Standort anzeigen? (cityData.ts → showCode, Standard: ja)
+// Show AIM Code at this location? (cityData.ts → showCode, default: yes)
 const showCode = citySlug ? cityData[citySlug]?.showCode !== false : true;
 
-// "Already on board"-Abschnitt anzeigen? (cityData.ts, Standard: ja)
+// Show the "Already on board" section? (cityData.ts, default: yes)
 const showSecured = citySlug ? cityData[citySlug]?.connectShowSecuredPartners !== false : true;
 
-// AIM Educate: kommende Events dieses Standorts (Events ohne Stadt = überall)
+// AIM Educate: upcoming events of this location (events without a city = everywhere)
 const educateEvents = citySlug
   ? getUpcomingEvents().filter(e => !e.city || e.city === citySlug)
   : [];
 
-// Connect-Intro-Foto aus der Standort-Datenbank (cityData.ts).
+// Connect intro photo from the location database (cityData.ts).
 const connectImage    = citySlug ? cityData[citySlug]?.connectImage    : undefined;
 const connectImageAlt = citySlug ? cityData[citySlug]?.connectImageAlt : "";
 
-// Bewerbungs-Button nur bei offener Runde; Ziel ist das Bewerbungsformular
-// (applications.ts → applyUrl, z. B. der Tally-Link), bis es eingetragen
-// ist die Kontaktseite.
+// Apply button only when a round is open; the target is the application form
+// (applications.ts → applyUrl, e.g. the Tally link), until it is entered
+// it is the contact page.
 const applicationsOpen  = round ? getStatus(round) === "open" : false;
 const resolvedApplyHref = applyHref ?? round?.applyUrl ?? contactHref;
 
-// Rückblick in zwei Spalten aufteilen (wie im Entwurf). Bei ungerader
-// Anzahl bekommt die RECHTE Spalte die zusätzliche Zeile – links steht
-// der hohe Kickoff-Eintrag, so bleiben die Spalten optisch ausgewogen.
+// Split the recap into two columns (as in the draft). With an odd
+// count the RIGHT column gets the extra row – the tall kickoff entry
+// is on the left, so the columns stay visually balanced.
 const split = (rows: TimelineRow[]) => {
   const h = Math.floor(rows.length / 2);
   return [rows.slice(0, h), rows.slice(h)];
 };
 const pastCols = split(pastTimeline);
 
-// Beispiel-Timelines anderer Städte (cityData.ts → connectExampleFrom):
-// Frankfurt zeigt so die Programme aus München und Aachen im Wechsel.
-// Ohne connectExampleFrom gibt es genau eine Ansicht: den eigenen Rückblick.
+// Example timelines of other cities (cityData.ts → connectExampleFrom):
+// Frankfurt thereby shows the programs from Munich and Aachen alternately.
+// Without connectExampleFrom there is exactly one view: the own recap.
 const exampleFrom = (citySlug ? cityData[citySlug]?.connectExampleFrom : undefined) ?? [];
 const pastTermOf = (slug: CitySlug) => cityData[slug]?.connectPastTerm;
 const pastViews = exampleFrom.length
@@ -300,7 +300,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       </div>
     </div>
 
-    <!-- Kommendes Semester -->
+    <!-- Upcoming semester -->
     <div data-tlview="next">
       <p class="cpp__tl-caption">{upcomingLabel}</p>
       <div class="cpp__next">
@@ -371,7 +371,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       </div>
     </div>
 
-    <!-- Rückblick -->
+    <!-- Recap -->
     <div data-tlview="past" hidden>
       {pastNote && <p class="cpp__past-note">{pastNote}</p>}
       {pastViews.length > 1 && (
@@ -401,8 +401,8 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
                     <div class="cpp__mini-partners">
                       {row.partners.map(pp => (
                         <div class="cpp__mini">
-                          {/* Kachel nur mit Logo oder bei Platzhalter-Einträgen ("[…]");
-                              echte Einträge ohne Logo (z. B. Einzelpersonen) kommen ohne Kachel. */}
+                          {/* Tile only with a logo or for placeholder entries ("[…]");
+                              real entries without a logo (e.g. individuals) come without a tile. */}
                           {(pp.logo || pp.name.startsWith("[")) && (
                             <span class={`cpp__mini-logo ${pp.wide ? "cpp__mini-logo--wide" : ""}`}>{pp.logo ? <img src={pp.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}</span>
                           )}
@@ -422,7 +422,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     </div>
   </div>
 
-  <!-- ── AIM Code (nur wenn showCode) ────────────────────────── -->
+  <!-- ── AIM Code (only if showCode) ─────────────────────────── -->
   {showCode && (
   <div class={`cpp__panel cpp__panel--simple ${codeComingSoon ? "cpp__panel--single" : ""}`} data-panel="code" hidden>
     <div class="cpp__simple-copy">
@@ -491,7 +491,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     </div>
   )}
 
-  <!-- ── AIM Educate: offene Events aus eventsData.ts ─────────── -->
+  <!-- ── AIM Educate: open events from eventsData.ts ──────────── -->
   <div class="cpp__panel cpp__panel--simple cpp__panel--single" data-panel="educate" hidden>
     <div class="cpp__simple-copy">
       <p class="cpp__text">
@@ -559,11 +559,11 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       wire("[data-tl]",   "data-tl",  "[data-tlview]", "data-tlview");
       wire("[data-exbtn]", "data-exbtn", "[data-excity]", "data-excity");
 
-      // ── Deep-Links: /munich#aim-connect öffnet das passende Panel.
-      // Zusätze steuern das Scrollziel innerhalb des Connect-Panels:
-      //   #aim-connect-timeline → Semester-Timeline
-      //   #aim-connect-apply    → "Apply for AIM Connect"-Button, so
-      //                           gescrollt, dass er unten im Bild steht
+      // ── Deep links: /munich#aim-connect opens the matching panel.
+      // Suffixes control the scroll target within the Connect panel:
+      //   #aim-connect-timeline → semester timeline
+      //   #aim-connect-apply    → "Apply for AIM Connect" button, scrolled
+      //                           so that it sits at the bottom of the view
       function applyHash(initial) {
         var m = (location.hash || "").match(/^#aim-([a-z]+?)(?:-(timeline|apply))?$/);
         if (!m) return;
@@ -573,11 +573,11 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         var el = m[2] === "timeline" ? root.querySelector(".cpp__tl-head")
                : m[2] === "apply"    ? root.querySelector(".cpp__apply")
                : root;
-        // Ziel unsichtbar (anderes Panel aktiv)? Dann zum Panel-Anfang.
+        // Target invisible (another panel active)? Then go to the panel start.
         if (!el || !el.offsetParent) el = root;
         var block = m[2] === "apply" && el !== root ? "end" : "start";
-        // Mehrfach scrollen: sofort und nachdem sich das Layout gesetzt
-        // hat – nachladende Bilder oberhalb verschieben sonst die Position.
+        // Scroll multiple times: immediately and after the layout has
+        // settled – images loading in above would otherwise shift the position.
         setTimeout(function () { el.scrollIntoView({ block: block }); }, 60);
         setTimeout(function () { el.scrollIntoView({ block: block }); }, 450);
         if (initial) {
@@ -589,9 +589,9 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       applyHash(true);
       window.addEventListener("hashchange", function () { applyHash(false); });
 
-      // Erneuter Klick auf einen Link mit UNVERÄNDERTEM Hash löst kein
-      // hashchange aus – dann direkt scrollen (z. B. "More info" im Hero,
-      // nachdem man wieder nach oben gescrollt hat).
+      // Clicking a link with an UNCHANGED hash again triggers no
+      // hashchange – then scroll directly (e.g. "More info" in the hero,
+      // after having scrolled back up).
       document.addEventListener("click", function (e) {
         var a = e.target && e.target.closest ? e.target.closest('a[href*="#aim-"]') : null;
         if (!a) return;
@@ -603,12 +603,12 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         }
       });
 
-      // ── Partnerwahl: Klick + automatisches Weiterblättern ──────────
-      // Alle 4 s springt die Auswahl zum nächsten Partner, damit
-      // Interessierte alle gesicherten Partner zu sehen bekommen.
-      // Ein Klick wählt manuell und beendet die Rotation; solange die
-      // Maus über der Box liegt, pausiert sie. Bei reduzierter Bewegung
-      // wird gar nicht rotiert.
+      // ── Partner picker: click + automatic advancing ────────────────
+      // Every 4 s the selection jumps to the next partner, so that
+      // interested visitors get to see all secured partners.
+      // A click selects manually and ends the rotation; while the
+      // mouse is over the box, it pauses. With reduced motion
+      // there is no rotation at all.
       var ptBtns = [].slice.call(root.querySelectorAll("[data-pt]"));
       if (ptBtns.length) {
         var ptCards = [].slice.call(root.querySelectorAll("[data-ptcard]"));
@@ -634,7 +634,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
         ptBtns.forEach(function (btn, i) {
           btn.addEventListener("click", function () {
-            stopRotation();          // manuelle Wahl gewinnt dauerhaft
+            stopRotation();          // manual selection wins permanently
             showPartner(i);
           });
         });
@@ -642,9 +642,9 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (ptBtns.length > 1 && !reduceMotion) {
           timer = setInterval(function () {
-            // Live geprüft statt über mouseenter/mouseleave-Flags: die
-            // Ereignispaare können bei Scroll-Wiederherstellung ohne
-            // Gegenstück feuern und die Rotation dauerhaft anhalten.
+            // Checked live instead of via mouseenter/mouseleave flags: the
+            // event pairs can fire without a counterpart during scroll
+            // restoration and halt the rotation permanently.
             if (document.hidden || securedBox.matches(":hover")) return;
             showPartner((current + 1) % ptBtns.length);
           }, 4000);
@@ -655,7 +655,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 </section>
 
 <style>
-  /* AIM-Educate-Events auf den Stadtseiten */
+  /* AIM Educate events on the city pages */
   .cpp__events { display: flex; flex-direction: column; gap: 12px; }
 
   .cpp__event {
@@ -689,9 +689,9 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     padding:        0 clamp(var(--space-6), 5vw, 64px) clamp(var(--space-12), 5vw, 56px);
   }
 
-  /* Das hidden-Attribut wirkt nur über display:none der UA-Styles –
-     jede eigene display-Angabe (grid der Panels/Karten) würde es
-     überstimmen. Deshalb hier explizit erzwingen. */
+  /* The hidden attribute only works via display:none of the UA styles –
+     any own display declaration (grid of the panels/cards) would
+     override it. Therefore enforce it explicitly here. */
   .cpp [hidden] { display: none !important; }
 
   .cpp__head { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
@@ -724,7 +724,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     border-radius:   16px;
   }
 
-  /* ── Programm-Pills ───────────────────────────────────────── */
+  /* ── Program pills ────────────────────────────────────────── */
   .cpp__pills { display: flex; gap: 10px; flex-wrap: wrap; }
 
   .cpp__pill {
@@ -762,7 +762,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   .cpp__media--tall { height: 300px; }
   .cpp__media img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
 
-  /* ── Drei Komponenten ─────────────────────────────────────── */
+  /* ── Three components ─────────────────────────────────────── */
   .cpp__components { display: flex; flex-direction: column; gap: var(--space-4); }
 
   .cpp__steps {
@@ -802,7 +802,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   .cpp__step h3 { font-size: 17px; }
   .cpp__step p  { font-size: 14px; line-height: 1.6; }
 
-  /* ── Timeline-Kopf + Umschalter ───────────────────────────── */
+  /* ── Timeline head + toggle ───────────────────────────────── */
   .cpp__tl-head {
     scroll-margin-top: calc(var(--header-height) + var(--space-4));
     display:         flex;
@@ -830,10 +830,10 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   .cpp__tl-caption { font-size: 13px; font-weight: var(--fw-bold); color: var(--color-text-body); margin-bottom: var(--space-4); }
 
-  /* Stadt-Umschalter über den Beispiel-Timelines */
+  /* City toggle above the example timelines */
   .cpp__toggle--excity { align-self: flex-start; margin-bottom: var(--space-8, 32px); }
 
-  /* Hinweis über dem Rückblick (z. B. Beispielprogramm aus München) */
+  /* Note above the recap (e.g. example program from Munich) */
   .cpp__past-note {
     font-size:     14px;
     line-height:   1.6;
@@ -882,7 +882,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   .cpp__row-body p  { font-size: 13px; line-height: 1.5; margin-top: 2px; }
 
 
-  /* Partner-Miniaturen im Rückblick */
+  /* Partner miniatures in the recap */
   .cpp__mini-partners { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
   .cpp__mini { display: flex; align-items: center; gap: 10px; }
 
@@ -904,13 +904,13 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   .cpp__mini-logo img { max-width: 26px; max-height: 26px; object-fit: contain; }
 
-  /* Rechteckige Kachel für breite Wortmarken (z. B. CSI Aachen). */
+  /* Rectangular tile for wide wordmarks (e.g. CSI Aachen). */
   .cpp__mini-logo--wide { width: 96px; padding: 0 6px; }
   .cpp__mini-logo--wide img { max-width: 84px; }
   .cpp__mini-text { font-size: 12px; line-height: 1.4; }
   .cpp__mini-text strong { color: var(--color-text-heading); }
 
-  /* ── Kommendes Semester: Timeline + Kostenkarte ───────────── */
+  /* ── Upcoming semester: timeline + fee card ───────────────── */
   .cpp__next { display: flex; gap: 40px; align-items: flex-start; }
   .cpp__next .cpp__tl { flex: 1; max-width: 760px; }
 
@@ -939,8 +939,8 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   }
   .cpp__fee li::before { content: "·"; position: absolute; left: 0; color: var(--color-brand-blue); font-weight: 800; }
 
-  /* ── Gesicherte Partner ───────────────────────────────────── */
-  /* Weißer Rahmen statt Wash (aktualisierter Entwurf 6a) */
+  /* ── Secured partners ─────────────────────────────────────── */
+  /* White border instead of wash (updated draft 6a) */
   .cpp__secured {
     background:     var(--color-bg-surface);
     border:         1px solid #DEE3ED;
@@ -952,7 +952,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     margin-top:     var(--space-6);
   }
 
-  /* Nur der Apply-Button, ohne "Already on board": Rahmen und Fläche weg */
+  /* Only the apply button, without "Already on board": border and surface removed */
   .cpp__secured--bare {
     background: transparent;
     border:     none;
@@ -962,7 +962,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   .cpp__secured-head { display: flex; flex-direction: column; gap: 6px; }
   .cpp__secured-sub { font-size: 15px; line-height: 1.5; color: var(--color-text-body); }
 
-  /* Liste links, Detail rechts */
+  /* List on the left, detail on the right */
   .cpp__secured-split {
     display:               grid;
     grid-template-columns: 340px minmax(0, 1fr);
@@ -1014,11 +1014,11 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   .cpp__prow-logo img { max-width: 30px; max-height: 30px; object-fit: contain; }
 
-  /* Breite Kachel für Wortmarken-Logos (z. B. Cinven, Nordic Capital) */
+  /* Wide tile for wordmark logos (e.g. Cinven, Nordic Capital) */
   .cpp__prow-logo--wide { width: 84px; }
   .cpp__prow-logo--wide img { max-width: 76px; }
 
-  /* Detailkarte auf hellblauer Fläche */
+  /* Detail card on a light-blue surface */
   .cpp__pdetail {
     background:      #EDF2FF;
     border-radius:   20px;
@@ -1063,7 +1063,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
 
 
-  /* Voller Gradient-Apply über die ganze Breite */
+  /* Full gradient apply across the whole width */
   .cpp__apply {
     scroll-margin-bottom: var(--space-6);
     align-self:      stretch;
@@ -1105,14 +1105,14 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   .cpp__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
 
-  /* ── Rückblick: zwei Spalten ──────────────────────────────── */
+  /* ── Recap: two columns ───────────────────────────────────── */
   .cpp__past {
     display:               grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap:                   0 64px;
   }
 
-  /* ── Einfaches Panel (Code) ───────────────────────────────── */
+  /* ── Simple panel (Code) ──────────────────────────────────── */
   .cpp__panel--simple {
     display:               grid;
     grid-template-columns: minmax(0, 1fr) 380px;
@@ -1122,7 +1122,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   .cpp__simple-copy { display: flex; flex-direction: column; gap: 20px; }
 
-  /* Coming-soon-Zustand: einspaltig, Hinweisbox mit gestricheltem Rand. */
+  /* Coming-soon state: single column, note box with a dashed border. */
   .cpp__panel--single { grid-template-columns: minmax(0, 1fr); }
   .cpp__recap--soon { border: 2px dashed #C4CBD9; background: #F7F9FE; }
   .cpp__recap--soon .cpp__btn { align-self: flex-start; margin-top: 6px; }

@@ -1,16 +1,16 @@
 ---
 // src/pages/publications/index.astro
 //
-// Publications-Übersicht – Umsetzung von Entwurf 7A aus dem
-// Claude-Design-Projekt ("What is OneAIM Options.dc.html", Abschnitt 7A).
+// Publications overview – implementation of draft 7A from the
+// Claude design project ("What is OneAIM Options.dc.html", section 7A).
 //
-// Aufbau:
-//   1. Kopf mit Overline, Titel und Einleitung
-//   2. Spotlight: die neueste Publikation auf hellblauer Fläche
-//   3. "All publications": kompakte Zeilenliste mit Jahr und Cover
+// Structure:
+//   1. Header with overline, title and introduction
+//   2. Spotlight: the latest publication on a light blue surface
+//   3. "All publications": compact row list with year and cover
 //
-// Neue Publikationen werden ausschließlich in src/data/publicationsData.ts
-// gepflegt – diese Datei muss dafür nicht angefasst werden.
+// New publications are maintained exclusively in src/data/publicationsData.ts
+// – this file does not need to be touched for that.
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { getSortedPublications } from "../../data/publicationsData";
@@ -26,12 +26,12 @@ const featured = all[0];
   <section class="pubs">
     <div class="container pubs__panel">
 
-      <!-- ① Kopf -->
+      <!-- ① Header -->
       <header class="pubs__head">
         <p class="pubs__overline">Research &amp; writing</p>
         <h1 class="pubs__title">Publications</h1>
         <p class="pubs__lead">
-          What our members research, write and publish, from books to course material.
+          What our members research, write and publish, from books to papers.
         </p>
       </header>
 
@@ -61,7 +61,7 @@ const featured = all[0];
         </div>
       )}
 
-      <!-- ③ Vollständige Liste -->
+      <!-- ③ Complete list -->
       <section class="pubs__list" aria-labelledby="all-pubs-heading">
         <div class="pubs__list-head">
           <h2 id="all-pubs-heading">All publications</h2>
@@ -90,7 +90,7 @@ const featured = all[0];
 <style>
   .pubs {
     background:    var(--color-bg-page);
-    padding-block: var(--space-12) var(--space-24);
+    padding-block: var(--space-12) var(--space-12);
   }
 
   .pubs__panel {
@@ -99,7 +99,7 @@ const featured = all[0];
     gap:            var(--space-16);
   }
 
-  /* ── Kopf ─────────────────────────────────────────────────── */
+  /* ── Header ───────────────────────────────────────────────── */
   .pubs__head {
     display:        flex;
     flex-direction: column;
@@ -134,8 +134,8 @@ const featured = all[0];
     align-items:           center;
   }
 
-  /* Leichte Drehung wie im Entwurf – das Cover wirkt dadurch
-     wie ein aufgelegtes Buch statt wie ein Platzhalter. */
+  /* Slight rotation as in the draft – this makes the cover look
+     like a book laid on top instead of a placeholder. */
   .pubs__cover {
     display:       block;
     border-radius: var(--radius-lg);
@@ -217,7 +217,7 @@ const featured = all[0];
 
   .pubs__btn--ghost:hover { background: rgba(255, 255, 255, 0.45); }
 
-  /* ── Liste ────────────────────────────────────────────────── */
+  /* ── List ─────────────────────────────────────────────────── */
   .pubs__list-head {
     border-bottom:  2px solid var(--color-text-heading);
     padding-bottom: 14px;

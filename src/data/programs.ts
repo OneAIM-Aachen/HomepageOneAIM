@@ -1,40 +1,41 @@
 // src/data/programs.ts
 //
-// Einzige Quelle aller Programmdaten.
+// Single source of all program data.
 //
 // ╔══════════════════════════════════════════════════════════════╗
-// ║  NEUES PROGRAMM ERGÄNZEN – ein Schritt:                      ║
-// ║  Einen Eintrag unten hinzufügen. Daraus entstehen automatisch ║
-// ║    • die Karte im Bento-Raster der Startseite                 ║
-// ║    • die Unterseite /programs/<slug>                          ║
-// ║    • der Eintrag im "Programs"-Dropdown der Kopfzeile         ║
+// ║  ADDING A NEW PROGRAM – one step:                            ║
+// ║  Add an entry below. From it, the following are created      ║
+// ║  automatically:                                              ║
+// ║    • the card in the bento grid on the home page             ║
+// ║    • the subpage /programs/<slug>                            ║
+// ║    • the entry in the header's "Programs" dropdown           ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-/** Layoutvariante der Karte im Bento-Raster auf der Startseite. */
+/** Layout variant of the card in the bento grid on the home page. */
 export type ProgramVariant = "feature" | "photo" | "gradient" | "light" | "outline";
 
 export interface Program {
-  /** URL-Segment unter /programs/ */
+  /** URL segment under /programs/ */
   slug: string;
   name: string;
-  /** Kurztext für die Karte auf der Startseite */
+  /** Short text for the card on the home page */
   text: string;
   variant: ProgramVariant;
-  /** Optionale Labels auf der Karte, z. B. ["Flagship"] oder ["New"] */
+  /** Optional labels on the card, e.g. ["Flagship"] or ["New"] */
   badges?: string[];
-  /** Abweichender Titel der Karte auf der Startseite, z. B. "AIM Innovate Impact Hub" */
+  /** Different card title on the home page, e.g. "AIM Innovate Impact Hub" */
   cardName?: string;
   image?: string;
   imageAlt?: string;
 
-  /** Einleitung auf der Programmseite */
+  /** Introduction on the program page */
   intro: string;
-  /** Stichpunkte auf der Programmseite */
+  /** Bullet points on the program page */
   highlights: { title: string; text: string }[];
   /**
-   * Städte mit einer eigenen Seite zu diesem Programm.
-   * Erzeugt auf der Programmseite die Links "In deiner Stadt".
-   * Leer lassen, solange es keine stadtspezifische Seite gibt.
+   * Cities with their own page for this program.
+   * Creates the per-city links on the program page.
+   * Leave empty as long as there is no city-specific page.
    */
   citySlugs?: ("munich" | "aachen")[];
 }
@@ -182,7 +183,7 @@ export function getProgram(slug: string): Program | undefined {
   return programs.find(p => p.slug === slug);
 }
 
-/** Einträge für das "Programs"-Dropdown in der Kopfzeile. */
+/** Entries for the "Programs" dropdown in the header. */
 export const programNavItems = programs.map(p => ({
   label: p.name,
   href: `/programs/${p.slug}`,

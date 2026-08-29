@@ -1,20 +1,20 @@
 ---
 // src/pages/team.astro
 //
-// Org-weite Team-Seite (Entwurf 1a, "Org Team Page Options":
-// City-Filter + ein großes Raster).
+// Org-wide team page (draft 1a, "Org Team Page Options":
+// city filter + one large grid).
 //
-// Alles füllt sich automatisch aus den Datenbanken:
-//   • teamData.ts – die Mitglieder (formerMember ist ausgefiltert;
-//     Presidents zuerst, dann Team Leads, dann alle übrigen)
-//   • cityData.ts – die Städte-Pills und der Städte-Zähler
+// Everything fills itself automatically from the databases:
+//   • teamData.ts – the members (formerMember is filtered out;
+//     presidents first, then team leads, then all others)
+//   • cityData.ts – the city pills and the city counter
 //
-// Solange teamData.ts leer ist, zeigt das Raster Platzhalter-Kacheln.
-// Sobald Einträge existieren, erscheinen sie hier ohne weitere Änderung.
+// As long as teamData.ts is empty, the grid shows placeholder tiles.
+// As soon as entries exist, they appear here without further changes.
 //
-// Filter (Stadt, Rolle, Suche) laufen rein clientseitig: jede Kachel
-// trägt ihre Daten als data-Attribute, das Script unten blendet per
-// `hidden` aus, was nicht passt.
+// Filters (city, role, search) run purely client-side: each tile
+// carries its data as data attributes, the script below hides
+// whatever does not match via `hidden`.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { getActiveMembers, type TeamMember } from "../data/teamData";
@@ -22,20 +22,20 @@ import { cities, cityData } from "../data/cityData";
 
 const members = getActiveMembers();
 
-// Positionszeile wie auf den Standortseiten (CityTeamCarousel):
-// President → "President | Team", Team Lead → "Team Lead | Team", sonst Team.
-// Ein gesetztes `position`-Feld überschreibt die Ableitung komplett.
+// Position line as on the city pages (CityTeamCarousel):
+// President → "President | Team", Team Lead → "Team Lead | Team", otherwise Team.
+// A set `position` field completely overrides the derivation.
 const roleLine = (m: TeamMember): string =>
   m.position
   ?? (m.president ? `President | ${m.team}`
     : m.teamLead ? `Team Lead | ${m.team}`
     : m.team);
 
-// Rollen-Slug für den Rollen-Filter.
+// Role slug for the role filter.
 const roleOf = (m: TeamMember): string =>
   m.president ? "president" : m.teamLead ? "lead" : "member";
 
-// Initialen als Foto-Ersatz, z. B. "Lucas Gildehaus" → "LG".
+// Initials as a photo substitute, e.g. "Lucas Gildehaus" → "LG".
 const initials = (name: string): string =>
   name.split(/\s+/).map(part => part[0] ?? "").join("").slice(0, 2).toUpperCase();
 
@@ -62,7 +62,7 @@ const hasMembers = tiles.length > 0;
     <div class="container">
       <div class="team-page__panel">
 
-        <!-- Kopf: Überschrift links, Zähler rechts -->
+        <!-- Header: heading on the left, counter on the right -->
         <div class="team-page__head">
           <div class="team-page__heading">
             <p class="team-page__overline">Our team</p>
@@ -73,7 +73,7 @@ const hasMembers = tiles.length > 0;
           </p>
         </div>
 
-        <!-- Filterzeile: Stadt-Pills + Rollen-Pills links, Suche rechts -->
+        <!-- Filter row: city pills + role pills on the left, search on the right -->
         <div class="team-page__toolbar" data-toolbar hidden>
           <div class="team-page__pill-rows">
             <div class="team-page__pills" role="group" aria-label="Filter by city">
@@ -109,7 +109,7 @@ const hasMembers = tiles.length > 0;
           </div>
         </div>
 
-        <!-- Raster -->
+        <!-- Grid -->
         {hasMembers ? (
           <div class="team-page__grid" data-grid>
             {tiles.map(t => (
@@ -167,10 +167,10 @@ const hasMembers = tiles.length > 0;
 <style>
   .team-page {
     background:    var(--color-bg-page);
-    padding-block: var(--space-12) var(--space-24);
+    padding-block: var(--space-12) var(--space-12);
   }
 
-  /* CSS mit display-Wert schlägt das hidden-Attribut – daher der Riegel. */
+  /* CSS with a display value beats the hidden attribute – hence this guard. */
   .team-page [hidden] { display: none !important; }
 
   .team-page__panel {
@@ -183,7 +183,7 @@ const hasMembers = tiles.length > 0;
     gap:            var(--space-8);
   }
 
-  /* ── Kopf ─────────────────────────────────────────────────── */
+  /* ── Header ───────────────────────────────────────────────── */
   .team-page__head {
     display:         flex;
     justify-content: space-between;
@@ -214,7 +214,7 @@ const hasMembers = tiles.length > 0;
     color:       var(--color-text-body);
   }
 
-  /* ── Filterzeile ──────────────────────────────────────────── */
+  /* ── Filter row ───────────────────────────────────────────── */
   .team-page__toolbar {
     display:         flex;
     justify-content: space-between;
@@ -257,7 +257,7 @@ const hasMembers = tiles.length > 0;
     flex-wrap:   wrap;
   }
 
-  /* LinkedIn-Toggle: zeigt nur Personen mit hinterlegtem Profil. */
+  /* LinkedIn toggle: shows only people with a stored profile. */
   .team-page__pill--linkedin {
     display:     inline-flex;
     align-items: center;
@@ -281,7 +281,7 @@ const hasMembers = tiles.length > 0;
     background: var(--color-bg-surface);
   }
 
-  /* Rollen-Pills: kleiner, aktive Variante hell statt voll blau (1a). */
+  /* Role pills: smaller, active variant light instead of full blue (1a). */
   .team-page__pill--role { padding: 7px 16px; font-size: 12px; }
 
   .team-page__pill--role.is-active {
@@ -308,7 +308,7 @@ const hasMembers = tiles.length > 0;
     box-shadow:   0 0 0 3px rgba(0, 82, 233, 0.15);
   }
 
-  /* ── Raster ───────────────────────────────────────────────── */
+  /* ── Grid ─────────────────────────────────────────────────── */
   .team-page__grid {
     display:               grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -344,7 +344,7 @@ const hasMembers = tiles.length > 0;
     background:      #EDF2FF;
   }
 
-  /* Ablagefläche im Platzhalter-Zustand (Datenbank noch leer). */
+  /* Drop area in the placeholder state (database still empty). */
   .team-page__photo--slot {
     display:         flex;
     align-items:     center;
@@ -378,7 +378,7 @@ const hasMembers = tiles.length > 0;
     margin-top:     3px;
   }
 
-  /* LinkedIn-Overlay – nur vorhanden, wenn ein Profil hinterlegt ist. */
+  /* LinkedIn overlay – only present when a profile is stored. */
   .team-page__ln {
     position:        absolute;
     inset:           0;
@@ -426,13 +426,13 @@ const hasMembers = tiles.length > 0;
 </style>
 
 <script>
-  // Clientseitige Filter: Stadt-Pills, Rollen-Pills und Suche kombinieren
-  // sich (UND-Verknüpfung). Ohne JS bleibt die Filterzeile versteckt und
-  // das volle Raster sichtbar – deshalb startet die Toolbar mit `hidden`.
+  // Client-side filters: city pills, role pills and search combine
+  // (AND logic). Without JS the filter row stays hidden and the full
+  // grid remains visible – that is why the toolbar starts with `hidden`.
   const toolbar = document.querySelector<HTMLElement>("[data-toolbar]");
   const tiles   = Array.from(document.querySelectorAll<HTMLElement>("[data-tile]"));
 
-  // Nur aktivieren, wenn es echte Einträge gibt (sonst Platzhalter-Raster).
+  // Only activate when real entries exist (otherwise placeholder grid).
   if (toolbar && tiles.length) {
     toolbar.removeAttribute("hidden");
 
@@ -468,8 +468,8 @@ const hasMembers = tiles.length > 0;
       apply();
     }));
 
-    // Deep-Link: /team?city=aachen (oder /team#aachen) wählt den
-    // Stadt-Filter direkt vor – für die "Full team"-Buttons der Stadtseiten.
+    // Deep link: /team?city=aachen (or /team#aachen) preselects the
+    // city filter directly – for the "Full team" buttons of the city pages.
     const preselect = new URLSearchParams(location.search).get("city")
       ?? location.hash.replace("#", "");
     const preselectPill = cityPills.find(p => p.dataset.cityPill === preselect);

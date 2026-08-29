@@ -1,57 +1,57 @@
 // src/data/teamData.ts
 //
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  ZENTRALE TEAM-DATENBANK – alle Standorte in einem Array.                ║
+// ║  CENTRAL TEAM DATABASE – all locations in one array.                     ║
 // ║                                                                          ║
-// ║  NEUES MITGLIED ERGÄNZEN – zwei Schritte:                                ║
-// ║  1. Foto nach public/images/team/ legen (optional)                       ║
-// ║  2. Einen Eintrag in das Array unten schreiben. Position egal.           ║
+// ║  ADDING A NEW MEMBER – two steps:                                        ║
+// ║  1. Put the photo into public/images/team/ (optional)                    ║
+// ║  2. Write an entry into the array below. Position does not matter.       ║
 // ║                                                                          ║
-// ║  Danach erscheint die Person automatisch auf ihrer Standortseite:        ║
-// ║    • president: true  → blaue Karte, ganz vorn in der Lead-Reihe         ║
-// ║    • teamLead:  true  → helle Karte in der Lead-Reihe                    ║
-// ║    • beides false     → Kachel in der Reihe "The full team"              ║
-// ║  linkedIn gesetzt → LinkedIn-Overlay beim Überfahren der Karte.          ║
+// ║  The person then appears automatically on their location page:           ║
+// ║    • president: true  → blue card, at the front of the lead row          ║
+// ║    • teamLead:  true  → light card in the lead row                       ║
+// ║    • both false       → tile in the "The full team" row                  ║
+// ║  linkedIn set → LinkedIn overlay when hovering over the card.            ║
 // ║                                                                          ║
-// ║  AUSTRITT: niemanden löschen – formerMember: true setzen. Die Person     ║
-// ║  verschwindet von der Seite, bleibt aber als Historie erhalten.          ║
+// ║  LEAVING: do not delete anyone – set formerMember: true. The person      ║
+// ║  disappears from the page but is kept as history.                        ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 import type { CitySlug } from "./cityData";
 
 export interface TeamMember {
   name: string;
-  /** Team, in dem die Person arbeitet, z. B. "AIM Connect", "Marketing" */
+  /** Team the person works in, e.g. "AIM Connect", "Marketing" */
   team: string;
-  /** true = erscheint in der Reihe "President & team leads" */
+  /** true = appears in the "President & team leads" row */
   teamLead: boolean;
   president: boolean;
-  /** "munich" | "aachen" | "frankfurt" – bestimmt die Standortseite */
+  /** "munich" | "aachen" | "frankfurt" – determines the location page */
   city: CitySlug;
   /**
-   * Überschreibt die automatisch abgeleitete Positionszeile komplett –
-   * für Sonderrollen, die das Schema nicht abbildet, z. B.
-   * "Vice-President | Board" oder "Co-Team Lead | Community & Recruitment".
-   * Fehlt das Feld, gilt: President → "President | Team",
-   * Team Lead → "Team Lead | Team", sonst nur der Team-Name.
+   * Completely overrides the automatically derived position line –
+   * for special roles the schema does not cover, e.g.
+   * "Vice-President | Board" or "Co-Team Lead | Community & Recruitment".
+   * If the field is missing: President → "President | Team",
+   * Team Lead → "Team Lead | Team", otherwise just the team name.
    */
   position?: string;
-  /** Pfad relativ zu /public, z. B. "/images/team/lucas-gildehaus.png" */
+  /** Path relative to /public, e.g. "/images/team/lucas-gildehaus.png" */
   photo?: string;
-  /** LinkedIn-Profil-URL – aktiviert das Hover-Overlay */
+  /** LinkedIn profile URL – enables the hover overlay */
   linkedIn?: string;
   /**
-   * true = ehemaliges Mitglied. Bleibt in der Datenbank stehen (Historie,
-   * späterer Alumni-Bereich), erscheint aber auf keiner Standortseite.
+   * true = former member. Stays in the database (history, future
+   * alumni section), but does not appear on any location page.
    */
   formerMember?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mitglieder
+// Members
 //
-// Noch leer – solange hier nichts steht, zeigen die Standortseiten die
-// Platzhalter-Karten der Blaupause. Beispiel-Eintrag:
+// Still empty – as long as nothing is listed here, the location pages show
+// the placeholder cards of the blueprint. Example entry:
 //
 //   {
 //     name:      "Lucas Gildehaus",
@@ -66,7 +66,7 @@ export interface TeamMember {
 
 export const teamMembers: TeamMember[] = [
 
-  // ── Munich – Board (Vorstand) ──────────────────────────────────────────
+  // ── Munich – Board ─────────────────────────────────────────────────────
   { name: "Nick Breit",   team: "Board", teamLead: false, president: true, city: "munich",
     linkedIn: "https://www.linkedin.com/in/nick-breit/",
     photo: "/images/team/nick-breit.jpg" },
@@ -228,7 +228,7 @@ export const teamMembers: TeamMember[] = [
     photo: "/images/team/anton-dimroth.jpg" },
 
   // ── Aachen – Members ───────────────────────────────────────────────────
-  // Für diese Mitglieder nennt der Notion-Export kein Team – Anzeige "Member".
+  // The Notion export lists no team for these members – displayed as "Member".
   { name: "Constantin",     team: "General", teamLead: false, president: false, city: "aachen", position: "Member",
     photo: "/images/team/constantin-lemler.jpg" },
   { name: "Timo Klein",     team: "General", teamLead: false, president: false, city: "aachen", position: "Member" },
@@ -236,10 +236,10 @@ export const teamMembers: TeamMember[] = [
   { name: "Seiar Yousofi",  team: "General", teamLead: false, president: false, city: "aachen", position: "Member" },
   { name: "Julian Sandten", team: "General", teamLead: false, president: false, city: "aachen", position: "Member", linkedIn: "https://www.linkedin.com/in/julian-sandten-5121932b4" },
 
-  // ── Aachen – Ehemalige (erscheinen nicht auf der Website) ──────────────
+  // ── Aachen – Former members (do not appear on the website) ─────────────
   { name: "Zeynep Öztürk", team: "General", teamLead: false, president: false, city: "aachen", position: "Member", formerMember: true },
 
-  // ── Frankfurt – Gründungsteam ──────────────────────────────────────────
+  // ── Frankfurt – Founding team ──────────────────────────────────────────
   { name: "Medi Bergmann",       team: "Board", teamLead: false, president: true, city: "frankfurt", linkedIn: "https://www.linkedin.com/in/medi-bergmann-305644250",
     photo: "/images/team/medi-bergmann.jpg" },
   { name: "Maximilian Pfeiffer", team: "Marketing", teamLead: true, president: false, city: "frankfurt", position: "Vice-President | Marketing", linkedIn: "https://www.linkedin.com/in/maximilian-pfeiffer-52576a1bb",
@@ -255,13 +255,13 @@ export const teamMembers: TeamMember[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Abgeleitete Listen
+// Derived lists
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Alle AKTIVEN Mitglieder org-weit – für die Team-Seite (/team).
- * Reihenfolge: Presidents zuerst, dann Team Leads, dann alle übrigen;
- * innerhalb der Gruppen bleibt die Reihenfolge des Arrays erhalten.
+ * All ACTIVE members org-wide – for the team page (/team).
+ * Order: presidents first, then team leads, then everyone else;
+ * within the groups the order of the array is preserved.
  */
 export function getActiveMembers(): TeamMember[] {
   const active = teamMembers.filter(m => !m.formerMember);
@@ -272,19 +272,19 @@ export function getActiveMembers(): TeamMember[] {
   ];
 }
 
-/** Alle AKTIVEN Mitglieder eines Standorts – Ehemalige sind ausgefiltert. */
+/** All ACTIVE members of a location – former members are filtered out. */
 export function getTeamByCity(city: CitySlug): TeamMember[] {
   return teamMembers.filter(m => m.city === city && !m.formerMember);
 }
 
-/** Ehemalige eines Standorts – für einen späteren Alumni-Bereich. */
+/** Former members of a location – for a future alumni section. */
 export function getFormerMembersByCity(city: CitySlug): TeamMember[] {
   return teamMembers.filter(m => m.city === city && m.formerMember);
 }
 
 /**
- * Lead-Reihe eines Standorts: President zuerst, danach die Team Leads
- * in der Reihenfolge des Arrays.
+ * Lead row of a location: president first, then the team leads
+ * in the order of the array.
  */
 export function getLeadsByCity(city: CitySlug): TeamMember[] {
   const local = getTeamByCity(city);
@@ -294,7 +294,7 @@ export function getLeadsByCity(city: CitySlug): TeamMember[] {
   ];
 }
 
-/** Reihe "The full team": alle ohne Lead- oder President-Rolle. */
+/** "The full team" row: everyone without a lead or president role. */
 export function getMembersByCity(city: CitySlug): TeamMember[] {
   return getTeamByCity(city).filter(m => !m.president && !m.teamLead);
 }

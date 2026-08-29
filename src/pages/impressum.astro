@@ -1,15 +1,15 @@
 ---
 // src/pages/impressum.astro
-// Impressum mit den Angaben beider Vereine (OneAIM e.V. München und
-// OneAIM Aachen e.V.). Bildnachweise am Ende.
+// Legal notice with the details of both associations (OneAIM e.V. München
+// and OneAIM Aachen e.V.). Image credits at the end.
 
 import LegalLayout from "../layouts/LegalLayout.astro";
 ---
 
 <LegalLayout title="Impressum" description="Impressum von OneAIM e.V. und OneAIM Aachen e.V.">
 
-  <!-- Standort-Umschalter: zeigt jeweils nur die Angaben eines Vereins.
-       Ohne JavaScript bleiben beide Standorte sichtbar. -->
+  <!-- Location switcher: shows only one association's details at a time.
+       Without JavaScript both locations remain visible. -->
   <div class="impressum-switch" data-impressum-switch hidden>
     <button type="button" class="impressum-switch__btn is-active" data-city-btn="muenchen" aria-pressed="true">München</button>
     <button type="button" class="impressum-switch__btn" data-city-btn="aachen" aria-pressed="false">Aachen</button>
@@ -156,8 +156,8 @@ import LegalLayout from "../layouts/LegalLayout.astro";
 </style>
 
 <script>
-  // Standort-Umschalter: Buttons blenden die jeweils andere Vereins-Section
-  // aus. /impressum#aachen wählt Aachen direkt vor.
+  // Location switcher: the buttons hide the other association's section.
+  // /impressum#aachen preselects Aachen directly.
   const switcher = document.querySelector<HTMLElement>("[data-impressum-switch]");
   const buttons  = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-city-btn]"));
   const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-city-section]"));

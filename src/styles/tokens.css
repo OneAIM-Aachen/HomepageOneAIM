@@ -1,22 +1,22 @@
 /* ==========================================================================
-   OneAIM Design Tokens — Brand Style Guide (Stand: 28.02.2025)
+   OneAIM design tokens, Brand Style Guide (as of 28.02.2025)
    ========================================================================== */
 
 :root {
 
-  /* ── Primärpalette ──────────────────────────────────────────────────── */
+  /* ── Primary palette ────────────────────────────────────────────────── */
   --color-brand-blue:        #0052E9;
   --color-brand-blue-dark:   #232ACF;
   --color-brand-blue-light:  #C9D8FF;
 
-  /* ── Sekundärpalette ────────────────────────────────────────────────── */
+  /* ── Secondary palette ──────────────────────────────────────────────── */
   --color-accent-pink:       #D400FF;
   --color-accent-pink-dark:  #aa00cc;
   --color-accent-purple:     #8D2DF1;
   --color-accent-purple-dark:#7120c8;
   --color-black:             #000000;
 
-  /* ── Hintergründe ───────────────────────────────────────────────────── */
+  /* ── Backgrounds ────────────────────────────────────────────────────── */
   --color-bg-page:           #FFFFFF;
   --color-bg-subtle:         #C9D8FF;
   --color-bg-surface:        #FFFFFF;
@@ -31,27 +31,27 @@
   --color-text-on-brand:     #FFFFFF;
   --color-text-link:         #0052E9;
 
-  /* ── Hero-Gradient ──────────────────────────────────────────────────
-     Heller Aurora-Stil wie im Screenshot:
-       - Weiße/sehr helle Mitte
-       - Weiches Blau links
-       - Zartes Rosa/Pink Zentrum-rechts
-       - Blau unten
-     Die Animations-Blobs (Hero.astro) driften darüber.
+  /* ── Hero gradient ──────────────────────────────────────────────────
+     Light aurora style as in the screenshot:
+       - White/very light center
+       - Soft blue on the left
+       - Delicate rose/pink center-right
+       - Blue at the bottom
+     The animation blobs (Hero.astro) drift over it.
   ──────────────────────────────────────────────────────────────────── */
   --gradient-hero: #ffffff;
 
-  /* ── Icon-Gradient ──────────────────────────────────────────────────── */
+  /* ── Icon gradient ──────────────────────────────────────────────────── */
   --gradient-icon:          linear-gradient(135deg, #D400FF 0%, #8D2DF1 100%);
   --gradient-btn-secondary: linear-gradient(135deg, #D400FF 0%, #8D2DF1 100%);
 
-  /* ── Ränder / Schatten ──────────────────────────────────────────────── */
+  /* ── Borders / shadows ──────────────────────────────────────────────── */
   --color-border-subtle:    #E4E7EE;
   --shadow-card: 0 2px 10px rgba(35, 42, 207, 0.05);
   --shadow-lift: 0 18px 44px rgba(35, 42, 207, 0.12);
   --shadow-header:          0 1px 0 rgba(0, 82, 233, 0.08);
 
-  /* ── Typografie ─────────────────────────────────────────────────────── */
+  /* ── Typography ─────────────────────────────────────────────────────── */
   --font-display: "Raleway", "Helvetica Neue", Arial, sans-serif;
   --font-body:    "Raleway", "Helvetica Neue", Arial, sans-serif;
 
@@ -89,22 +89,22 @@
   --container-padding: clamp(1.25rem, 4vw, 3rem);
   --header-height:     72px;
 
-  /* ── Radien ─────────────────────────────────────────────────────────── */
+  /* ── Radii ──────────────────────────────────────────────────────────── */
   --radius-sm:   8px;
   --radius-md:   14px;
   --radius-lg:   20px;
   --radius-pill: 999px;
 
-  /* ── Übergänge ──────────────────────────────────────────────────────── */
+  /* ── Transitions ────────────────────────────────────────────────────── */
   --transition-fast: 150ms cubic-bezier(0.22, 1, 0.36, 1);
   --transition-base: 220ms cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* ── Platzhalter-Kennzeichnung ──────────────────────────────────────── */
+  /* ── Placeholder marking ────────────────────────────────────────────── */
   --color-warning-bg:     #fef3c7;
   --color-warning-border: #fbbf24;
   --color-warning-text:   #92400e;
 
-  /* ── Fokus ──────────────────────────────────────────────────────────── */
+  /* ── Focus ──────────────────────────────────────────────────────────── */
   --focus-ring:         0 0 0 3px rgba(0, 82, 233, 0.40);
   --focus-ring-on-dark: 0 0 0 3px rgba(255, 255, 255, 0.60);
 }

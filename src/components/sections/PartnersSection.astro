@@ -1,24 +1,24 @@
 ---
 // src/components/sections/PartnersSection.astro
 //
-// Endlos durchlaufendes Logo-Band ("Marquee") statt Karussell.
-// Neue Partner ergänzen: Bild nach public/images/partners/ legen
-// und Eintrag in src/data/partners.ts hinzufügen – hier ist nichts zu tun.
+// Endlessly running logo band ("marquee") instead of a carousel.
+// Adding new partners: put the image into public/images/partners/
+// and add an entry in src/data/partners.ts – nothing to do here.
 //
-// Technik: Die Partnerliste wird zweimal gerendert und das Band um genau
-// -50 % verschoben. Dadurch ist der Sprung am Ende der Animation exakt
-// deckungsgleich mit dem Anfang → nahtlose Endlosschleife.
-// Die zweite Kopie ist rein dekorativ (aria-hidden + tabindex="-1"),
-// damit Screenreader und Tastaturnavigation jeden Partner nur einmal sehen.
+// Technique: the partner list is rendered twice and the band shifted by
+// exactly -50 %. This makes the jump at the end of the animation exactly
+// congruent with the beginning → seamless endless loop.
+// The second copy is purely decorative (aria-hidden + tabindex="-1"),
+// so screen readers and keyboard navigation see each partner only once.
 
-// Nur die für die Startseite markierten Einträge (onLanding: true in
-// partners.ts). Die vollständige Liste steht auf /partners.
+// Only the entries marked for the homepage (onLanding: true in
+// partners.ts). The full list is on /partners.
 import { landingPartners } from "../../data/partners";
 
-// Zufällige Reihenfolge (Fisher-Yates), neu gemischt bei jedem Build –
-// so wirkt das Band gemischt statt nach Datenbank-Reihenfolge sortiert.
-// Nebenbedingung: Universitäten laufen nicht direkt hintereinander
-// (inklusive Übergang am Schleifenende, das Band wiederholt sich nahtlos).
+// Random order (Fisher-Yates), reshuffled on every build –
+// this makes the band look mixed instead of sorted by database order.
+// Constraint: universities do not run directly one after another
+// (including the transition at the loop end, the band repeats seamlessly).
 const UNIVERSITIES = new Set(["tum", "lmu", "rwth-aachen", "harvard"]);
 const isUni = (p: (typeof landingPartners)[number]) => UNIVERSITIES.has(p.id);
 
@@ -45,8 +45,8 @@ for (let tries = 0; tries < 1000; tries++) {
       <a href="/partners" class="partners-section__label-link">
         <span class="partners-section__swap">
           <span class="partners-section__swap-rest">Our partners &amp; sponsors include</span>
-          <!-- Rein visueller Hover-Text: für Screenreader ausgeblendet,
-               damit die Überschrift nicht doppelt vorgelesen wird. -->
+          <!-- Purely visual hover text: hidden from screen readers,
+               so the heading is not read out twice. -->
           <span class="partners-section__swap-hover" aria-hidden="true">See all partners &amp; sponsors</span>
         </span>
       </a>
@@ -96,17 +96,17 @@ for (let tries = 0; tries < 1000; tries++) {
     padding-top:    var(--space-8);
     padding-bottom: var(--space-8);
 
-    /* ← Tempo der Schleife. Größer = langsamer.
-       Die Dauer gilt für eine ganze Runde, nicht für eine feste
-       Geschwindigkeit: Bei jedem neuen Partner wird das Band länger und
-       damit schneller. Faustregel für gleichbleibendes Tempo:
-       ca. 4s pro Logo im Band (8 Logos → ~32s).
-       Maßgeblich ist die Zahl der Einträge mit onLanding: true,
-       nicht die Gesamtzahl in partners.ts. */
+    /* ← Pace of the loop. Larger = slower.
+       The duration applies to one full round, not to a fixed
+       speed: with every new partner the band gets longer and
+       thus faster. Rule of thumb for a constant pace:
+       ca. 4s per logo in the band (8 logos → ~32s).
+       What matters is the number of entries with onLanding: true,
+       not the total number in partners.ts. */
     --marquee-duration: 32s;
   }
 
-  /* Einzige Textzeile der Section – optisch das frühere Overline-Label. */
+  /* The only text line of the section – visually the former overline label. */
   .partners-section__label {
     text-align:     center;
     font-size:      13px;
@@ -117,10 +117,10 @@ for (let tries = 0; tries < 1000; tries++) {
     margin-bottom:  var(--space-12);
   }
 
-  /* ── Laufband ─────────────────────────────────────────────────
-     Volle Fensterbreite (nicht im .container), damit die Logos an
-     beiden Rändern aus dem Bild laufen. Die Maske blendet sie dabei
-     sanft aus, statt sie hart abzuschneiden.                      */
+  /* ── Marquee ──────────────────────────────────────────────────
+     Full window width (not in the .container), so the logos run
+     out of view at both edges. The mask fades them out
+     gently instead of cutting them off hard.                     */
   .partners-marquee {
     overflow: hidden;
     mask-image: linear-gradient(
@@ -146,7 +146,7 @@ for (let tries = 0; tries < 1000; tries++) {
     animation:   partners-roll var(--marquee-duration) linear infinite;
   }
 
-  /* Beim Überfahren anhalten, damit man ein Logo gezielt anklicken kann. */
+  /* Pause on hover, so a logo can be clicked deliberately. */
   .partners-marquee:hover .partners-marquee__track,
   .partners-marquee:focus-within .partners-marquee__track {
     animation-play-state: paused;
@@ -180,7 +180,7 @@ for (let tries = 0; tries < 1000; tries++) {
     max-width:  150px;
     width:      auto;
     object-fit: contain;
-    /* Leicht zurückgenommen, damit das Band ruhig wirkt. */
+    /* Slightly toned down, so the band looks calm. */
     filter:     grayscale(15%) opacity(0.85);
     transition: filter var(--transition-base);
   }
@@ -189,10 +189,10 @@ for (let tries = 0; tries < 1000; tries++) {
     filter: grayscale(0%) opacity(1);
   }
 
-  /* ── Überschrift als Link auf /partners ───────────────────────
-     Kein eigener Button: die Überschrift selbst führt zur vollen
-     Partnerseite. Der Pfeil erscheint beim Überfahren, damit die
-     Zeile im Ruhezustand wie ein reines Label aussieht.          */
+  /* ── Heading as a link to /partners ───────────────────────────
+     No separate button: the heading itself leads to the full
+     partner page. The arrow appears on hover, so the
+     line looks like a pure label in its resting state.           */
   .partners-section__label-link {
     position:        relative;
     display:         inline-block;
@@ -201,9 +201,9 @@ for (let tries = 0; tries < 1000; tries++) {
     transition:      color var(--transition-fast);
   }
 
-  /* Absolut positioniert: der Pfeil belegt keine Layoutbreite. Sonst
-     stünde die Überschrift dauerhaft um seine halbe Breite links
-     außerhalb der Mitte – und würde beim Hover zusätzlich springen. */
+  /* Absolutely positioned: the arrow takes up no layout width. Otherwise
+     the heading would permanently sit half its width to the left
+     of center – and would additionally jump on hover. */
   .partners-section__label-link::after {
     content:     "→";
     position:    absolute;
@@ -220,10 +220,10 @@ for (let tries = 0; tries < 1000; tries++) {
     color: var(--color-brand-blue);
   }
 
-  /* ── Text-Tausch beim Hover ───────────────────────────────────
-     Beide Texte liegen im selben Grid-Feld übereinander. Dadurch ist
-     der Container so breit wie der längere Text und die Zeile springt
-     beim Wechsel nicht in der Breite.                             */
+  /* ── Text swap on hover ───────────────────────────────────────
+     Both texts sit in the same grid cell on top of each other. This
+     makes the container as wide as the longer text and the line does
+     not jump in width when switching.                             */
   .partners-section__swap {
     display: grid;
   }
@@ -251,8 +251,8 @@ for (let tries = 0; tries < 1000; tries++) {
     transform: translateY(-50%) translateX(0);
   }
 
-  /* Touch-Geräte kennen kein Hover: dort ist der Pfeil dauerhaft
-     sichtbar, sonst wäre der Link praktisch unauffindbar.        */
+  /* Touch devices know no hover: there the arrow is permanently
+     visible, otherwise the link would be practically undiscoverable. */
   @media (hover: none) {
     .partners-section__label-link::after {
       opacity:   1;
@@ -265,12 +265,12 @@ for (let tries = 0; tries < 1000; tries++) {
     to   { transform: translateX(-50%); }
   }
 
-  /* ── Reduzierte Bewegung ──────────────────────────────────────
-     Kein Lauf, keine Maske: die Logos werden zu einem statischen,
-     umbrechenden Raster. Die dekorative zweite Kopie entfällt.
-     !important schlägt die globale Reduced-Motion-Regel in
-     global.css, die sonst nur die Dauer auf 0.001ms setzt und das
-     Band dadurch am Endpunkt (-50 %) einfrieren würde.            */
+  /* ── Reduced motion ───────────────────────────────────────────
+     No run, no mask: the logos become a static,
+     wrapping grid. The decorative second copy is dropped.
+     !important beats the global reduced-motion rule in
+     global.css, which otherwise only sets the duration to 0.001ms and
+     would thereby freeze the band at its end point (-50 %).       */
   @media (prefers-reduced-motion: reduce) {
     .partners-marquee {
       mask-image:         none;

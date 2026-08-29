@@ -1,12 +1,12 @@
 ---
 // src/components/sections/AnnouncementBanner.astro
 //
-// Schmales Ankündigungsband ganz oben auf der Startseite: weist auf die
-// AIM-Connect-Bewerbungsrunden hin. Komplett datengetrieben aus
-// applications.ts – ohne Runden verschwindet das Band von selbst:
-//   • alle Runden offen      → "… are open in all locations."
-//   • Runden angekündigt     → "… open in all locations on <Datum>."
-//   • gemischt (teils offen) → "… are open."
+// Narrow announcement band at the very top of the homepage: points to the
+// AIM Connect application rounds. Fully data-driven from
+// applications.ts – without rounds the band disappears by itself:
+//   • all rounds open        → "… are open in all locations."
+//   • rounds announced       → "… open in all locations on <Datum>."
+//   • mixed (partially open) → "… are open."
 
 import { cities } from "../../data/cityData";
 import { getApplicationFor, getStatus } from "../../data/applications";
@@ -69,7 +69,7 @@ const message =
 
   .announce:hover .announce__cta { color: #fff; }
 
-  /* Mobil: alles in EINER Zeile – kleinere Schrift statt Umbruch */
+  /* Mobile: everything on ONE line – smaller font instead of wrapping */
   @media (max-width: 760px) {
     .announce { flex-wrap: nowrap; gap: 6px; padding-inline: 10px; }
     .announce__text,

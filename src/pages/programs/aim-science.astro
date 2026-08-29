@@ -1,18 +1,18 @@
 ---
 // src/pages/programs/aim-science.astro
 //
-// Dedizierte AIM-Science-Seite (Entwurf 1a, "AIM Science Page Options":
-// Light editorial, passend zu den anderen Programmseiten). Ersetzt die
-// generische Programmseite aus [program].astro (dort ausgenommen).
+// Dedicated AIM Science page (draft 1a, "AIM Science Page Options":
+// light editorial, matching the other program pages). Replaces the
+// generic program page from [program].astro (excluded there).
 //
-// Bänder:
-//   ① Hero            – hellblaues Band, Foto rechts, CTAs
+// Bands:
+//   ① Hero            – light blue band, photo on the right, CTAs
 //   ② What it is
-//   ③ Our projects    – Projektkarten (PROJECTS unten) + "Pitch your idea"
+//   ③ Our projects    – project cards (PROJECTS below) + "Pitch your idea"
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
-// ── Forschungsprojekte – neues Projekt: Eintrag ergänzen ───────────────
+// ── Research projects – new project: add an entry ─────────────────────
 const projects = [
   { area: "Large language models",
     title: "Can AI chatbots pass the medical state examination?",
@@ -108,7 +108,7 @@ const projects = [
 </BaseLayout>
 
 <style>
-  .acs { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+  .acs { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-12); }
 
   .acs__panel {
     background:     var(--color-bg-surface);

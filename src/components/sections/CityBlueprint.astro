@@ -1,29 +1,29 @@
 ---
 // src/components/sections/CityBlueprint.astro
 //
-// Blaupause für JEDE standortspezifische Seite.
+// Blueprint for EVERY location-specific page.
 //
-// Oberer Teil  = Entwurf 15A ("Photo hero + application card inside"):
-//   Foto über die volle Breite, Verlauf von links, Stadtname links,
-//   Uni-Logo und Instagram als Chips, rechts die Bewerbungskarte.
-//   Universität, Instagram und Bewerbungen stehen damit IM Hero –
-//   die früheren getrennten Bänder dafür entfallen.
-// Unterer Teil = Entwurf 12A, unverändert.
+// Upper part  = draft 15A ("Photo hero + application card inside"):
+//   full-width photo, gradient from the left, city name on the left,
+//   university logo and Instagram as chips, application card on the right.
+//   University, Instagram and applications thereby live INSIDE the hero –
+//   the former separate bands for them are dropped.
+// Lower part = draft 12A, unchanged.
 //
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  ZUSTAND: Gerüst ohne Inhalte.                                           ║
-// ║  Alle Texte stehen als Platzhalter in eckigen Klammern, alle Bilder als  ║
-// ║  gestrichelte Ablageflächen. Gefüllt wird über den Eintrag des Standorts ║
-// ║  in src/data/cityData.ts (empfohlen) oder per Props – nichts an dieser   ║
-// ║  Datei muss dafür geändert werden.                                       ║
+// ║  STATE: scaffold without content.                                        ║
+// ║  All texts appear as placeholders in square brackets, all images as      ║
+// ║  dashed drop areas. Content is filled in via the location's entry in     ║
+// ║  src/data/cityData.ts (recommended) or via props – nothing in this       ║
+// ║  file needs to be changed for that.                                      ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 //
-// Reihenfolge der Bänder:
-//   1. Hero (15A)      – Foto, Stadtname, Uni-Logo, Instagram, Bewerbungskarte
-//   2. The chapter     – "Rooted in [City]" (Entwurf 2a, City History)
-//   3. Programs        – Volles Programm-Panel (Entwurf 6a, eigene Komponente)
-//   4. Team            – Scroll-Reihen (Entwurf 3a, eigene Komponente)
-//   5. News            – füllt sich automatisch aus newsData.ts (siehe citySlug)
+// Order of the bands:
+//   1. Hero (15A)      – photo, city name, university logo, Instagram, application card
+//   2. The chapter     – "Rooted in [City]" (draft 2a, City History)
+//   3. Programs        – full program panel (draft 6a, separate component)
+//   4. Team            – scroll rows (draft 3a, separate component)
+//   5. News            – fills itself automatically from newsData.ts (see citySlug)
 
 import CityProgramsPanel from "./CityProgramsPanel.astro";
 import CityTeamCarousel from "./CityTeamCarousel.astro";
@@ -41,12 +41,12 @@ import ApplicationCard from "../ApplicationCard.astro";
 interface Row { label: string; value: string }
 
 interface Application {
-  /** "open" = grüner Punkt, "upcoming" = grauer Punkt */
+  /** "open" = green dot, "upcoming" = grey dot */
   status: "open" | "upcoming";
   statusLabel: string;
   title: string;
   rows: Row[];
-  /** Freitextzeile unter den Daten, z. B. im Leerzustand */
+  /** Free-text line below the data, e.g. in the empty state */
   note?: string;
   ctaLabel: string;
   ctaHref?: string;
@@ -56,41 +56,41 @@ interface Upcoming { text: string }
 interface NewsCard { title: string; date: string; image?: string; href?: string }
 
 interface Props {
-  /** Anzeigename des Standorts – ersetzt [City] in allen Überschriften */
+  /** Display name of the location – replaces [City] in all headings */
   city?: string;
   /**
-   * Slug des Standorts ("munich" | "aachen" | "frankfurt").
-   * Ist er gesetzt, füllen sich automatisch:
-   *   • die Bewerbungskarte im Hero aus src/data/applications.ts
-   *   • die "Coming up"-Zeile mit der nächsten kommenden Runde
-   *   • das News-Band aus src/data/newsData.ts
-   * Die Props `application`, `upcoming` und `news` überschreiben das.
+   * Slug of the location ("munich" | "aachen" | "frankfurt").
+   * If it is set, the following fill in automatically:
+   *   • the application card in the hero from src/data/applications.ts
+   *   • the "Coming up" line with the next upcoming round
+   *   • the news band from src/data/newsData.ts
+   * The props `application`, `upcoming` and `news` override this.
    */
   citySlug?: CitySlug;
 
   // ── Hero (15A) ──────────────────────────────────────────────
   heroImage?: string;
   heroImageAlt?: string;
-  /** Logo der Universität – erscheint als weißer Chip im Hero */
+  /** Logo of the university – appears as a white chip in the hero */
   universityLogo?: string;
-  /** Name der Universität – Alt-Text des Logos bzw. Ersatz ohne Logo */
+  /** Name of the university – alt text of the logo or fallback without logo */
   university?: string;
   instagram?: string;
   instagramHref?: string;
-  /** Die eine hervorgehobene Bewerbung im Hero */
+  /** The one highlighted application in the hero */
   application?: Application;
-  /** Hinweiszeile darunter auf das nächste Programm */
+  /** Hint line below it about the next program */
   upcoming?: Upcoming;
 
-  // ── Weitere Bänder ──────────────────────────────────────────
-  /** Gründungsjahr des Chapters, z. B. 2025 */
+  // ── Further bands ───────────────────────────────────────────
+  /** Founding year of the chapter, e.g. 2025 */
   foundedYear?: number | string;
-  /** Gründende Hochschule(n) als Anzeigetext, z. B. "RWTH Aachen" */
+  /** Founding university/-ies as display text, e.g. "RWTH Aachen" */
   universities?: string;
   /**
-   * 1–2 freie Sätze: wie das Chapter entstand, was es heute macht,
-   * wichtige lokale Partner. Der Satz davor ist fest verdrahtet und
-   * für alle Standorte gleich (Entwurf 3a).
+   * 1–2 free sentences: how the chapter started, what it runs today,
+   * key local partners. The sentence before it is hard-wired and
+   * the same for all locations (draft 3a).
    */
   story?: string;
   introImage?: string;
@@ -106,11 +106,11 @@ const { citySlug, application, upcoming, teamHref, news } = props;
 const newsHref    = props.newsHref    ?? "/news";
 const contactHref = props.contactHref ?? "/contact";
 
-// ── Standort-Datenbank als zweite Schicht ───────────────────────────────
-// Jedes Feld löst sich in dieser Reihenfolge auf:
-//   explizite Prop → Eintrag in cityData.ts → eckiger Platzhalter.
-// So füllt sich die Seite von selbst, sobald der Eintrag in der
-// Standort-Datenbank gepflegt ist – Props bleiben als Override möglich.
+// ── Location database as a second layer ─────────────────────────────────
+// Each field resolves in this order:
+//   explicit prop → entry in cityData.ts → square-bracket placeholder.
+// This way the page fills itself as soon as the entry in the
+// location database is maintained – props remain possible as an override.
 const db = citySlug ? cityData[citySlug] : undefined;
 
 const city           = props.city           ?? db?.displayName    ?? "[City]";
@@ -119,7 +119,7 @@ const heroImageAlt   = props.heroImageAlt   ?? db?.heroImageAlt   ?? "";
 const universityLogo = props.universityLogo ?? db?.universityLogo;
 const university     = props.university     ?? db?.university     ?? "[University name]";
 
-// Hochschul-Chips: Liste aus der Datenbank → Einzel-Logo → Platzhalter-Chip.
+// University chips: list from the database → single logo → placeholder chip.
 const universityLogos =
   db?.universityLogos
   ?? (universityLogo ? [{ src: universityLogo, alt: university }] : undefined);
@@ -133,12 +133,12 @@ const introText      = db?.introText;
 const introImage     = props.introImage     ?? db?.introImage;
 const introImageAlt  = props.introImageAlt  ?? db?.introImageAlt  ?? "";
 
-// ── Bewerbungen ─────────────────────────────────────────────────────────
-// Reihenfolge wie beim News-Band: explizite Prop → Daten zum Standort →
-// Platzhalter. Der Status kommt aus den Datumsfeldern, nicht aus einem Flag.
+// ── Applications ────────────────────────────────────────────────────────
+// Same order as the news band: explicit prop → data for the location →
+// placeholder. The status comes from the date fields, not from a flag.
 
-// Kurzform ohne Jahr ("1 Sep") – das Semester steht im Kartentitel; en-GB
-// kürzt September als "Sept" ab, daher auf drei Buchstaben normalisiert.
+// Short form without year ("1 Sep") – the semester is in the card title; en-GB
+// abbreviates September as "Sept", hence normalized to three letters.
 const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 const dateFmt = { format: (x: Date) => shortDate.format(x).replace("Sept", "Sep") };
 const monthFmt = new Intl.DateTimeFormat("en-GB", { month: "long" });
@@ -160,8 +160,8 @@ const resolvedApplication = application ?? (featured
       ctaHref:  featured.applyUrl,
     }
   : citySlug
-    // Standort bekannt, aber keine Runde in applications.ts: ehrlicher
-    // Leerzustand statt Platzhalter-Karte mit eckigen Klammern.
+    // Location known, but no round in applications.ts: honest
+    // empty state instead of a placeholder card with square brackets.
     ? {
         status: "upcoming" as const,
         statusLabel: "No open applications",
@@ -171,7 +171,7 @@ const resolvedApplication = application ?? (featured
         ctaLabel: "Contact us",
         ctaHref: contactHref,
       }
-    // Reine Blaupause ohne citySlug: Platzhalter-Karte.
+    // Pure blueprint without citySlug: placeholder card.
     : {
         status: "open" as const,
         statusLabel: "Applications open",
@@ -184,7 +184,7 @@ const resolvedApplication = application ?? (featured
         ctaLabel: "Apply now →",
       });
 
-// "Coming up" nur zeigen, wenn es eine andere Runde als die hervorgehobene gibt.
+// Only show "Coming up" if there is a round other than the highlighted one.
 const resolvedUpcoming = upcoming ?? (nextUp && nextUp.id !== featured?.id
   ? {
       text: `${getProgramName(nextUp)} opens ${monthFmt.format(new Date(nextUp.opensAt))}`,
@@ -193,9 +193,9 @@ const resolvedUpcoming = upcoming ?? (nextUp && nextUp.id !== featured?.id
     ? undefined
     : { text: "[Program 2] opens [Month]" });
 
-// News automatisch aus newsData.ts ziehen, sobald ein citySlug vorliegt.
-// Reihenfolge: explizit übergebene `news` → passende Beiträge zum Standort
-// → Platzhalter (solange es zu diesem Standort noch nichts gibt).
+// Pull news automatically from newsData.ts as soon as a citySlug is present.
+// Order: explicitly passed `news` → matching posts for the location
+// → placeholders (as long as there is nothing for this location yet).
 const cityNews = citySlug ? getNewsByCity(citySlug, 2) : [];
 
 const newsDateFmt = new Intl.DateTimeFormat("en-GB", {
@@ -219,7 +219,7 @@ const resolvedNews = news ?? (cityNews.length
   <div class="container">
     <div class="bp__panel">
 
-      <!-- ① Hero (Entwurf 15A) -->
+      <!-- ① Hero (draft 15A) -->
       <header class="bp__hero">
         {heroImage
           ? <img class="bp__hero-img" src={heroImage} alt={heroImageAlt} loading="eager" decoding="async" />
@@ -294,7 +294,7 @@ const resolvedNews = news ?? (cityNews.length
         </div>
       </header>
 
-      <!-- ② The chapter (Entwurf 2a: "Tight split") -->
+      <!-- ② The chapter (draft 2a: "Tight split") -->
       <section class={`bp__intro ${introImage ? "" : "bp__intro--no-media"}`} aria-labelledby="bp-intro">
         <div class="bp__intro-copy">
           <p class="bp__overline">About us</p>
@@ -316,11 +316,11 @@ const resolvedNews = news ?? (cityNews.length
         )}
       </section>
 
-      <!-- ③ Programme vor Ort (Entwurf 6a: "Full Connect panel" –
-           Programm-Pills, Struktur, Semester-Timeline, Partner) -->
+      <!-- ③ Programs on site (draft 6a: "Full Connect panel" –
+           program pills, structure, semester timeline, partners) -->
       <CityProgramsPanel city={city} citySlug={citySlug} contactHref={contactHref} />
 
-      <!-- ④ Team (Entwurf 3a, City Team Options: zwei Scroll-Reihen) -->
+      <!-- ④ Team (draft 3a, City Team Options: two scroll rows) -->
       <CityTeamCarousel city={city} citySlug={citySlug} teamHref={teamHref ?? (citySlug ? `/team?city=${citySlug}` : undefined)} />
 
       <!-- ⑤ News -->
@@ -351,7 +351,7 @@ const resolvedNews = news ?? (cityNews.length
 </section>
 
 <style>
-  .bp { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+  .bp { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-12); }
 
   .bp__panel {
     background:     var(--color-bg-surface);
@@ -370,7 +370,7 @@ const resolvedNews = news ?? (cityNews.length
     color:          var(--color-accent-purple);
   }
 
-  /* Ablagefläche für noch fehlende Bilder – bewusst sichtbar. */
+  /* Drop area for images still missing – deliberately visible. */
   .bp__slot {
     display:         flex;
     align-items:     center;
@@ -387,8 +387,8 @@ const resolvedNews = news ?? (cityNews.length
     border-radius:   var(--radius-md);
   }
 
-  /* Wie das Foto absolut liegen, sonst nimmt die Ablagefläche Platz im
-     Flex-Fluss ein und schiebt den Hero-Inhalt aus dem Band heraus. */
+  /* Positioned absolutely like the photo, otherwise the drop area takes
+     up space in the flex flow and pushes the hero content out of the band. */
   .bp__slot--hero {
     position:      absolute;
     inset:         0;
@@ -411,8 +411,8 @@ const resolvedNews = news ?? (cityNews.length
     width: 100%; height: 100%; object-fit: cover;
   }
 
-  /* Verlauf von links: die linke Seite trägt Text, rechts bleibt das
-     Foto sichtbar – dort liegt die helle Bewerbungskarte darüber. */
+  /* Gradient from the left: the left side carries text, on the right the
+     photo stays visible – the light application card sits on top there. */
   .bp__hero-scrim {
     position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(
@@ -487,7 +487,7 @@ const resolvedNews = news ?? (cityNews.length
 
   .bp__chip--ig:hover { background: rgba(255, 255, 255, 0.28); text-decoration: none; }
 
-  /* Bewerbungskarte im Hero */
+  /* Application card in the hero */
   .bp__app {
     display:        flex;
     flex-direction: column;
@@ -529,7 +529,7 @@ const resolvedNews = news ?? (cityNews.length
   .bp__row dt { font-size: 14px; color: var(--color-text-muted); }
   .bp__row dd { font-size: 14px; font-weight: 800; color: var(--color-text-heading); margin: 0; }
 
-  /* Hinweis auf das nächste Programm */
+  /* Hint about the next program */
   .bp__upcoming {
     display:         flex;
     align-items:     center;
@@ -567,13 +567,13 @@ const resolvedNews = news ?? (cityNews.length
 
   .bp__intro-text { font-size: var(--fs-body); line-height: 1.6; }
 
-  /* Ohne Teamfoto: einspaltig, Text skaliert mit der Breite. */
+  /* Without a team photo: single column, text scales with the width. */
   .bp__intro--no-media { grid-template-columns: minmax(0, 1fr); }
 
   .bp__intro-media { height: 300px; border-radius: 16px; overflow: hidden; }
   .bp__intro-media img { width: 100%; height: 100%; object-fit: cover; }
 
-  /* ── ③ Programme ──────────────────────────────────────────── */
+  /* ── ③ Programs ───────────────────────────────────────────── */
   .bp__more { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); }
 
   /* ── ⑤ News ───────────────────────────────────────────────── */
@@ -651,9 +651,9 @@ const resolvedNews = news ?? (cityNews.length
 
   /* ── Responsive ───────────────────────────────────────────── */
   @media (max-width: 940px) {
-    /* Bewerbungskarte unter den Text statt daneben. Der Verlauf läuft
-       dann nach oben statt nach links, sonst stünde der Text auf dem
-       hellen Teil des Fotos. */
+    /* Application card below the text instead of next to it. The gradient
+       then runs upwards instead of to the left, otherwise the text would
+       sit on the light part of the photo. */
     .bp__hero-inner { grid-template-columns: minmax(0, 1fr); }
 
     .bp__hero-scrim {

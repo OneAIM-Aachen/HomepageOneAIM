@@ -1,18 +1,18 @@
 ---
 // src/pages/programs/aim-innovate.astro
 //
-// AIM Innovate Impact Hub (Rebranding, Entwurf 1a aus
-// "AIM Impact Hub Page Options": Light editorial mit Pillar-Karten).
+// AIM Innovate Impact Hub (rebranding, draft 1a from
+// "AIM Impact Hub Page Options": light editorial with pillar cards).
 //
-// Bänder:
-//   ① Hero            – hellblaues Band, Foto rechts, "New"-Pill, CTA
-//   ② What it is      – zweispaltig: Überschrift + zwei Absätze
-//   ③ Three pillars   – drei interaktive Karten (Capability Building /
-//                       Creation Sprints / Start-up Incubation), Detailbox
-//                       darunter; rotiert alle 6 s, Klick übernimmt
-//   ④ Applications    – EINE Karte je Standort aus applications.ts
-//                       (Übernahme von der alten AIM-Innovate-Seite)
-//   ⑤ News            – neueste Beiträge mit programs: ["aim-innovate"]
+// Bands:
+//   ① Hero            – light blue band, photo on the right, "New" pill, CTA
+//   ② What it is      – two columns: heading + two paragraphs
+//   ③ Three pillars   – three interactive cards (Capability Building /
+//                       Creation Sprints / Start-up Incubation), detail box
+//                       below; rotates every 6 s, a click takes over
+//   ④ Applications    – ONE card per location from applications.ts
+//                       (taken over from the old AIM Innovate page)
+//   ⑤ News            – latest posts with programs: ["aim-innovate"]
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ApplicationCard from "../../components/ApplicationCard.astro";
@@ -29,7 +29,7 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
 });
 const shortFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" });
 
-// ── Capability Building: die Skills (Fotos = Wochenfotos des alten Programms) ──
+// ── Capability Building: the skills (photos = weekly photos of the old program) ──
 const skills = [
   { pill: "R&D", title: "Research & Development",
     desc: "Exploring structured ideation and the R&D cycle with insights from a leading industry player.",
@@ -124,7 +124,7 @@ const news = getNewsByProgram("aim-innovate", 3);
           </div>
         </section>
 
-        <!-- ③ Three pillars – Karten schalten die Detailbox darunter um -->
+        <!-- ③ Three pillars – cards switch the detail box below -->
         <section class="acv__pillars" aria-labelledby="acv-pillars">
           <div class="acv__pillars-head">
             <p class="acv__overline acv__overline--purple">Three pillars</p>
@@ -223,7 +223,7 @@ const news = getNewsByProgram("aim-innovate", 3);
           </div>
         </section>
 
-        <!-- ④ Applications – Übernahme von der alten AIM-Innovate-Seite -->
+        <!-- ④ Applications – taken over from the old AIM Innovate page -->
         <section class="acv__apply" id="apply" aria-labelledby="acv-apply">
           <div class="acv__apply-head">
             <p class="acv__overline">Open applications</p>
@@ -240,7 +240,7 @@ const news = getNewsByProgram("aim-innovate", 3);
           </div>
         </section>
 
-        <!-- ⑤ News – automatisch aus newsData.ts (programs: ["aim-innovate"]) -->
+        <!-- ⑤ News – automatically from newsData.ts (programs: ["aim-innovate"]) -->
         <section class="acv__news" aria-labelledby="acv-news">
           <div class="acv__news-head">
             <div>
@@ -279,7 +279,7 @@ const news = getNewsByProgram("aim-innovate", 3);
 </BaseLayout>
 
 <style>
-  .acv { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-24); }
+  .acv { background: var(--color-bg-page); padding-block: var(--space-12) var(--space-12); }
 
   .acv__panel {
     background:     var(--color-bg-surface);
@@ -488,7 +488,7 @@ const news = getNewsByProgram("aim-innovate", 3);
     white-space:   nowrap;
   }
 
-  /* Detailbox unter den Karten */
+  /* Detail box below the cards */
   .acv__detail {
     background:     #fff;
     border:         1px solid var(--color-border-subtle);
@@ -660,8 +660,8 @@ const news = getNewsByProgram("aim-innovate", 3);
 </style>
 
 <script>
-  // Pillar-Karten: Klick zeigt die passende Detailbox; ohne Interaktion
-  // rotiert die Auswahl alle 6 s (wie im Entwurf), der erste Klick stoppt sie.
+  // Pillar cards: a click shows the matching detail box; without interaction
+  // the selection rotates every 6 s (as in the draft), the first click stops it.
   const pillarBtns   = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-pillar]"));
   const pillarPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-pillar-panel]"));
   let paused = false;
@@ -690,7 +690,7 @@ const news = getNewsByProgram("aim-innovate", 3);
     showPillar(current);
   }, 6000);
 
-  // Skill-Pills der Capability-Box: Titel, Text und Bild umschalten.
+  // Skill pills of the capability box: switch title, text and image.
   const skillData = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-skill]"));
   const titleEl = document.querySelector<HTMLElement>("[data-skill-title]");
   const descEl  = document.querySelector<HTMLElement>("[data-skill-desc]");

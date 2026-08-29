@@ -1,16 +1,16 @@
 ---
 // src/pages/participants.astro
 //
-// Platzhalterseite für die Teilnehmer-Übersicht (Entwurf 1b,
-// "Community Coming Soon": geblurrtes Mitglieder-Raster als Teaser,
-// davor eine zentrierte Karte mit Logo, Text und "Launching soon").
+// Placeholder page for the participants overview (draft 1b,
+// "Community Coming Soon": blurred member grid as a teaser, with a
+// centered card in front with logo, text and "Launching soon").
 //
-// Sobald die echte Übersicht existiert, ersetzt sie diese Seite.
+// Once the real overview exists, it replaces this page.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 
-// Geblurrtes Deko-Raster im Hintergrund: 12 Kacheln, abwechselnd helle
-// Kreise. Reine Dekoration (aria-hidden), daher hier nur Indizes.
+// Blurred decorative grid in the background: 12 tiles, alternating light
+// circles. Pure decoration (aria-hidden), therefore only indices here.
 const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
 ---
 
@@ -22,7 +22,7 @@ const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
     <div class="container">
       <div class="pcs__panel">
 
-        <!-- Geblurrte Vorschau des künftigen Teilnehmer-Rasters -->
+        <!-- Blurred preview of the future participant grid -->
         <div class="pcs__ghost" aria-hidden="true">
           {ghostTiles.map(light => (
             <div class="pcs__ghost-tile">
@@ -32,7 +32,7 @@ const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
           ))}
         </div>
 
-        <!-- Zentrierte Teaser-Karte -->
+        <!-- Centered teaser card -->
         <div class="pcs__center">
           <div class="pcs__card">
             <img class="pcs__logo" src="/logo.png" alt="OneAIM" height="36" decoding="async" />
@@ -57,7 +57,7 @@ const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
 <style>
   .pcs {
     background:    var(--color-bg-page);
-    padding-block: var(--space-12) var(--space-24);
+    padding-block: var(--space-12) var(--space-12);
   }
 
   .pcs__panel {
@@ -69,7 +69,7 @@ const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
     overflow:      hidden;
   }
 
-  /* ── Geblurrtes Hintergrund-Raster ────────────────────────── */
+  /* ── Blurred background grid ──────────────────────────────── */
   .pcs__ghost {
     position:              absolute;
     inset:                 40px;
@@ -105,7 +105,7 @@ const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
     background:    var(--color-border-subtle);
   }
 
-  /* ── Teaser-Karte ─────────────────────────────────────────── */
+  /* ── Teaser card ──────────────────────────────────────────── */
   .pcs__center {
     position:        absolute;
     inset:           0;

@@ -1,28 +1,28 @@
 // src/data/applications.ts
 //
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  NEUE BEWERBUNGSRUNDE ERGÄNZEN – ein Schritt:                            ║
-// ║  Einen Eintrag in das Array unten schreiben. Position egal.              ║
+// ║  ADDING A NEW APPLICATION ROUND – one step:                              ║
+// ║  Write an entry into the array below. Position does not matter.          ║
 // ║                                                                          ║
-// ║  Der Status (upcoming / open / closed) wird NICHT gepflegt, sondern aus   ║
-// ║  den Datumsfeldern berechnet:                                            ║
-// ║      heute <  opensAt   → "upcoming"                                     ║
-// ║      heute <= deadline  → "open"                                         ║
-// ║      sonst              → "closed"                                       ║
-// ║  Es gibt also kein Flag, das man vergessen kann umzustellen.             ║
+// ║  The status (upcoming / open / closed) is NOT maintained by hand, it is  ║
+// ║  computed from the date fields:                                          ║
+// ║      today <  opensAt   → "upcoming"                                     ║
+// ║      today <= deadline  → "open"                                         ║
+// ║      otherwise          → "closed"                                       ║
+// ║  So there is no flag anyone could forget to flip.                        ║
 // ║                                                                          ║
-// ║  WICHTIG: Die Seite wird statisch gebaut. "Heute" ist der Zeitpunkt des   ║
-// ║  Builds – ein Ablauf wird also erst mit dem nächsten Deploy sichtbar.     ║
+// ║  IMPORTANT: The site is built statically. "Today" is the time of the     ║
+// ║  build – an expiry only becomes visible with the next deploy.            ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 //
-// EIN EINTRAG = EINE RUNDE, nicht ein Programm. Sommer- und Wintersemester
-// stehen damit nebeneinander, und abgelaufene Runden bleiben als Historie
-// liegen – sie werden von den Hilfsfunktionen einfach herausgefiltert und
-// dienen als Vorlage für die nächste Runde.
+// ONE ENTRY = ONE ROUND, not one program. Summer and winter semester can
+// therefore sit side by side, and expired rounds simply remain as history –
+// the helper functions filter them out, and they serve as a template for
+// the next round.
 //
-// SLUGS: `city` nutzt dieselben Slugs wie Navigation und News,
-// `program` dieselben wie src/data/programs.ts. Anzeigenamen kommen von dort,
-// stehen hier also bewusst nicht noch einmal.
+// SLUGS: `city` uses the same slugs as navigation and news,
+// `program` the same as src/data/programs.ts. Display names come from there,
+// so they are deliberately not repeated here.
 
 import type { CitySlug } from "./cityData";
 import { getProgram } from "./programs";
@@ -30,71 +30,71 @@ import { locationItems } from "../components/navigation/navData";
 
 export type ApplicationStatus = "upcoming" | "open" | "closed";
 
-/** WS = Wintersemester, SS = Sommersemester. */
+/** WS = winter semester, SS = summer semester. */
 export type Semester = "WS" | "SS";
 
 export interface Application {
-  /** Stabiler Schlüssel, eine Runde: "munich-aim-connect-ws26" */
+  /** Stable key, one round: "munich-aim-connect-ws26" */
   id: string;
   /** "munich" | "aachen" | "frankfurt" */
   city: CitySlug;
-  /** Slug aus programs.ts, z. B. "aim-connect" */
+  /** Slug from programs.ts, e.g. "aim-connect" */
   program: string;
-  /** Semester der Runde */
+  /** Semester of the round */
   semester: Semester;
   /**
-   * Startjahr des Semesters, vierstellig.
+   * Starting year of the semester, four digits.
    * WS 2026 → "WS 26/27", SS 2026 → "SS 26".
-   * Die Beschriftung entsteht daraus – sie wird nicht gepflegt.
+   * The label is derived from this – it is not maintained by hand.
    */
   year: number;
 
-  /** ISO YYYY-MM-DD – ab wann bewerbbar */
+  /** ISO YYYY-MM-DD – applications open from this date */
   opensAt: string;
-  /** ISO YYYY-MM-DD – letzter Tag */
+  /** ISO YYYY-MM-DD – last day */
   /**
-   * ISO YYYY-MM-DD – Bewerbungsschluss. Darf fehlen, solange er noch nicht
-   * feststeht: die Runde gilt dann ab opensAt als offen, die Seiten zeigen
-   * "to be announced". Sobald das Datum steht, hier eintragen.
+   * ISO YYYY-MM-DD – application deadline. May be missing as long as it is
+   * not fixed yet: the round then counts as open from opensAt, the pages show
+   * "to be announced". Once the date is fixed, enter it here.
    */
   deadline?: string;
-  /** ISO YYYY-MM-DD – Interviews von/bis */
+  /** ISO YYYY-MM-DD – interviews from/to */
   interviewsFrom?: string;
   interviewsTo?: string;
-  /** Freie Anzeige statt von/bis, z. B. "Oct", solange nur der Monat feststeht */
+  /** Free-form display instead of from/to, e.g. "Oct", while only the month is fixed */
   interviewsLabel?: string;
-  /** ISO YYYY-MM-DD – Zusagen spätestens am */
+  /** ISO YYYY-MM-DD – offers sent by this date at the latest */
   decisionBy?: string;
-  /** ISO YYYY-MM-DD – Programmstart */
+  /** ISO YYYY-MM-DD – program start */
   startsAt?: string;
-  /** Anzahl Plätze */
+  /** Number of spots */
   spots?: number;
 
-  /** Bewerbungslink – spätestens nötig, sobald die Runde offen ist */
+  /** Application link – required at the latest once the round is open */
   applyUrl?: string;
-  /** Optionale Zusatzzeile für die Karte */
+  /** Optional extra line for the card */
   note?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Bewerbungsrunden
+// Application rounds
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Aktuell leer – die Demo-Runden sind entfernt. Neue Runde nach diesem
-// Muster ergänzen, alles Weitere (Karten, Status, Fristen) passiert von
-// selbst auf Standort- und Programmseiten:
+// Currently empty – the demo rounds are removed. Add a new round following
+// this pattern; everything else (cards, status, deadlines) happens
+// automatically on the location and program pages:
 //
 //   {
-//     id:       "munich-aim-connect-ws26",   // "<stadt>-<programm>-<semester><jahr>"
+//     id:       "munich-aim-connect-ws26",   // "<city>-<program>-<semester><year>"
 //     city:     "munich",                    // "munich" | "aachen" | "frankfurt"
-//     program:  "aim-connect",               // Slug aus programs.ts
+//     program:  "aim-connect",               // slug from programs.ts
 //     semester: "WS",                        // "WS" | "SS"
 //     year:     2026,
-//     opensAt:  "2026-08-01",                // Bewerbung öffnet
-//     deadline: "2026-09-15",                // Bewerbungsschluss
-//     startsAt: "2026-10-15",                // optional: Programmstart
+//     opensAt:  "2026-08-01",                // applications open
+//     deadline: "2026-09-15",                // application deadline
+//     startsAt: "2026-10-15",                // optional: program start
 //     spots:    20,                          // optional
-//     applyUrl: "https://…",                 // Bewerbungsformular
+//     applyUrl: "https://…",                 // application form
 //   },
 export const applications: Application[] = [
   {
@@ -109,7 +109,7 @@ export const applications: Application[] = [
     interviewsTo:   "2026-09-22",
     decisionBy:     "2026-09-27",
     startsAt: "2026-10-16",
-    // applyUrl: Bewerbungslink ergänzen
+    // applyUrl: add application link
   },
   {
     id:       "frankfurt-aim-connect-ws26",
@@ -117,7 +117,7 @@ export const applications: Application[] = [
     program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-09-01",
+    opensAt:  "2026-08-30",
     deadline: "2026-09-25",
     interviewsLabel: "Oct",
     decisionBy: "2026-10-11",
@@ -130,7 +130,7 @@ export const applications: Application[] = [
     program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-08-29",
+    opensAt:  "2026-08-30",
     deadline: "2026-09-21",
     interviewsFrom: "2026-09-25",
     interviewsTo:   "2026-09-27",
@@ -141,29 +141,29 @@ export const applications: Application[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Abgeleitetes
+// Derived helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Tagesgenauer Vergleich – Uhrzeiten spielen hier keine Rolle. */
+/** Day-precise comparison – times of day do not matter here. */
 function day(iso: string): number {
   return new Date(`${iso}T00:00:00`).getTime();
 }
 
 export function getStatus(app: Application, today: Date = new Date()): ApplicationStatus {
-  const now = day(today.toISOString().slice(0, 10));
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   if (now < day(app.opensAt))  return "upcoming";
   if (!app.deadline || now <= day(app.deadline)) return "open";
   return "closed";
 }
 
-/** Zweistelliges Jahr, z. B. 2026 → "26". */
+/** Two-digit year, e.g. 2026 → "26". */
 function yy(year: number): string {
   return String(year % 100).padStart(2, "0");
 }
 
 /**
- * Semesterkürzel in fester Schreibweise:
- *   WS 2026 → "WS 26/27"   (läuft über den Jahreswechsel)
+ * Semester label in a fixed notation:
+ *   WS 2026 → "WS 26/27"   (spans the turn of the year)
  *   SS 2026 → "SS 26"
  */
 export function getTermLabel(app: Application): string {
@@ -172,31 +172,31 @@ export function getTermLabel(app: Application): string {
     : `SS ${yy(app.year)}`;
 }
 
-/** Anzeigename des Standorts – aus navData, damit er nur dort steht. */
+/** Display name of the location – from navData, so it lives only there. */
 export function getCityName(city: CitySlug): string {
   return locationItems.find(l => l.href === `/${city}`)?.label ?? city;
 }
 
-/** Anzeigename des Programms – aus programs.ts, damit er nur dort steht. */
+/** Display name of the program – from programs.ts, so it lives only there. */
 export function getProgramName(app: Application): string {
   return getProgram(app.program)?.name ?? app.program;
 }
 
 /**
- * Vollständiger Titel einer Runde, überall gleich aufgebaut:
- *   "<Programm> <Stadt> – <Semester>"
- *   z. B. "AIM Connect Aachen – WS 26/27" oder "AIM Code Munich – SS 26"
- * Programmname, Stadtname und Semester kommen jeweils aus ihrer eigenen
- * Quelle – hier wird nur zusammengesetzt.
+ * Full title of a round, built the same way everywhere:
+ *   "<Program> <City> – <Semester>"
+ *   e.g. "AIM Connect Aachen – WS 26/27" or "AIM Code Munich – SS 26"
+ * Program name, city name and semester each come from their own
+ * source – this only assembles them.
  */
 export function getApplicationTitle(app: Application): string {
   return `${getProgramName(app)} ${getCityName(app.city)} – ${getTermLabel(app)}`;
 }
 
-/** Verbleibende Tage bis zur Frist (negativ, wenn vorbei). */
+/** Days left until the deadline (negative once it has passed). */
 export function getDaysLeft(app: Application, today: Date = new Date()): number {
   if (!app.deadline) return Number.POSITIVE_INFINITY;
-  const ms = day(app.deadline) - day(today.toISOString().slice(0, 10));
+  const ms = day(app.deadline) - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   return Math.round(ms / 86_400_000);
 }
 
@@ -205,7 +205,7 @@ function matches(city?: CitySlug, program?: string) {
     (city ? a.city === city : true) && (program ? a.program === program : true);
 }
 
-/** Offene Runden, nächste Frist zuerst. Ohne Argumente: alle Standorte. */
+/** Open rounds, nearest deadline first. Without arguments: all locations. */
 export function getOpenApplications(
   city?: CitySlug, program?: string, today?: Date,
 ): Application[] {
@@ -215,7 +215,7 @@ export function getOpenApplications(
     .sort((a, b) => (a.deadline ? day(a.deadline) : Infinity) - (b.deadline ? day(b.deadline) : Infinity));
 }
 
-/** Kommende Runden, früheste Öffnung zuerst. */
+/** Upcoming rounds, earliest opening first. */
 export function getUpcomingApplications(
   city?: CitySlug, program?: string, today?: Date,
 ): Application[] {
@@ -226,9 +226,9 @@ export function getUpcomingApplications(
 }
 
 /**
- * Die relevante Runde für Stadt + Programm – erst die offene mit der
- * nächsten Frist, sonst die nächste kommende. Speist die Programmseiten
- * je Standort (/munich/aim-connect …).
+ * The relevant round for city + program – first the open one with the
+ * nearest deadline, otherwise the next upcoming one. Feeds the program
+ * pages per location (/munich/aim-connect …).
  */
 export function getApplicationFor(
   city: CitySlug, program: string, today?: Date,
@@ -238,15 +238,15 @@ export function getApplicationFor(
 }
 
 /**
- * Die Runde, die im Hero einer Standortseite hervorgehoben wird:
- * die offene mit der nächsten Frist – gibt es keine, die nächste kommende.
+ * The round highlighted in the hero of a location page:
+ * the open one with the nearest deadline – if there is none, the next upcoming one.
  */
 export function getFeaturedApplication(city: CitySlug, today?: Date): Application | undefined {
   return getOpenApplications(city, undefined, today)[0]
       ?? getUpcomingApplications(city, undefined, today)[0];
 }
 
-/** Die Runde für die "Coming up"-Zeile – die nächste, die noch nicht läuft. */
+/** The round for the "Coming up" line – the next one that is not yet running. */
 export function getNextUpcoming(city: CitySlug, today?: Date): Application | undefined {
   return getUpcomingApplications(city, undefined, today)[0];
 }

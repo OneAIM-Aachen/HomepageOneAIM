@@ -1,40 +1,40 @@
 // src/data/eventsData.ts
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// Veranstaltungs-Datenbank für AIM Educate (offene Events: Summits,
-// Vortragsreihen, Expert Talks).
+// Event database for AIM Educate (open events: summits,
+// lecture series, expert talks).
 //
 // ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  NEUES EVENT ERGÄNZEN – ein Eintrag im Array unten, Position egal.       ║
-// ║  Ob es unter "Upcoming events" oder "Past events" erscheint, entscheidet ║
-// ║  das Datum automatisch (Stichtag = Build-Datum, s. Hinweis unten).       ║
+// ║  ADDING A NEW EVENT – one entry in the array below, position irrelevant. ║
+// ║  Whether it appears under "Upcoming events" or "Past events" is decided  ║
+// ║  by the date automatically (cutoff = build date, see note below).        ║
 // ║                                                                          ║
-// ║    • date (+ optional endDate) → Anzeige z. B. "21 to 24 Nov 2024"      ║
-// ║    • dateLabel überschreibt die Anzeige, z. B. "Oct 2023 to Feb 2024"    ║
-// ║    • city → Stadt-Chip; registerUrl → "Register"-Button (kommend);       ║
-// ║      recapUrl → "Recap →"-Link (vergangen); image → Foto der Karte       ║
+// ║    • date (+ optional endDate) → display e.g. "21 to 24 Nov 2024"        ║
+// ║    • dateLabel overrides the display, e.g. "Oct 2023 to Feb 2024"        ║
+// ║    • city → city chip; registerUrl → "Register" button (upcoming);       ║
+// ║      recapUrl → "Recap →" link (past); image → photo on the card         ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 //
-// HINWEIS: Die Seite ist statisch. Der Wechsel von "upcoming" zu "past"
-// passiert beim nächsten Build/Deploy nach dem Event-Datum.
+// NOTE: The site is static. The switch from "upcoming" to "past"
+// happens with the next build/deploy after the event date.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { CitySlug } from "./cityData";
 
 export interface EducateEvent {
-  /** Eindeutiger Bezeichner (URL-sicher) */
+  /** Unique identifier (URL-safe) */
   id: string;
   title: string;
-  /** ISO YYYY-MM-DD – Beginn */
+  /** ISO YYYY-MM-DD – start */
   date: string;
-  /** ISO YYYY-MM-DD – Ende bei mehrtägigen Events */
+  /** ISO YYYY-MM-DD – end for multi-day events */
   endDate?: string;
-  /** Freie Datumsanzeige, z. B. "Oct 2023 to Feb 2024" (überschreibt date/endDate) */
+  /** Free-form date display, e.g. "Oct 2023 to Feb 2024" (overrides date/endDate) */
   dateLabel?: string;
   city?: CitySlug;
-  /** Ort, z. B. "LMU Klinikum, Großhadern" */
+  /** Venue, e.g. "LMU Klinikum, Großhadern" */
   location?: string;
-  /** 1–2 Sätze: worum es geht, wer spricht */
+  /** 1–2 sentences: what it is about, who speaks */
   text?: string;
   image?: string;
   imageAlt?: string;
@@ -43,7 +43,7 @@ export interface EducateEvent {
 }
 
 export const events: EducateEvent[] = [
-  // ── Vergangene Events (von der alten Website übernommen) ──────────────
+  // ── Past events (carried over from the old website) ───────────────────
   { id: "winter-summit-2025", title: "OneAIM Winter Summit 2025",
     date: "2025-02-28", city: "munich" ,
     image: "/images/events/winter-summit-2025.jpg" },
@@ -74,7 +74,7 @@ export const events: EducateEvent[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Abgeleitetes
+// Derived helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 function day(iso: string): number {
@@ -84,7 +84,7 @@ function day(iso: string): number {
 const dayMonthYear = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 const dayOnly      = new Intl.DateTimeFormat("en-GB", { day: "2-digit" });
 
-/** Anzeige des Datums: "28 Feb 2025", "21 to 24 Nov 2024" oder dateLabel. */
+/** Date display: "28 Feb 2025", "21 to 24 Nov 2024" or dateLabel. */
 export function getEventDateLabel(e: EducateEvent): string {
   if (e.dateLabel) return e.dateLabel;
   if (!e.endDate) return dayMonthYear.format(new Date(e.date));
@@ -95,17 +95,17 @@ export function getEventDateLabel(e: EducateEvent): string {
     : `${dayMonthYear.format(a)} to ${dayMonthYear.format(b)}`;
 }
 
-/** Kommende Events (Ende ≥ heute), früheste zuerst. */
+/** Upcoming events (end ≥ today), earliest first. */
 export function getUpcomingEvents(today: Date = new Date()): EducateEvent[] {
-  const now = day(today.toISOString().slice(0, 10));
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   return events
     .filter(e => day(e.endDate ?? e.date) >= now)
     .sort((a, b) => day(a.date) - day(b.date));
 }
 
-/** Vergangene Events, neueste zuerst. */
+/** Past events, most recent first. */
 export function getPastEvents(today: Date = new Date()): EducateEvent[] {
-  const now = day(today.toISOString().slice(0, 10));
+  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   return events
     .filter(e => day(e.endDate ?? e.date) < now)
     .sort((a, b) => day(b.date) - day(a.date));

@@ -1,16 +1,16 @@
 ---
 // src/pages/partners.astro
-// Vollständige Übersicht aller Partner und Sponsoren.
+// Complete overview of all partners and sponsors.
 //
-// Die Seite generiert sich komplett aus src/data/partners.ts – wer dort einen
-// Eintrag ergänzt, erscheint automatisch hier UND im Laufband auf der
-// Startseite (PartnersSection.astro). Hier ist nichts anzupassen.
+// The page is generated entirely from src/data/partners.ts – whoever adds an
+// entry there automatically appears here AND in the marquee on the home
+// page (PartnersSection.astro). Nothing needs to be adjusted here.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { sponsors, partnersOnly } from "../data/partners";
 
-// Sponsoren zuerst, danach die Partner. Leere Gruppen werden übersprungen,
-// damit die Seite auch funktioniert, wenn eine Kategorie (noch) leer ist.
+// Sponsors first, then the partners. Empty groups are skipped so the
+// page also works when a category is (still) empty.
 const groups = [
   {
     heading: "Sponsors",
@@ -46,9 +46,9 @@ const groups = [
       </p>
     </div>
 
-    <!-- Toolbar: Suche, Sortierung, Darstellung.
-         hidden bis das Script übernimmt – ohne JavaScript wären die
-         Bedienelemente wirkungslos, die Liste selbst bleibt vollständig. -->
+    <!-- Toolbar: search, sorting, display.
+         hidden until the script takes over – without JavaScript the
+         controls would have no effect, the list itself remains complete. -->
     <div class="container partners-toolbar" id="partners-toolbar" hidden>
       <div class="partners-toolbar__search">
         <label class="visually-hidden" for="partner-search">Search partners and sponsors</label>
@@ -126,22 +126,22 @@ const groups = [
       var status  = document.getElementById("partner-status");
       if (!toolbar || !search || !sortBtns.length) return;
 
-      // Nur die Partner-Gruppen – die Kopfzeile nutzt data-group ebenfalls
-      // (Dropdown-Buttons), die haben aber kein Raster.
+      // Only the partner groups – the header row also uses data-group
+      // (dropdown buttons), but those have no grid.
       var groups = [].slice.call(document.querySelectorAll(".partners-page__group[data-group]"));
 
-      // Erst jetzt einblenden: ab hier sind die Bedienelemente funktionsfähig.
+      // Only show it now: from here on the controls are functional.
       toolbar.hidden = false;
 
-      // Diakritika-tolerant vergleichen: "tuv" findet "TÜV SÜD",
-      // "universite" findet "Université de Montréal".
+      // Compare tolerant of diacritics: "tuv" finds "TÜV SÜD",
+      // "universite" finds "Université de Montréal".
       function norm(s) {
         return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
       }
 
       function collator() {
-        // localeCompare mit de-DE sortiert Umlaute korrekt (Ü wie U),
-        // numeric für Namen mit Ziffern.
+        // localeCompare with de-DE sorts umlauts correctly (Ü like U),
+        // numeric for names with digits.
         return new Intl.Collator("de-DE", { sensitivity: "base", numeric: true });
       }
 
@@ -163,8 +163,8 @@ const groups = [
             if (match) shown++;
           });
 
-          // Sortierung: DOM-Reihenfolge ändern, damit sie in Grid- und
-          // Listenansicht gleichermaßen greift.
+          // Sorting: change the DOM order so it applies equally in grid
+          // and list view.
           var ordered = cards.slice().sort(function (a, b) {
             if (mode === "default") {
               return a.getAttribute("data-index") - b.getAttribute("data-index");
@@ -174,8 +174,8 @@ const groups = [
           });
           ordered.forEach(function (card) { grid.appendChild(card); });
 
-          // Gruppe mit 0 Treffern: Raster weg, Hinweis rein. Die Überschrift
-          // bleibt stehen, damit die Kategorien nicht wegspringen.
+          // Group with 0 matches: grid out, notice in. The heading stays
+          // in place so the categories do not jump around.
           grid.hidden  = shown === 0;
           empty.hidden = shown !== 0;
           total += shown;
@@ -197,7 +197,7 @@ const groups = [
         });
       });
 
-      // Escape leert das Suchfeld.
+      // Escape clears the search field.
       search.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && search.value) { search.value = ""; apply(); }
       });
@@ -210,7 +210,7 @@ const groups = [
 <style>
   .partners-page {
     background:     var(--color-bg-surface);
-    padding-block:  var(--space-16) var(--space-24);
+    padding-block:  var(--space-16) var(--space-12);
   }
 
   .partners-page__intro {
@@ -327,7 +327,7 @@ const groups = [
     color:     var(--color-text-muted);
   }
 
-  /* ── Gruppen (Sponsors / Partners) ────────────────────────── */
+  /* ── Groups (Sponsors / Partners) ─────────────────────────── */
   .partners-page__group + .partners-page__group {
     margin-top: var(--space-24);
   }
@@ -340,8 +340,8 @@ const groups = [
 
   .partners-page__group-heading { font-size: var(--fs-h2); }
 
-  /* Volle Containerbreite – der Text bricht erst am Seitenrand um und
-     skaliert damit mit dem Viewport, statt früh bei fester Breite. */
+  /* Full container width – the text only wraps at the page edge and
+     thus scales with the viewport instead of early at a fixed width. */
   .partners-page__group-desc {
     margin-top:  var(--space-2);
     font-size:   var(--fs-body);
@@ -349,9 +349,9 @@ const groups = [
     color:       var(--color-text-muted);
   }
 
-  /* ── Raster ───────────────────────────────────────────────────
-     auto-fill: die Spaltenzahl ergibt sich aus der Breite, damit
-     neue Partner ohne Layout-Anpassung einfach anschließen.      */
+  /* ── Grid ─────────────────────────────────────────────────────
+     auto-fill: the column count is derived from the width so that
+     new partners simply join without any layout adjustment.      */
   .partners-page__grid {
     display:               grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -371,7 +371,7 @@ const groups = [
     transform:  translateY(-2px);
   }
 
-  /* Gilt für die <a>- wie die <div>-Variante (Partner ohne Website). */
+  /* Applies to the <a> as well as the <div> variant (partners without a website). */
   .partners-page__card > * {
     display:         flex;
     flex-direction:  column;
@@ -406,10 +406,10 @@ const groups = [
     text-align:  center;
   }
 
-  /* ── Listenansicht ────────────────────────────────────────────
-     Eine Spalte, Logo und Name nebeneinander. Nur Layout – es wird
-     dieselbe Karte umgeschaltet, kein zweites Markup.            */
-  /* Ohne Umschalter: Desktop zeigt das Raster, Mobil automatisch die Liste */
+  /* ── List view ────────────────────────────────────────────────
+     One column, logo and name side by side. Layout only – the same
+     card is switched, no second markup.                          */
+  /* Without a toggle: desktop shows the grid, mobile automatically the list */
   @media (max-width: 760px) {
     .partners-page__grid {
       grid-template-columns: 1fr;

@@ -1,10 +1,10 @@
 ---
 // src/components/ApplicationCard.astro
 //
-// DIE Standard-Bewerbungskarte – gleiches Design wie die Karte oben rechts
-// im Hero der Standortseiten (CityBlueprint): Status-Punkt, Titel,
-// Datenzeilen, Button. Wird in den "Apply in your city"-Rastern der
-// Programmseiten verwendet; die Daten kommen aus applications.ts.
+// THE standard application card – same design as the card in the top-right
+// corner of the city-page heroes (CityBlueprint): status dot, title,
+// data rows, button. Used in the "Apply in your city" grids of the
+// program pages; the data comes from applications.ts.
 
 import type { CitySlug } from "../data/cityData";
 import {
@@ -17,34 +17,34 @@ import {
 
 interface Props {
   city: CitySlug;
-  /** Anzeigename, z. B. "Munich" – für den Button-Text */
+  /** Display name, e.g. "Munich" – used for the button text */
   cityName: string;
   /**
-   * Programm-Slug aus programs.ts, z. B. "aim-connect".
-   * Weglassen = die hervorgehobene Runde des Standorts (Hero der Stadtseite).
+   * Program slug from programs.ts, e.g. "aim-connect".
+   * Omit it to use the city's featured round (city-page hero).
    */
   program?: string;
-  /** Verb des Buttons bei offener Runde (Standard: "Apply" → "Apply here") */
+  /** Button verb while a round is open (default: "Apply" → "Apply here") */
   ctaVerb?: string;
-  /** "hero" = kräftiger Schatten für die Karte auf dem Hero-Foto */
+  /** "hero" = strong shadow for the card sitting on the hero photo */
   variant?: "hero";
-  /** true = im Leerzustand (keine Runde) keinen Button zeigen */
+  /** true = show no button in the empty state (no round) */
   hideEmptyCta?: boolean;
 }
 
 const { city, cityName, program, ctaVerb = "Apply", variant, hideEmptyCta = false } = Astro.props as Props;
 
-// Kurzform ohne Jahr ("1 Sep") – das Semester steht im Kartentitel; en-GB
-// kürzt September als "Sept" ab, daher auf drei Buchstaben normalisiert.
+// Short form without the year ("1 Sep") – the semester is in the card
+// title; en-GB abbreviates September as "Sept", so normalize to 3 letters.
 const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
 const dateFmt = { format: (x: Date) => shortDate.format(x).replace("Sept", "Sep") };
 
 const app    = program ? getApplicationFor(city, program) : getFeaturedApplication(city);
 const status = app ? getStatus(app) : undefined;
-// Deep-Links in das Programm-Panel der Standortseite: "More info" springt
-// zur Semester-Timeline, "Apply here" zum Bewerbungs-Button. Steht die
-// Karte bereits auf der Seite des Standorts (Hero), nur der Hash – sonst
-// erzwingt der Pfadwechsel (/munich vs. /munich/) einen Reload.
+// Deep links into the city page's program panel: "More info" jumps to the
+// semester timeline, "Apply here" to the apply button. When the card is
+// already on that city's own page (hero), use only the hash – otherwise
+// the path change (/munich vs. /munich/) forces a full reload.
 const prog = program ?? app?.program;
 const onOwnPage = Astro.url.pathname.replace(/\/$/, "") === `/${city}`;
 const base = onOwnPage ? "" : `/${city}`;
@@ -55,8 +55,8 @@ const card = app
   ? {
       status,
       statusLabel: status === "open" ? "Applications open" : "Applications not yet open",
-      // Auf der Stadtseite (Hero) ist die Stadt redundant als Überschrift:
-      // dort steht das Programm groß und die Stadt in der Unterzeile.
+      // On the city page (hero) the city is redundant as the headline:
+      // there the program is large and the city sits in the subline.
       title:       variant === "hero" ? getProgramName(app) : cityName,
       subtitle:    variant === "hero"
         ? `${cityName} · ${getTermLabel(app)}`
@@ -110,8 +110,8 @@ const card = app
 </div>
 
 <style>
-  /* Spiegel der Hero-Karte (CityBlueprint .bp__app), nur mit weicherem
-     Schatten – auf hellen Flächen wirkt der Hero-Schatten zu schwer. */
+  /* Mirror of the hero card (CityBlueprint .bp__app), just with a softer
+     shadow – on light surfaces the hero shadow feels too heavy. */
   .appc {
     display:        flex;
     flex-direction: column;
@@ -140,7 +140,7 @@ const card = app
   .appc__status--upcoming           { color: var(--color-text-muted); }
   .appc__status--upcoming .appc__dot { background: #a6adc2; }
 
-  /* Stadtname als Überschrift – wie bei den früheren Stadtkarten */
+  /* City name as the headline – like the earlier city cards */
   .appc__title { font-size: 22px; color: var(--color-brand-blue); }
 
   .appc__subtitle {
@@ -179,6 +179,6 @@ const card = app
 
   .appc__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
 
-  /* Auf dem Hero-Foto der Stadtseiten: gleicher Schatten wie früher */
+  /* On the city-page hero photo: same shadow as before */
   .appc--hero { box-shadow: 0 20px 48px rgba(6, 10, 30, 0.35); }
 </style>
