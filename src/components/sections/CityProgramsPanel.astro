@@ -370,7 +370,13 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       )}
 
       {applicationsOpen && (
-        <a class="cpp__apply" href={resolvedApplyHref}>Apply for AIM Connect →</a>
+        <a
+          class="cpp__apply"
+          href={resolvedApplyHref}
+          {...resolvedApplyHref.startsWith("http")
+            ? { target: "_blank", rel: "noopener noreferrer" }
+            : {}}
+        >Apply for AIM Connect →</a>
       )}
     </div>
 

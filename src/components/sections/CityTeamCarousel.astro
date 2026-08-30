@@ -56,6 +56,10 @@ const roleLine = (m: DbMember): string =>
     : m.teamLead ? `Team Lead | ${m.team}`
     : m.team);
 
+// Initials as a photo substitute, e.g. "Lucas Gildehaus" → "LG".
+const initials = (name: string): string =>
+  name.split(/\s+/).map(part => part[0] ?? "").join("").slice(0, 2).toUpperCase();
+
 const fromDb = (m: DbMember): CardMember => ({
   name:      m.name,
   position:  roleLine(m),
@@ -105,7 +109,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
           )}
           {m.photo
             ? <img class="ctc__lead-photo" src={m.photo} alt="" loading="lazy" decoding="async" />
-            : <span class="ctc__lead-photo ctc__slot" aria-hidden="true"></span>}
+            : <span class="ctc__lead-photo ctc__slot" aria-hidden="true">{initials(m.name)}</span>}
           <div>
             <p class="ctc__lead-name">{m.name}</p>
             <p class="ctc__lead-role">{m.position}</p>
@@ -219,15 +223,16 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
     border-radius: var(--radius-md);
   }
 
+  /* Initials instead of a photo – same look as on the team page */
   .ctc__slot {
     display:         flex;
     align-items:     center;
     justify-content: center;
-    font-size:       11px;
-    font-weight:     var(--fw-semibold);
-    color:           var(--color-text-muted);
-    background:      #F7F9FE;
-    border:          2px dashed var(--color-border-subtle);
+    font-family:     var(--font-display);
+    font-size:       34px;
+    font-weight:     800;
+    color:           var(--color-brand-blue);
+    background:      #EDF2FF;
   }
 
   /* ── Lead cards ───────────────────────────────────────────── */
