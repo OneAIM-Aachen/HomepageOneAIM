@@ -136,6 +136,11 @@ export interface CityData {
   universities?: string;
   /** 1–2 free-form sentences: origins, current activities, local partners */
   story?: string;
+  /**
+   * Term for the field in the AIM Connect texts of this city's panel.
+   * Default "MedTech"; Munich decided on "HealthTech".
+   */
+  connectFieldTerm?: string;
   introImage?: string;
   introImageAlt?: string;
 }
@@ -195,9 +200,9 @@ const munichConnectTimeline: TimelineRow[] = [
         partners: [
           { name: "ICON, LMU Munich",
             detail: "PD Dr. med. Sebastian Clauss (Managing Director & Scientific Coordinator)",
-            logo: "/images/universities/lmu-icon.svg" },
+            logo: "/images/partners/icon-lmu.jpg" },
         ] },
-      { date: "Week 6", dot: "filled", title: "Corporate: Focus Session",
+      { date: "Week 6", dot: "filled", title: "Corporate: Visit",
         text: "Deep dive into cardiopulmonary technology: manufacturing and technology behind a heart-lung machine.",
         partners: [
           { name: "LivaNova",
@@ -219,7 +224,7 @@ const munichConnectTimeline: TimelineRow[] = [
             logo: "/images/partners/smith-nephew-icon.png" },
         ] },
       { date: "26–28 Jun", dot: "accent", title: "Makeathon",
-        text: "An intensive build weekend in partnership with Strategy&: [n] teams turned their projects into prototypes.",
+        text: "An intensive build weekend in partnership with Strategy&: teams turned their projects into prototypes.",
         partners: [
           { name: "Strategy&",
             detail: "Makeathon partner",
@@ -328,6 +333,7 @@ export const cityData: Record<CitySlug, CityData> = {
       { src: "/images/universities/lmu-icon.svg", alt: "Ludwig-Maximilians-Universität München (LMU)" },
     ],
     universities: "TUM and LMU",
+    connectFieldTerm: "HealthTech",
     codeComingSoon: true,
     showInnovate: true,
     foundedYear:  2023,
@@ -336,7 +342,7 @@ export const cityData: Record<CitySlug, CityData> = {
       "OneAIM Munich was founded in 2023, back when OneAIM was still a " +
       "single chapter and simply called OneAIM. Students of LMU and TUM " +
       "started it to bridge the gap between medicine, engineering and " +
-      "business, bringing together everything it takes for MedTech " +
+      "business, bringing together everything it takes for HealthTech " +
       "innovation. With the first programs and the development of AIM " +
       "Connect, AIM Innovate and AIM Code, Munich laid the foundation for a " +
       "community that is now growing all across Germany.",
@@ -344,9 +350,9 @@ export const cityData: Record<CitySlug, CityData> = {
     connectImageAlt: "AIM Connect Munich cohort at the Brandenburg Gate during the Berlin kickoff weekend",
     connectUpcomingEvents: [
       { date: "16–18 Oct", dot: "filled", title: "Kickoff Weekend in Berlin",
-        text: "Meet the cohort: team building and intro talks." },
+        text: "Get to know your cohort: team building and intro talks." },
       { date: "Week 1–8", dot: "filled", title: "Partner visits & workshops",
-        text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups. Visits take place on Tuesdays at 5 pm." },
+        text: "One visit or workshop per week with our partners: hospitals, labs, HealthTech companies and startups. Visits take place on Tuesdays at 5 pm." },
       { date: "11–13 Dec", dot: "accent", title: "Makeathon",
         text: "An intensive build weekend. Your team turns its project into a prototype." },
       { date: "15 Dec", dot: "accent", title: "Summit",
@@ -378,7 +384,7 @@ export const cityData: Record<CitySlug, CityData> = {
     connectShowFee: true,
     connectUpcomingEvents: [
       { date: "23–25 Oct", dot: "filled", title: "Kickoff Weekend in Berlin",
-        text: "Meet the cohort: team building and intro talks." },
+        text: "Get to know your cohort: team building and intro talks." },
       { date: "Week 1–8", dot: "filled", title: "Partner visits & workshops",
         text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups. Most visits take place on Tuesday afternoons; exact times will be communicated in October." },
       { date: "15–17 Jan", dot: "accent", title: "Makeathon",
@@ -446,7 +452,7 @@ export const cityData: Record<CitySlug, CityData> = {
     connectExampleFrom: ["munich", "aachen"],
     connectUpcomingEvents: [
       { date: "24–25 Oct", dot: "filled", title: "Kickoff Weekend in Frankfurt",
-        text: "Meet the cohort: team building and intro talks." },
+        text: "Get to know your cohort: team building and intro talks." },
       { date: "Week 1–8", dot: "filled", title: "Partner visits & workshops",
         text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups. Exact dates will be announced." },
       { date: "Jan", dot: "accent", title: "Makeathon",
