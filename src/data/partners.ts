@@ -287,7 +287,7 @@ export const partners: Partner[] = [
   // ───────────────────────────────────────────────────────────────────────────
   {
     id: "lmu",
-    type: "partner",
+    type: "sponsor",
     name: "LMU München",
     onLanding: true,
     logo: "/images/partners/lmu.svg",
