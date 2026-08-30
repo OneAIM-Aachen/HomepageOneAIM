@@ -68,7 +68,7 @@ const SECURED_PLACEHOLDER: SecuredPartner[] = [1, 2, 3, 4, 5].map(n => ({
 const UPCOMING_PLACEHOLDER: TimelineRow[] = [
     { date: "[24–26 Oct]", dot: "filled", title: "Kickoff Weekend", text: "Meet the cohort: team building and intro talks." },
     { date: "Week 1–8", dot: "filled", title: "Partner visits & workshops", text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups." },
-    { date: "[06–08 Feb]", dot: "accent", title: "Make-A-Thon", text: "48-hour build weekend. Your team turns its project into a prototype." },
+    { date: "[06–08 Feb]", dot: "accent", title: "Makeathon", text: "48-hour build weekend. Your team turns its project into a prototype." },
     { date: "[20 Feb]", dot: "accent", title: "Summit", text: "The closing event: final pitches in front of partners and guests." },
   ];
 
@@ -91,7 +91,7 @@ const PAST_PLACEHOLDER: TimelineRow[] = [
       partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
     { date: "Week 6", dot: "filled", title: "[Startup evening]", text: "[One line about the evening.]",
       partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
-    { date: "[Date]", dot: "accent", title: "Make-A-Thon & Summit", text: "48-hour hackathon, [n] prototype teams, closing summit.",
+    { date: "[Date]", dot: "accent", title: "Makeathon & Summit", text: "48-hour hackathon, [n] prototype teams, closing summit.",
       partners: [{ name: "[Host & sponsor partners]" }] },
   ];
 
@@ -270,7 +270,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       <p class="cpp__text cpp__text--wide">
         Every AIM Connect semester is built on three pillars: the kickoff weekend to form
         your cohort, regular partner visits and workshops, and a team project, built
-        intensively at the Make-A-Thon weekend, and pitched at the closing summit.
+        intensively at the Makeathon weekend, and pitched at the closing summit.
       </p>
       <div class="cpp__steps">
         <div class="cpp__steps-line" aria-hidden="true"></div>
@@ -286,8 +286,8 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         </div>
         <div class="cpp__step">
           <span class="cpp__step-n cpp__step-n--accent">3</span>
-          <h3>Team project: Make-A-Thon &amp; Summit</h3>
-          <p>In interdisciplinary teams you work on a MedTech project: preparation sessions during the semester, an intensive build at the Make-A-Thon weekend, and the final pitch at the summit.</p>
+          <h3>Team project: Makeathon &amp; Summit</h3>
+          <p>In interdisciplinary teams you work on a MedTech project: preparation sessions during the semester, an intensive build at the Makeathon weekend, and the final pitch at the summit.</p>
         </div>
       </div>
     </div>
@@ -1164,6 +1164,11 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
     }
     .cpp__fee  { width: 100%; }
     .cpp__past { grid-template-columns: minmax(0, 1fr); }
+    /* Stacked columns: the connector line must continue through the last
+       row of the FIRST column, otherwise the thread visibly breaks
+       between week 4 and week 5. */
+    .cpp__past .cpp__tl:first-child .cpp__row:last-child .cpp__line { display: block; }
+    .cpp__past .cpp__tl:first-child .cpp__row:last-child .cpp__row-body { padding-bottom: 28px; }
     .cpp__steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
     .cpp__steps-line { display: none; }
     .cpp__step { padding-right: 0; }

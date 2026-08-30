@@ -46,8 +46,8 @@ export const programs: Program[] = [
     name: "AIM Connect",
     badges: ["Flagship"],
     variant: "feature",
-    image: "/images/about/kickoff-2026.jpg",
-    imageAlt: "Teilnehmende des AIM-Connect-Programms bei einem Event",
+    image: "/images/connect/landing-card.jpg",
+    imageAlt: "AIM Connect group during a partner visit at LivaNova",
     text:
       "An exclusive add-on study program at the intersection of medicine, " +
       "entrepreneurship and technology, with insights from hospitals, research, " +
@@ -77,8 +77,8 @@ export const programs: Program[] = [
     slug: "aim-code",
     name: "AIM Code",
     variant: "photo",
-    image: "/images/about/codelab.jpg",
-    imageAlt: "Studierende in einem Programmierkurs von AIM Code",
+    image: "/images/code/landing-card.jpg",
+    imageAlt: "AIM Code lecture on healthcare innovation",
     text: "Free coding courses, from Python workshops to AI in healthcare.",
     intro:
       "AIM Code makes the technical side of MedTech accessible, free of charge and " +

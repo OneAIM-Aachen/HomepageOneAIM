@@ -141,6 +141,14 @@ import { programs } from "../../data/programs";
   .programs__cell--light,
   .programs__cell--outline   { grid-column: span 3; grid-row: span 2; }
 
+  /* Visual order only (data order stays: it also drives the nav dropdown):
+     the Impact Hub tile sits above AIM Code on the right. */
+  .programs__cell--feature  { order: 1; }
+  .programs__cell--gradient { order: 2; }
+  .programs__cell--photo    { order: 3; }
+  .programs__cell--light    { order: 4; }
+  .programs__cell--outline  { order: 5; }
+
   /* ── Card (shared base) ───────────────────────────────────── */
   .programs__card {
     position:        relative;
@@ -249,6 +257,9 @@ import { programs } from "../../data/programs";
     width:      100%;
     height:     100%;
     object-fit: cover;
+    /* Crop slightly higher than center: keeps the projector screen in
+       view instead of mostly tables. */
+    object-position: center 30%;
   }
 
   .programs__scrim {

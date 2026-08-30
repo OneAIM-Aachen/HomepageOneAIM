@@ -63,14 +63,6 @@ export const partners: Partner[] = [
     website: "https://www.brainlab.com",
   },
   {
-    id: "lmu-klinikum",
-    type: "sponsor",
-    name: "LMU Klinikum",
-    logo: "/images/partners/lmu-klinikum.png",
-    logoAlt: "LMU Klinikum München – Logo",
-    website: "https://www.lmu-klinikum.de",
-  },
-  {
     id: "helmholtz",
     type: "partner",
     name: "Helmholtz Munich",

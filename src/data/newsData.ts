@@ -88,7 +88,7 @@ export const newsItems: NewsItem[] = [
     excerpt:  "Let's take a look back at what we achieved during our first batch in Aachen!",
     body: [
       "It all started with our Kickoff Weekend in April, where we brought together 16 highly motivated students from diverse academic backgrounds in Berlin to visit three innovative MedTech startups.",
-      "What followed were eight exciting weeks full of insights into the world of MedTech, from research and industry to startups. Our participants also had the opportunity to develop their skills in creating and pitching ideas during our Make-A-Thon workshops.",
+      "What followed were eight exciting weeks full of insights into the world of MedTech, from research and industry to startups. Our participants also had the opportunity to develop their skills in creating and pitching ideas during our Makeathon workshops.",
       "Our Summit in cooperation with CSI Aachen marked the grand finale of our first batch. It gave our students the chance to pitch their ideas in front of an expert jury and the audience, followed by a shared buffet where everyone could connect and wrap up the program together.",
       "A huge thank you to everyone who made this program possible. From our visiting partners to our participants: without you, this program wouldn’t have been possible!",
       "Applications for the next batch will open soon, and we already have some exciting things in store for you. So stay tuned!"
@@ -101,11 +101,11 @@ export const newsItems: NewsItem[] = [
   },
   {
     id:       "aachen-summit-makeathon-2026",
-    title:    "Summit & Make-A-Thon Aachen 2026",
+    title:    "Summit & Makeathon Aachen 2026",
     date:     "2026-06-30",
     excerpt:  "CSI x OneAIM Summit Summer 2026",
     body: [
-      "After an intensive Make-A-Thon weekend, our participants had the opportunity to present the results of their semester projects on our Summit hosted together with CSI Aachen!",
+      "After an intensive Makeathon weekend, our participants had the opportunity to present the results of their semester projects on our Summit hosted together with CSI Aachen!",
       "During the semester, they worked in small teams with different academic backgrounds to figure out solutions in the area of intelligent wearables, AI-based healthcare chatbots and software monitoring your vital status. All of these problems were real challenges given by our partners.",
       "In the end, the idea of an app assisting women during menopause convinced our expert jury the most and earned the first prize. After the presentations, our participants, jury members and the OneAIM team had the opportunity to get together at our buffet and talk together in a relaxed atmosphere.",
       "A huge thank you to everyone who supported our program during this semester, including our visit partners, the jury members, CSI Aachen and of course our participants who enriched our program with their creativity!",
@@ -115,11 +115,11 @@ export const newsItems: NewsItem[] = [
     imageAlt: "The audience at the OneAIM x CSI Summit in Aachen",
     cities:   ["aachen"],
     programs: ["aim-connect"],
-    tags:     ["Make-A-Thon"],
+    tags:     ["Makeathon"],
   },
   {
     id:       "munich-summit-makeathon-2026",
-    title:    "Summit & Make-A-Thon Munich 2026",
+    title:    "Summit & Makeathon Munich 2026",
     date:     "2026-06-30",
     excerpt:  "OneAIM Summit Summer 2026",
     body: [
@@ -131,7 +131,7 @@ export const newsItems: NewsItem[] = [
     imageAlt: "The winning teams with flowers on stage at the OneAIM Summit Summer 26",
     cities:   ["munich"],
     programs: ["aim-connect"],
-    tags:     ["Make-A-Thon"],
+    tags:     ["Makeathon"],
   },
 
   {
