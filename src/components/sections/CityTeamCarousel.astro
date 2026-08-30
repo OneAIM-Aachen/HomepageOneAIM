@@ -105,7 +105,7 @@ const resolvedMembers = members ?? (dbAll.length ? dbAll : [
           )}
           {m.photo
             ? <img class="ctc__lead-photo" src={m.photo} alt="" loading="lazy" decoding="async" />
-            : <span class="ctc__lead-photo ctc__slot">Portrait</span>}
+            : <span class="ctc__lead-photo ctc__slot" aria-hidden="true"></span>}
           <div>
             <p class="ctc__lead-name">{m.name}</p>
             <p class="ctc__lead-role">{m.position}</p>

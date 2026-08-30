@@ -91,7 +91,9 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
   }
 
   @media (max-width: 760px) {
-    .lnews__card { flex-basis: 100%; }
+    /* 85% instead of full width: the next card peeks in from the right,
+       signalling that the row can be swiped (same as the city pages). */
+    .lnews__card { flex-basis: 85%; }
   }
 
   .lnews__head-right { display: flex; align-items: center; gap: 12px; }
@@ -122,6 +124,12 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", {
   }
 
   .lnews__nav-btn:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
+
+  /* On phones you swipe the row directly, the arrows just take up space.
+     (Placed after the base rule above, which would otherwise win.) */
+  @media (max-width: 760px) {
+    .lnews__nav-btn { display: none; }
+  }
 
   .lnews__card {
     display:               grid;

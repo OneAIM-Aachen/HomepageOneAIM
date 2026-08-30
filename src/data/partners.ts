@@ -50,7 +50,7 @@ export const partners: Partner[] = [
     name: "TUM",
     onLanding: true,
     logo: "/images/partners/tum.png",
-    logoAlt: "Technische Universität München (TUM) – Platzhalter-Logo",
+    logoAlt: "Technische Universität München (TUM) – Logo",
     website: "https://www.tum.de",
   },
   {
@@ -59,7 +59,7 @@ export const partners: Partner[] = [
     name: "Brainlab",
     onLanding: true,
     logo: "/images/partners/brainlab.png",
-    logoAlt: "Brainlab AG – Platzhalter-Logo",
+    logoAlt: "Brainlab AG – Logo",
     website: "https://www.brainlab.com",
   },
   {
@@ -67,7 +67,7 @@ export const partners: Partner[] = [
     type: "sponsor",
     name: "LMU Klinikum",
     logo: "/images/partners/lmu-klinikum.png",
-    logoAlt: "LMU Klinikum München – Platzhalter-Logo",
+    logoAlt: "LMU Klinikum München – Logo",
     website: "https://www.lmu-klinikum.de",
   },
   {
@@ -75,7 +75,7 @@ export const partners: Partner[] = [
     type: "partner",
     name: "Helmholtz Munich",
     logo: "/images/partners/helmholtz.png",
-    logoAlt: "Helmholtz Munich – Platzhalter-Logo",
+    logoAlt: "Helmholtz Munich – Logo",
     website: "https://www.helmholtz-munich.de",
   },
   {
@@ -91,7 +91,7 @@ export const partners: Partner[] = [
     type: "partner",
     name: "Floy",
     logo: "/images/partners/floy.png",
-    logoAlt: "Floy – Platzhalter-Logo",
+    logoAlt: "Floy – Logo",
     website: "https://www.floy.com",
   },
   {
@@ -99,7 +99,7 @@ export const partners: Partner[] = [
     type: "partner",
     name: "Smart Reporting",
     logo: "/images/partners/smart-reporting.png",
-    logoAlt: "Smart Reporting – Platzhalter-Logo",
+    logoAlt: "Smart Reporting – Logo",
     website: "https://smart-reporting.com",
   },
   {
@@ -107,7 +107,7 @@ export const partners: Partner[] = [
     type: "partner",
     name: "Ryver AI",
     logo: "/images/partners/ryver-ai.png",
-    logoAlt: "Ryver AI – Platzhalter-Logo",
+    logoAlt: "Ryver AI – Logo",
     website: "https://ryver.ai",
   },
   {
@@ -115,7 +115,7 @@ export const partners: Partner[] = [
     type: "partner",
     name: "Simon-Kucher",
     logo: "/images/partners/simon-kucher.svg",
-    logoAlt: "Simon-Kucher & Partners – Platzhalter-Logo",
+    logoAlt: "Simon-Kucher & Partners – Logo",
     website: "https://www.simon-kucher.com",
   },
   {
@@ -123,7 +123,7 @@ export const partners: Partner[] = [
     type: "partner",
     name: "UnternehmerTUM",
     logo: "/images/partners/unternehmertum.webp",
-    logoAlt: "UnternehmerTUM – Platzhalter-Logo",
+    logoAlt: "UnternehmerTUM – Logo",
     website: "https://www.unternehmertum.de",
   },
   {
@@ -131,7 +131,7 @@ export const partners: Partner[] = [
     type: "partner",
     name: "TÜV SÜD",
     logo: "/images/partners/tuev-sued.svg",
-    logoAlt: "TÜV SÜD AG – Platzhalter-Logo",
+    logoAlt: "TÜV SÜD AG – Logo",
     website: "https://www.tuvsud.com",
   },
   {
@@ -139,7 +139,7 @@ export const partners: Partner[] = [
     type: "sponsor",
     name: "CSI",
     logo: "/images/partners/csi_logo.svg",
-    logoAlt: "CSI Aachen – Platzhalter-Logo",
+    logoAlt: "CSI Aachen – Logo",
     website: "https://care4innovation.de/",
   },
 
