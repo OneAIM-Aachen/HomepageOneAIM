@@ -12,3 +12,23 @@
 /imprint         /impressum                301
 /privacy         /datenschutz              301
 /privacy-policy  /datenschutz              301
+
+# Actual URLs of the old WordPress site (from the Wayback Machine index).
+/program               /programs/aim-connect     301
+/application           /programs/aim-connect     301
+/code                  /programs/aim-code        301
+/codelab               /programs/aim-code        301
+/get-notified          /contact                  301
+/submit                /contact                  301
+/opportunities         /programs/aim-connect     301
+/datenschutzerklaerung /datenschutz              301
+/bridging-disciplines-for-medical-innovation /about 301
+/new-aimconnect-aachen     /aachen               301
+/new-aimconnect-aachen/*   /aachen               301
+/lmu-klinikum-doctor-thes   /news                301
+/lmu-klinikum-doctor-thes-2 /news                301
+/speaker-fur-headliner-event-17-06-24-zum-thema-ki-medizin-gesucht /news 301
+/speaker-fur-podcast-zum-thema-ki-medizin-gesucht                  /news 301
+/category/*            /news                     301
+/tag/*                 /news                     301
+/author/*              /team                     301
