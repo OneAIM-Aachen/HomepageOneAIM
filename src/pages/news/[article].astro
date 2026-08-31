@@ -1,0 +1,218 @@
+---
+// src/pages/news/[article].astro
+// One page per news post – generated from src/data/newsData.ts.
+// Add a new post there, the page is created automatically at /news/<id>.
+
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getSortedNews, type NewsItem } from "../../data/newsData";
+import { locationItems } from "../../components/navigation/navData";
+import { programs } from "../../data/programs";
+
+export function getStaticPaths() {
+  const all = getSortedNews();
+  return all.map((item, i) => ({
+    params: { article: item.id },
+    props: {
+      item,
+      // Neighbors for the pagination bar at the bottom of the page
+      newer: i > 0 ? all[i - 1] : null,
+      older: i < all.length - 1 ? all[i + 1] : null,
+    },
+  }));
+}
+
+interface Props { item: NewsItem; newer: NewsItem | null; older: NewsItem | null }
+const { item, newer, older } = Astro.props as Props;
+
+const cityLabel = new Map(
+  locationItems.map(l => [l.href.replace(/^\//, ""), l.label])
+);
+const programLabel = new Map(programs.map(p => [p.slug, p.name]));
+
+const dateFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+});
+
+const paragraphs = item.body ?? [item.excerpt];
+---
+
+<BaseLayout title={item.title} description={item.excerpt}>
+  <article class="article">
+    <div class="container article__inner">
+
+      <a class="article__back" href="/news">← All news</a>
+
+      <header class="article__head">
+        <p class="article__date">{dateFmt.format(new Date(item.date))}</p>
+        <h1 class="article__title">{item.title}</h1>
+        <div class="article__chips">
+          {item.cities?.map(c => (
+            <span class="article__tag article__tag--city">{cityLabel.get(c) ?? c}</span>
+          ))}
+          {item.programs?.map(p => (
+            <span class="article__tag article__tag--program">{programLabel.get(p) ?? p}</span>
+          ))}
+          {item.tags?.map(t => <span class="article__tag article__tag--other">{t}</span>)}
+        </div>
+      </header>
+
+      {item.image && (
+        <figure class="article__media">
+          <img src={item.image} alt={item.imageAlt ?? ""} loading="eager" decoding="async" />
+        </figure>
+      )}
+
+      <div class="article__body">
+        <p class="article__lead">{item.excerpt}</p>
+        {paragraphs.map(par => <p>{par}</p>)}
+      </div>
+
+      {(newer || older) && (
+        <nav class="article__nav" aria-label="More news">
+          {newer ? (
+            <a class="article__nav-link" href={`/news/${newer.id}`}>
+              <span class="article__nav-dir">← Newer</span>
+              <span class="article__nav-title">{newer.title}</span>
+            </a>
+          ) : <span></span>}
+          {older && (
+            <a class="article__nav-link article__nav-link--right" href={`/news/${older.id}`}>
+              <span class="article__nav-dir">Older →</span>
+              <span class="article__nav-title">{older.title}</span>
+            </a>
+          )}
+        </nav>
+      )}
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .article {
+    background:    var(--color-bg-surface);
+    padding-block: var(--space-8) var(--space-12);
+  }
+
+  .article__inner { max-width: 760px; }
+
+  .article__back {
+    display:     inline-block;
+    margin-bottom: var(--space-8);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color:       var(--color-brand-blue);
+  }
+
+  .article__head {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-4);
+    margin-bottom:  var(--space-8);
+  }
+
+  .article__date {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .article__title {
+    font-size:      clamp(1.9rem, 1.3rem + 2.2vw, 2.75rem);
+    line-height:    1.12;
+    letter-spacing: -0.01em;
+  }
+
+  .article__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .article__tag {
+    white-space:   nowrap;
+    font-size:     11px;
+    font-weight:   var(--fw-bold);
+    border-radius: var(--radius-pill);
+    padding:       4px 10px;
+  }
+
+  .article__tag--city    { color: var(--color-brand-blue);      background: #E5EDFF; }
+  .article__tag--program { color: var(--color-accent-purple);   background: #F1E5FE; }
+  .article__tag--other   { color: var(--color-brand-blue-dark); background: var(--color-brand-blue-light); }
+
+  .article__media {
+    margin:        0 0 var(--space-8);
+    border-radius: var(--radius-lg);
+    overflow:      hidden;
+    box-shadow:    0 8px 32px rgba(35, 42, 207, 0.08);
+    height:        clamp(220px, 30vw, 380px);
+  }
+
+  .article__media img {
+    width:           100%;
+    height:          100%;
+    object-fit:      cover;
+    object-position: center 60%;
+  }
+
+  .article__body {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-6);
+  }
+
+  .article__body p { font-size: var(--fs-body-lg); line-height: 1.75; }
+
+  /* Teaser visually set apart from the body text */
+  .article__lead {
+    font-weight:   var(--fw-semibold);
+    color:         var(--color-text-heading);
+    padding-left:  var(--space-6);
+    border-left:   3px solid var(--color-brand-blue-light);
+  }
+
+  .article__nav {
+    display:               grid;
+    grid-template-columns: 1fr 1fr;
+    gap:                   var(--space-6);
+    margin-top:            var(--space-16);
+    padding-top:           var(--space-8);
+    border-top:            1px solid var(--color-border-subtle);
+  }
+
+  .article__nav-link {
+    display:         flex;
+    flex-direction:  column;
+    gap:             var(--space-2);
+    padding:         var(--space-6);
+    border:          1px solid var(--color-border-subtle);
+    border-radius:   var(--radius-lg);
+    background:      #F7F9FE;
+    text-decoration: none;
+    transition:      box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .article__nav-link:hover {
+    box-shadow:      var(--shadow-lift);
+    transform:       translateY(-2px);
+    text-decoration: none;
+  }
+
+  .article__nav-link--right { text-align: right; }
+
+  .article__nav-dir {
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-bold);
+    color:       var(--color-brand-blue);
+  }
+
+  .article__nav-title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size:   var(--fs-body);
+    color:       var(--color-text-heading);
+  }
+
+  @media (max-width: 620px) {
+    .article__nav { grid-template-columns: 1fr; }
+    .article__nav-link--right { text-align: left; }
+  }
+</style>

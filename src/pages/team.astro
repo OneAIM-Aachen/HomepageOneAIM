@@ -1,0 +1,497 @@
+---
+// src/pages/team.astro
+//
+// Org-wide team page (draft 1a, "Org Team Page Options":
+// city filter + one large grid).
+//
+// Everything fills itself automatically from the databases:
+//   • teamData.ts – the members (formerMember is filtered out;
+//     presidents first, then team leads, then all others)
+//   • cityData.ts – the city pills and the city counter
+//
+// As long as teamData.ts is empty, the grid shows placeholder tiles.
+// As soon as entries exist, they appear here without further changes.
+//
+// Filters (city, role, search) run purely client-side: each tile
+// carries its data as data attributes, the script below hides
+// whatever does not match via `hidden`.
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getActiveMembers, type TeamMember } from "../data/teamData";
+import { cities, cityData } from "../data/cityData";
+
+const members = getActiveMembers();
+
+// Position line as on the city pages (CityTeamCarousel):
+// President → "President | Team", Team Lead → "Team Lead | Team", otherwise Team.
+// A set `position` field completely overrides the derivation.
+const roleLine = (m: TeamMember): string =>
+  m.position
+  ?? (m.president ? `President | ${m.team}`
+    : m.teamLead ? `Team Lead | ${m.team}`
+    : m.team);
+
+// Role slug for the role filter.
+const roleOf = (m: TeamMember): string =>
+  m.president ? "president" : m.teamLead ? "lead" : "member";
+
+// Initials as a photo substitute, e.g. "Lucas Gildehaus" → "LG".
+const initials = (name: string): string =>
+  name.split(/\s+/).map(part => part[0] ?? "").join("").slice(0, 2).toUpperCase();
+
+const tiles = members.map(m => ({
+  name:      m.name,
+  position:  roleLine(m),
+  cityName:  cityData[m.city].displayName,
+  citySlug:  m.city,
+  role:      roleOf(m),
+  photo:     m.photo,
+  initials:  initials(m.name),
+  linkedIn:  m.linkedIn,
+  search:    `${m.name} ${roleLine(m)}`.toLowerCase(),
+}));
+
+const hasMembers = tiles.length > 0;
+---
+
+<BaseLayout
+  title="Team"
+  description="The people behind OneAIM across all chapters."
+>
+  <section class="team-page" aria-label="OneAIM team">
+    <div class="container">
+      <div class="team-page__panel">
+
+        <!-- Header: heading on the left, counter on the right -->
+        <div class="team-page__head">
+          <div class="team-page__heading">
+            <p class="team-page__overline">Our team</p>
+            <h1 class="team-page__title">One team, {cities.length} cities</h1>
+          </div>
+          <p class="team-page__count" data-count>
+            {hasMembers ? `${tiles.length} members` : "[N] members"}
+          </p>
+        </div>
+
+        <!-- Filter row: city pills + role pills on the left, search on the right -->
+        <div class="team-page__toolbar" data-toolbar hidden>
+          <div class="team-page__pill-rows">
+            <div class="team-page__pills" role="group" aria-label="Filter by city">
+              <button type="button" class="team-page__pill is-active" data-city-pill="all">All cities</button>
+              {cities.map(city => (
+                <button type="button" class="team-page__pill" data-city-pill={city.slug}>{city.displayName}</button>
+              ))}
+            </div>
+            <div class="team-page__pills" role="group" aria-label="Filter by role">
+              <button type="button" class="team-page__pill team-page__pill--role is-active" data-role-pill="all">All roles</button>
+              <button type="button" class="team-page__pill team-page__pill--role" data-role-pill="president">Presidents</button>
+              <button type="button" class="team-page__pill team-page__pill--role" data-role-pill="lead">Team leads</button>
+              <button type="button" class="team-page__pill team-page__pill--role" data-role-pill="member">Members</button>
+            </div>
+          </div>
+          <div class="team-page__toolbar-right">
+            <button
+              type="button"
+              class="team-page__pill team-page__pill--linkedin"
+              data-linkedin-toggle
+              aria-pressed="false"
+            >
+              <span class="team-page__pill-in" aria-hidden="true">in</span>
+              LinkedIn only
+            </button>
+            <input
+              type="search"
+              class="team-page__search"
+              placeholder="Search name or role…"
+              aria-label="Search team members by name or role"
+              data-search-input
+            />
+          </div>
+        </div>
+
+        <!-- Grid -->
+        {hasMembers ? (
+          <div class="team-page__grid" data-grid>
+            {tiles.map(t => (
+              <div
+                class="team-page__tile"
+                data-tile
+                data-city={t.citySlug}
+                data-role={t.role}
+                data-linkedin={t.linkedIn ? "1" : "0"}
+                data-search={t.search}
+              >
+                {t.linkedIn && (
+                  <a
+                    class="team-page__ln"
+                    href={t.linkedIn}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${t.name} on LinkedIn (opens in new tab)`}
+                  >
+                    <span class="team-page__ln-badge">in</span>
+                  </a>
+                )}
+                {t.photo
+                  ? <img class="team-page__photo" src={t.photo} alt={t.name} loading="lazy" decoding="async" />
+                  : <span class="team-page__photo team-page__photo--initials" aria-hidden="true">{t.initials}</span>}
+                <div class="team-page__meta">
+                  <div class="team-page__name">{t.name}</div>
+                  <div class="team-page__position">{t.position}</div>
+                  <div class="team-page__city">{t.cityName}</div>
+                </div>
+              </div>
+            ))}
+            <p class="team-page__empty" data-empty hidden>No members match your filters.</p>
+          </div>
+        ) : (
+          <div class="team-page__grid">
+            {Array.from({ length: 12 }).map(() => (
+              <div class="team-page__tile team-page__tile--placeholder">
+                <span class="team-page__photo team-page__photo--slot" aria-hidden="true">Photo</span>
+                <div class="team-page__meta">
+                  <div class="team-page__name">[Name]</div>
+                  <div class="team-page__position">[Team]</div>
+                  <div class="team-page__city">[City]</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .team-page {
+    background:    var(--color-bg-page);
+    padding-block: var(--space-12) var(--space-12);
+  }
+
+  /* CSS with a display value beats the hidden attribute – hence this guard. */
+  .team-page [hidden] { display: none !important; }
+
+  .team-page__panel {
+    background:     var(--color-bg-surface);
+    border-radius:  var(--radius-lg);
+    box-shadow:     0 8px 32px rgba(35, 42, 207, 0.08);
+    padding:        clamp(var(--space-8), 4.5vw, 56px) clamp(var(--space-6), 5vw, 64px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+  }
+
+  /* ── Header ───────────────────────────────────────────────── */
+  .team-page__head {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     flex-end;
+    gap:             var(--space-6);
+    flex-wrap:       wrap;
+  }
+
+  .team-page__heading { display: flex; flex-direction: column; gap: 10px; }
+
+  .team-page__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.19em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .team-page__title {
+    font-size:      clamp(1.75rem, 1.2rem + 2.2vw, 2.25rem);
+    letter-spacing: -0.5px;
+    color:          var(--color-text-heading);
+  }
+
+  .team-page__count {
+    font-size:   14px;
+    font-weight: var(--fw-bold);
+    color:       var(--color-text-body);
+  }
+
+  /* ── Filter row ───────────────────────────────────────────── */
+  .team-page__toolbar {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             var(--space-6);
+    flex-wrap:       wrap;
+  }
+
+  .team-page__pill-rows { display: flex; flex-direction: column; gap: 12px; }
+
+  .team-page__pills { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .team-page__pill {
+    border:        1px solid var(--color-border-subtle);
+    background:    var(--color-bg-surface);
+    color:         var(--color-text-body);
+    border-radius: var(--radius-pill);
+    padding:       10px 22px;
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   800;
+    white-space:   nowrap;
+    cursor:        pointer;
+    transition:    background var(--transition-fast), color var(--transition-fast),
+                   border-color var(--transition-fast);
+  }
+
+  .team-page__pill:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
+
+  .team-page__pill.is-active {
+    background:   var(--color-brand-blue);
+    border-color: var(--color-brand-blue);
+    color:        var(--color-text-on-brand);
+  }
+
+  .team-page__toolbar-right {
+    display:     flex;
+    align-items: center;
+    gap:         12px;
+    flex-wrap:   wrap;
+  }
+
+  /* LinkedIn toggle: shows only people with a stored profile. */
+  .team-page__pill--linkedin {
+    display:     inline-flex;
+    align-items: center;
+    gap:         8px;
+  }
+
+  .team-page__pill-in {
+    width:           20px;
+    height:          20px;
+    border-radius:   5px;
+    background:      #EDF2FF;
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       11px;
+    font-weight:     800;
+  }
+
+  .team-page__pill--linkedin.is-active .team-page__pill-in {
+    background: var(--color-bg-surface);
+  }
+
+  /* Role pills: smaller, active variant light instead of full blue (1a). */
+  .team-page__pill--role { padding: 7px 16px; font-size: 12px; }
+
+  .team-page__pill--role.is-active {
+    background:   #EDF2FF;
+    border-color: var(--color-brand-blue);
+    color:        var(--color-brand-blue);
+  }
+
+  .team-page__search {
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    padding:       12px 22px;
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   var(--fw-semibold);
+    color:         var(--color-text-heading);
+    width:         min(280px, 100%);
+    outline:       none;
+    transition:    border-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .team-page__search:focus {
+    border-color: var(--color-brand-blue);
+    box-shadow:   0 0 0 3px rgba(0, 82, 233, 0.15);
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────── */
+  .team-page__grid {
+    display:               grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap:                   24px 20px;
+  }
+
+  .team-page__tile {
+    position:       relative;
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            8px;
+    text-align:     center;
+  }
+
+  .team-page__photo {
+    width:         96px;
+    height:        96px;
+    border-radius: 50%;
+    object-fit:    cover;
+    display:       block;
+    background:    #EEF1F7;
+  }
+
+  .team-page__photo--initials {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-family:     var(--font-display);
+    font-size:       26px;
+    font-weight:     800;
+    color:           var(--color-brand-blue);
+    background:      #EDF2FF;
+  }
+
+  /* Drop area in the placeholder state (database still empty). */
+  .team-page__photo--slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       11px;
+    font-weight:     var(--fw-semibold);
+    color:           var(--color-text-muted);
+    background:      #F7F9FE;
+    border:          2px dashed var(--color-border-subtle);
+  }
+
+  .team-page__name {
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-text-heading);
+  }
+
+  .team-page__position {
+    font-size:   11px;
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-body);
+    margin-top:  1px;
+  }
+
+  .team-page__city {
+    font-size:      10px;
+    font-weight:    800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color:          var(--color-brand-blue);
+    margin-top:     3px;
+  }
+
+  /* LinkedIn overlay – only present when a profile is stored. */
+  .team-page__ln {
+    position:        absolute;
+    inset:           0;
+    z-index:         1;
+    border-radius:   16px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    opacity:         0;
+    background:      rgba(0, 82, 233, 0.45);
+    text-decoration: none;
+    transition:      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .team-page__ln:hover,
+  .team-page__ln:focus-visible { opacity: 1; }
+
+  .team-page__ln-badge {
+    width:           40px;
+    height:          40px;
+    border-radius:   10px;
+    background:      var(--color-bg-surface);
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-family:     var(--font-display);
+    font-size:       18px;
+    font-weight:     800;
+  }
+
+  .team-page__empty {
+    grid-column: 1 / -1;
+    text-align:  center;
+    font-size:   14px;
+    color:       var(--color-text-muted);
+    padding:     var(--space-8) 0;
+  }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 1100px) { .team-page__grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  @media (max-width: 900px)  { .team-page__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (max-width: 700px)  { .team-page__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 480px)  { .team-page__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+
+<script>
+  // Client-side filters: city pills, role pills and search combine
+  // (AND logic). Without JS the filter row stays hidden and the full
+  // grid remains visible – that is why the toolbar starts with `hidden`.
+  const toolbar = document.querySelector<HTMLElement>("[data-toolbar]");
+  const tiles   = Array.from(document.querySelectorAll<HTMLElement>("[data-tile]"));
+
+  // Only activate when real entries exist (otherwise placeholder grid).
+  if (toolbar && tiles.length) {
+    toolbar.removeAttribute("hidden");
+
+    const cityPills  = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-city-pill]"));
+    const rolePills  = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-role-pill]"));
+    const searchBox  = document.querySelector<HTMLInputElement>("[data-search-input]");
+    const countLabel = document.querySelector<HTMLElement>("[data-count]");
+    const emptyNote  = document.querySelector<HTMLElement>("[data-empty]");
+
+    let city = "all";
+    let role = "all";
+    let query = "";
+    let linkedOnly = false;
+
+    function apply() {
+      let shown = 0;
+      tiles.forEach(tile => {
+        const match =
+          (city === "all" || tile.dataset.city === city) &&
+          (role === "all" || tile.dataset.role === role) &&
+          (!linkedOnly || tile.dataset.linkedin === "1") &&
+          (!query || (tile.dataset.search ?? "").includes(query));
+        tile.toggleAttribute("hidden", !match);
+        if (match) shown++;
+      });
+      if (countLabel) countLabel.textContent = `${shown} ${shown === 1 ? "member" : "members"}`;
+      emptyNote?.toggleAttribute("hidden", shown > 0);
+    }
+
+    cityPills.forEach(pill => pill.addEventListener("click", () => {
+      city = pill.dataset.cityPill ?? "all";
+      cityPills.forEach(p => p.classList.toggle("is-active", p === pill));
+      apply();
+    }));
+
+    // Deep link: /team?city=aachen (or /team#aachen) preselects the
+    // city filter directly – for the "Full team" buttons of the city pages.
+    const preselect = new URLSearchParams(location.search).get("city")
+      ?? location.hash.replace("#", "");
+    const preselectPill = cityPills.find(p => p.dataset.cityPill === preselect);
+    if (preselectPill) preselectPill.click();
+
+    rolePills.forEach(pill => pill.addEventListener("click", () => {
+      role = pill.dataset.rolePill ?? "all";
+      rolePills.forEach(p => p.classList.toggle("is-active", p === pill));
+      apply();
+    }));
+
+    const lnToggle = document.querySelector<HTMLButtonElement>("[data-linkedin-toggle]");
+    lnToggle?.addEventListener("click", () => {
+      linkedOnly = !linkedOnly;
+      lnToggle.classList.toggle("is-active", linkedOnly);
+      lnToggle.setAttribute("aria-pressed", String(linkedOnly));
+      apply();
+    });
+
+    searchBox?.addEventListener("input", () => {
+      query = searchBox.value.trim().toLowerCase();
+      apply();
+    });
+  }
+</script>

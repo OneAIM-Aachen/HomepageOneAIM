@@ -1,8 +1,8 @@
 ---
 // src/layouts/LegalLayout.astro
-// Schlankes Layout für Rechtstexte (z. B. Impressum). Nutzt BaseLayout,
-// verzichtet bewusst auf Hero/CityTabs, da hier keine Gradient-Optik
-// und keine Subnavigation gebraucht wird.
+// Slim layout for legal texts (e.g. Impressum). Uses BaseLayout,
+// deliberately omits Hero/CityTabs, since no gradient look
+// and no subnavigation are needed here.
 
 import BaseLayout from "./BaseLayout.astro";
 
@@ -27,7 +27,7 @@ const { title, description } = Astro.props;
 
 <style>
   .legal-page {
-    padding-block: var(--space-16) var(--space-24);
+    padding-block: var(--space-16) var(--space-12);
     background: var(--color-bg-page);
   }
 
@@ -50,6 +50,14 @@ const { title, description } = Astro.props;
     font-size: var(--fs-h3);
     color: var(--color-text-heading);
     margin-bottom: var(--space-3);
+  }
+
+  .legal-page__content :global(h3) {
+    font-size: var(--fs-body);
+    font-weight: var(--fw-bold);
+    color: var(--color-text-heading);
+    margin-top: var(--space-5, 20px);
+    margin-bottom: var(--space-2);
   }
 
   .legal-page__content :global(p) {

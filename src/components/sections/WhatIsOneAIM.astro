@@ -1,0 +1,227 @@
+---
+// src/components/sections/WhatIsOneAIM.astro
+// "What is OneAIM?" – introduction section on the homepage.
+// Implementation of draft 2A from the Claude design project
+// ("What is OneAIM Options.dc.html"): full-area photo, dark
+// gradient (scrim) on top, text left-aligned at the bottom edge.
+//
+// Extension over the draft: multiple photos that cross-fade into
+// each other via pure CSS animation. No JavaScript needed – this
+// therefore also works in the static build without hydration.
+//
+// Deliberately its own component instead of ContentSection.astro: that one
+// is also used by the city pages (aim-connect, aim-code) and must
+// not change along with this here.
+//
+// MORE PHOTOS: simply add an entry to `images` (put the file into
+// public/images/about/). Timing and keyframes below recalculate
+// automatically for the new count.
+
+interface Slide {
+  src: string;
+  alt?: string;
+}
+
+interface Props {
+  images?: Slide[];
+  /** Dwell time per photo in seconds (incl. cross-fade) */
+  slideSeconds?: number;
+  /** Duration of the cross-fade in seconds */
+  fadeSeconds?: number;
+}
+
+const {
+  images = [
+    {
+      src: "/images/about/kickoff-2026.jpg",
+      alt: "OneAIM-Mitglieder bei einem gemeinsamen Event vor dem BIH Charité",
+    },
+    { src: "/images/about/codelab.jpg" },
+  ],
+  slideSeconds = 6,
+  fadeSeconds = 1.2,
+} = Astro.props as Props;
+
+const n = images.length;
+const cycle = n * slideSeconds;
+
+// Keyframe marks as a percentage of the total duration. They depend on the
+// number of images, so the @keyframes rule below is generated instead of
+// hard-wired.
+const pct = (s: number) => +((s / cycle) * 100).toFixed(3);
+const fadeInEnd = pct(fadeSeconds);
+const holdEnd = pct(slideSeconds);
+const fadeOutEnd = pct(slideSeconds + fadeSeconds);
+
+// Negative start offset for the first image: it is thereby fully
+// visible immediately instead of fading in first.
+const delayFor = (i: number) => +(i * slideSeconds - fadeSeconds).toFixed(3);
+
+const keyframes = `
+@keyframes whatis-cross {
+  0% { opacity: 0; }
+  ${fadeInEnd}% { opacity: 1; }
+  ${holdEnd}% { opacity: 1; }
+  ${fadeOutEnd}% { opacity: 0; }
+  100% { opacity: 0; }
+}`;
+---
+
+<section class="whatis" aria-labelledby="whatis-heading">
+  <div class="container">
+    <div class="whatis__frame">
+      <div class="whatis__photos">
+        {images.map((img, i) => (
+          <img
+            class="whatis__photo"
+            src={img.src}
+            /* Only the first image gets an alt text. The others are
+               purely decorative variants of the same background – otherwise
+               a screen reader would announce three images in a row. */
+            alt={i === 0 ? (img.alt ?? "") : ""}
+            loading="lazy"
+            decoding="async"
+            style={
+              n > 1
+                ? `opacity:${i === 0 ? 1 : 0};animation:whatis-cross ${cycle}s linear ${delayFor(i)}s infinite`
+                : "opacity:1"
+            }
+          />
+        ))}
+      </div>
+
+      <!-- Gradient: strong at the bottom, almost clear at the top – keeps the
+           text readable without completely darkening the photo. -->
+      <div class="whatis__scrim" aria-hidden="true"></div>
+
+      <div class="whatis__content">
+        <p class="whatis__overline">Who we are</p>
+        <h2 id="whatis-heading" class="whatis__heading">What is OneAIM?</h2>
+        <p class="whatis__text">
+          OneAIM (AI in Medicine) is Europe's largest interdisciplinary MedTech
+          initiative. Originating in Munich and now spreading across Germany and
+          beyond, we unite students from medicine, technology, engineering, business
+          and all other kinds of backgrounds. Through hands-on programs, workshops
+          and exclusive events, we create a community of extraordinarily ambitious
+          students with the skills and drive to lead where the field goes next.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style is:inline set:html={keyframes}></style>
+
+<style>
+  .whatis {
+    background:    var(--color-bg-surface);
+    padding-block: var(--space-8) var(--space-6);
+  }
+
+  .whatis__frame {
+    position:      relative;
+    overflow:      hidden;
+    border-radius: var(--radius-lg);
+    box-shadow:    0 8px 32px rgba(35, 42, 207, 0.08);
+    height:        clamp(420px, 46vw, 560px);
+    /* Base tone while the photos are still loading – avoids a white
+       flash behind the light text. */
+    background:    #0b1024;
+  }
+
+  .whatis__photos {
+    position: absolute;
+    inset:    0;
+  }
+
+  .whatis__photo {
+    position:        absolute;
+    inset:           0;
+    width:           100%;
+    height:          100%;
+    object-fit:      cover;
+    /* Shifted slightly downwards: the group stays fully in the picture,
+       and below it lies floor area – there the text sits calmer
+       than over faces and clothing. */
+    object-position: center 68%;
+    will-change:     opacity;
+  }
+
+  .whatis__scrim {
+    position: absolute;
+    inset:    0;
+    /* The text block reaches up to ca. 75 % of the height, so the
+       gradient stays strong up to there and only becomes clear above. Otherwise
+       the first text line would sit too pale on lighter photo spots (window, roll-up). */
+    background: linear-gradient(
+      to top,
+      rgba(6, 10, 30, 0.90) 0%,
+      rgba(6, 10, 30, 0.80) 40%,
+      rgba(6, 10, 30, 0.62) 70%,
+      rgba(6, 10, 30, 0.20) 100%
+    );
+  }
+
+  .whatis__content {
+    position:        absolute;
+    inset:           0;
+    display:         flex;
+    flex-direction:  column;
+    justify-content: flex-end;
+    gap:             var(--space-4);
+    padding:         clamp(var(--space-8), 5vw, 72px);
+    max-width:       720px;
+  }
+
+  .whatis__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-brand-blue-light);
+  }
+
+  .whatis__heading {
+    font-size:      clamp(2rem, 1.4rem + 2.4vw, 3rem);
+    line-height:    1.08;
+    letter-spacing: -0.01em;
+    color:          var(--color-text-on-dark);
+  }
+
+  .whatis__text {
+    font-size:   var(--fs-body-lg);
+    line-height: 1.7;
+    color:       rgba(255, 255, 255, 0.92);
+  }
+
+  /* Narrow viewports ──────────────────────────────────────────
+     Here the frame must NO longer have a fixed height: in a
+     narrow column the text block becomes taller than the frame, and since
+     the content is aligned to the bottom edge, overline and
+     heading slip out at the top and get cut off by
+     overflow:hidden. Therefore from here on the text determines the height,
+     the photo fills the frame behind it. */
+  @media (max-width: 600px) {
+    .whatis__frame {
+      height:     auto;
+      min-height: 420px;
+    }
+
+    .whatis__content {
+      position:    relative;   /* releases the block from the absolute flow */
+      inset:       auto;
+      max-width:   none;
+      /* Narrow photo strip above the text – enough that the image
+         stays readable as a background without creating a gap. */
+      padding-top: var(--space-12);
+    }
+  }
+
+  /* Reduced motion: no switching, only the first photo.
+     !important beats the global rule in global.css, which otherwise only
+     sets the duration to 0.001ms – then all images would sit on the
+     end value (opacity 0) and the background would be black. */
+  @media (prefers-reduced-motion: reduce) {
+    .whatis__photo { animation: none !important; }
+  }
+</style>

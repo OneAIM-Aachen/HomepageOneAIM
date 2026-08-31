@@ -1,67 +1,206 @@
 ---
 // src/pages/impressum.astro
-// Rechtlich UNVERBINDLICHE Platzhalter-Inhalte. Vor Veröffentlichung müssen
-// alle Angaben durch echte, rechtlich geprüfte Daten ersetzt werden
-// (siehe DummyNotice-Hinweise unten).
+// Legal notice with the details of both associations (OneAIM e.V. München
+// and OneAIM Aachen e.V.). Image credits at the end.
 
 import LegalLayout from "../layouts/LegalLayout.astro";
-import DummyNotice from "../components/ui/DummyNotice.astro";
 ---
 
-<LegalLayout title="Impressum" description="Impressum von OneAIM (Platzhalterinhalte).">
+<LegalLayout title="Impressum" description="Impressum von OneAIM e.V. und OneAIM Aachen e.V.">
 
-  <section>
-    <h2>Angaben gemäß § 5 TMG</h2>
+  <!-- Location switcher: shows only one association's details at a time.
+       Without JavaScript both locations remain visible. -->
+  <div class="impressum-switch" data-impressum-switch hidden>
+    <button type="button" class="impressum-switch__btn is-active" data-city-btn="muenchen" aria-pressed="true">München</button>
+    <button type="button" class="impressum-switch__btn" data-city-btn="aachen" aria-pressed="false">Aachen</button>
+    <button type="button" class="impressum-switch__btn" data-city-btn="frankfurt" aria-pressed="false">Frankfurt</button>
+  </div>
+
+  <section data-city-section="muenchen">
+    <h2>Standort München</h2>
+
+    <h3>Angaben gemäß § 5 TMG</h3>
+    <p>
+      OneAIM e.V.<br />
+      Adelheidstraße 24<br />
+      80798 München<br />
+      Deutschland
+    </p>
+
+    <h3>Vertretungsberechtigt</h3>
+    <p>Seyed Ali Allameh, Nick Breit, Ahmed Arezki Ghaleb, Vorstand</p>
+
+    <h3>Kontakt</h3>
+    <p>
+      Telefon: <a href="tel:+491748409026">+49 174 8409026</a><br />
+      E-Mail: <a href="mailto:contact@one-aim.org">contact@one-aim.org</a>
+    </p>
+
+    <h3>Registereintrag</h3>
+    <p>
+      Registergericht: Amtsgericht München<br />
+      Registernummer: VR 211615
+    </p>
+
+    <h3>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h3>
+    <p>Nick Breit, Adelheidstraße 24, 80798 München</p>
+  </section>
+
+  <section data-city-section="aachen">
+    <h2>Standort Aachen</h2>
+
+    <h3>Angaben gemäß § 5 TMG</h3>
     <p>
       OneAIM Aachen e.V.<br />
-      Lucas Gildehaus <br />
-      Musterstraße 1 (Platzhalter-Adresse)<br />
-      80331 München (Platzhalter-Ort)<br />
-      Germany
+      Passstraße 107<br />
+      52070 Aachen<br />
+      Deutschland
     </p>
-  </section>
 
-  <section>
-    <h2></h2>
-    <p>OneAIM e.V. <br />
-      Finn Kosima und Melvin Tjiok <br />
-      Ziemssenstraße 1 <br />
-      80336 Munich <br />
-      Germany
-      </p>
-  </section>
+    <h3>Vertretungsberechtigt</h3>
+    <p>Lucas Gildehaus, Eric Hölpes, Vorstand</p>
 
-  <section>
-    <h2>Kontakt</h2>
+    <h3>Kontakt</h3>
     <p>
-      Telefon: +49 (0)00 00000000 (Platzhalter-Telefonnummer)<br />
-      E-Mail: impressum@platzhalter-domain.de (Platzhalter-E-Mail)
+      Telefon: <a href="tel:+4915172104946">+49 151 72104946</a><br />
+      E-Mail: <a href="mailto:aachen@one-aim.org">aachen@one-aim.org</a>
     </p>
-  </section>
 
-  <section>
-    <h2>Registereintrag</h2>
+    <h3>Registereintrag</h3>
     <p>
-      Eintragung im Vereinsregister (Platzhalter).<br />
-      Registergericht: Amtsgericht Musterstadt (Platzhalter)<br />
-      Registernummer: VR 00000 (Platzhalter)
+      Registergericht: Amtsgericht Aachen<br />
+      Registernummer: VR 00000
     </p>
+
+    <h3>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h3>
+    <p>Lucas Gildehaus, Passstraße 107, 52070 Aachen</p>
   </section>
 
-  <section>
-    <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
-    <p>Max Mustermann, Musterstraße 1, 80331 München (Platzhalter-Angabe)</p>
+  <section data-city-section="frankfurt">
+    <h2>Standort Frankfurt</h2>
+
+    <h3>Angaben gemäß § 5 TMG</h3>
+    <p>
+      OneAIM Frankfurt<br />
+      Kronberger Straße 6<br />
+      60323 Frankfurt am Main<br />
+      Deutschland
+    </p>
+
+    <h3>Vertretungsberechtigt</h3>
+    <p>Max Pfeiffer, Medi Bergmann</p>
+
+    <h3>Kontakt</h3>
+    <p>
+      E-Mail: <a href="mailto:frankfurt@one-aim.org">frankfurt@one-aim.org</a>
+    </p>
+
+    <h3>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h3>
+    <p>Max Pfeiffer, Kronberger Straße 6, 60323 Frankfurt am Main</p>
   </section>
 
   <section>
     <h2>Haftungsausschluss</h2>
+
+    <h3>Haftung für Inhalte</h3>
     <p>
-      <strong>Haftung für Inhalte:</strong> Dies ist ein Platzhaltertext. Der finale Haftungsausschluss
-      muss vor Veröffentlichung durch rechtlich geprüften Text ersetzt werden.
+      Die Inhalte dieser Website wurden mit größter Sorgfalt erstellt. Für die
+      Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch
+      keine Gewähr übernehmen. Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG
+      für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen
+      verantwortlich.
     </p>
+
+    <h3>Haftung für Links</h3>
     <p>
-      <strong>Haftung für Links:</strong> Dies ist ein Platzhaltertext. Der finale Abschnitt zu externen
-      Links muss vor Veröffentlichung durch rechtlich geprüften Text ersetzt werden.
+      Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte
+      wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte
+      auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist
+      stets der jeweilige Anbieter oder Betreiber verantwortlich.
     </p>
   </section>
+
+  <section>
+    <h2>Bildnachweise</h2>
+    <p>
+      Stadtfotos auf den Standortseiten von Wikimedia Commons:
+    </p>
+    <ul>
+      <li>
+        München: „Frauenkirche Munich – View from Peterskirche Tower" von
+        <a href="https://commons.wikimedia.org/wiki/File:Frauenkirche_Munich_-_View_from_Peterskirche_Tower.jpg"
+           target="_blank" rel="noopener noreferrer">Diliff</a>,
+        Lizenz <a href="https://creativecommons.org/licenses/by/2.5/" target="_blank" rel="noopener noreferrer">CC BY 2.5</a>
+      </li>
+      <li>
+        Aachen: „Aachen, Dom – 2016 – 2768" von
+        <a href="https://commons.wikimedia.org/wiki/File:Aachen,_Dom_--_2016_--_2768.jpg"
+           target="_blank" rel="noopener noreferrer">Dietmar Rabich</a>,
+        Lizenz <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
+      </li>
+      <li>
+        Frankfurt: „Frankfurt am Main, Römer – 2015 – 6695-9" von
+        <a href="https://commons.wikimedia.org/wiki/File:Frankfurt_am_Main,_R%C3%B6mer_--_2015_--_6695-9.jpg"
+           target="_blank" rel="noopener noreferrer">Dietmar Rabich</a>,
+        Lizenz <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
+      </li>
+    </ul>
+  </section>
 </LegalLayout>
+
+<style>
+  .impressum-switch {
+    display:       flex;
+    gap:           10px;
+    flex-wrap:     wrap;
+    margin-bottom: var(--space-2);
+  }
+
+  .impressum-switch__btn {
+    border:        1px solid var(--color-border-subtle);
+    background:    var(--color-bg-surface);
+    color:         var(--color-text-body);
+    border-radius: var(--radius-pill);
+    padding:       10px 22px;
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   800;
+    cursor:        pointer;
+    transition:    background var(--transition-fast), color var(--transition-fast),
+                   border-color var(--transition-fast);
+  }
+
+  .impressum-switch__btn:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
+
+  .impressum-switch__btn.is-active {
+    background:   var(--color-brand-blue);
+    border-color: var(--color-brand-blue);
+    color:        var(--color-text-on-brand);
+  }
+</style>
+
+<script>
+  // Location switcher: the buttons hide the other association's section.
+  // /impressum#aachen preselects Aachen directly.
+  const switcher = document.querySelector<HTMLElement>("[data-impressum-switch]");
+  const buttons  = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-city-btn]"));
+  const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-city-section]"));
+
+  if (switcher && buttons.length && sections.length) {
+    switcher.removeAttribute("hidden");
+
+    function show(city: string) {
+      buttons.forEach(b => {
+        const on = b.dataset.cityBtn === city;
+        b.classList.toggle("is-active", on);
+        b.setAttribute("aria-pressed", String(on));
+      });
+      sections.forEach(s => s.toggleAttribute("hidden", s.dataset.citySection !== city));
+    }
+
+    buttons.forEach(b => b.addEventListener("click", () => show(b.dataset.cityBtn ?? "muenchen")));
+
+    const fromHash = location.hash.replace("#", "");
+    show(buttons.some(b => b.dataset.cityBtn === fromHash) ? fromHash : "muenchen");
+  }
+</script>

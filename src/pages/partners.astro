@@ -1,0 +1,440 @@
+---
+// src/pages/partners.astro
+// Complete overview of all partners and sponsors.
+//
+// The page is generated entirely from src/data/partners.ts – whoever adds an
+// entry there automatically appears here AND in the marquee on the home
+// page (PartnersSection.astro). Nothing needs to be adjusted here.
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { sponsors, partnersOnly } from "../data/partners";
+
+// Sponsors first, then the partners. Empty groups are skipped so the
+// page also works when a category is (still) empty.
+const groups = [
+  {
+    heading: "Sponsors",
+    description:
+      "Sponsors support OneAIM financially. Their funding is what makes our " +
+      "programs and events possible.",
+    items: sponsors,
+  },
+  {
+    heading: "Partners",
+    description:
+      "Partners are the startups, companies, research groups, clinics and other " +
+      "institutions we run our programs with. In cooperation with them we host " +
+      "our visits and workshops.",
+    items: partnersOnly,
+  },
+].filter(g => g.items.length > 0);
+---
+
+<BaseLayout
+  title="Partners & Sponsors"
+  description="All organisations supporting OneAIM: universities, clinics, companies and initiatives across the MedTech field."
+>
+  <section class="partners-page">
+    <div class="container partners-page__intro">
+      <p class="partners-page__overline">Our Partners &amp; Sponsors</p>
+      <h1 class="partners-page__heading">
+        The organisations behind <span class="text-accent">OneAIM</span>
+      </h1>
+      <p class="partners-page__lead">
+        As a student-led initiative, we appreciate any support that helps advance
+        our mission of providing free education in the MedTech field.
+      </p>
+    </div>
+
+    <!-- Toolbar: search, sorting, display.
+         hidden until the script takes over – without JavaScript the
+         controls would have no effect, the list itself remains complete. -->
+    <div class="container partners-toolbar" id="partners-toolbar" hidden>
+      <div class="partners-toolbar__search">
+        <label class="visually-hidden" for="partner-search">Search partners and sponsors</label>
+        <input
+          type="search"
+          id="partner-search"
+          placeholder="Search by name…"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="partners-toolbar__controls">
+        <div class="partners-toolbar__field">
+          <span>Sort</span>
+          <div class="partners-toolbar__view" role="group" aria-label="Sort order" id="partner-sort">
+            <button type="button" data-sort="default" aria-pressed="true">Featured</button>
+            <button type="button" data-sort="asc" aria-pressed="false">A–Z</button>
+            <button type="button" data-sort="desc" aria-pressed="false">Z–A</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <p class="container partners-page__status" id="partner-status" role="status" aria-live="polite"></p>
+
+    {groups.map(group => (
+      <div class="container partners-page__group" data-group>
+        <div class="partners-page__group-head">
+          <h2 class="partners-page__group-heading">{group.heading}</h2>
+          <p class="partners-page__group-desc">{group.description}</p>
+        </div>
+        <ul class="partners-page__grid" data-grid>
+          {group.items.map((p, i) => (
+            <li class="partners-page__card" data-name={p.name} data-index={i}>
+              {p.website ? (
+                <a href={p.website} target="_blank" rel="noopener noreferrer">
+                  <span class="partners-page__logo">
+                    <img
+                      src={p.logo}
+                      alt={p.logoAlt ?? `${p.name} Logo`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </span>
+                  <span class="partners-page__name">{p.name}</span>
+                </a>
+              ) : (
+                <div>
+                  <span class="partners-page__logo">
+                    <img
+                      src={p.logo}
+                      alt={p.logoAlt ?? `${p.name} Logo`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </span>
+                  <span class="partners-page__name">{p.name}</span>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+        <p class="partners-page__empty" hidden>No matches in this category.</p>
+      </div>
+    ))}
+  </section>
+
+  <script is:inline>
+    (function () {
+      var toolbar = document.getElementById("partners-toolbar");
+      var search  = document.getElementById("partner-search");
+      var sortBtns = [].slice.call(document.querySelectorAll("[data-sort]"));
+      var sortMode = "default";
+      var status  = document.getElementById("partner-status");
+      if (!toolbar || !search || !sortBtns.length) return;
+
+      // Only the partner groups – the header row also uses data-group
+      // (dropdown buttons), but those have no grid.
+      var groups = [].slice.call(document.querySelectorAll(".partners-page__group[data-group]"));
+
+      // Only show it now: from here on the controls are functional.
+      toolbar.hidden = false;
+
+      // Compare tolerant of diacritics: "tuv" finds "TÜV SÜD",
+      // "universite" finds "Université de Montréal".
+      function norm(s) {
+        return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+      }
+
+      function collator() {
+        // localeCompare with de-DE sorts umlauts correctly (Ü like U),
+        // numeric for names with digits.
+        return new Intl.Collator("de-DE", { sensitivity: "base", numeric: true });
+      }
+
+      function apply() {
+        var q = norm(search.value.trim());
+        var mode = sortMode;
+        var cmp = collator();
+        var total = 0;
+
+        groups.forEach(function (group) {
+          var grid  = group.querySelector("[data-grid]");
+          var empty = group.querySelector(".partners-page__empty");
+          var cards = [].slice.call(grid.children);
+          var shown = 0;
+
+          cards.forEach(function (card) {
+            var match = !q || norm(card.getAttribute("data-name")).indexOf(q) !== -1;
+            card.hidden = !match;
+            if (match) shown++;
+          });
+
+          // Sorting: change the DOM order so it applies equally in grid
+          // and list view.
+          var ordered = cards.slice().sort(function (a, b) {
+            if (mode === "default") {
+              return a.getAttribute("data-index") - b.getAttribute("data-index");
+            }
+            var r = cmp.compare(a.getAttribute("data-name"), b.getAttribute("data-name"));
+            return mode === "desc" ? -r : r;
+          });
+          ordered.forEach(function (card) { grid.appendChild(card); });
+
+          // Group with 0 matches: grid out, notice in. The heading stays
+          // in place so the categories do not jump around.
+          grid.hidden  = shown === 0;
+          empty.hidden = shown !== 0;
+          total += shown;
+        });
+
+        if (status) {
+          status.textContent = q
+            ? total + (total === 1 ? " match" : " matches") + ' for "' + search.value.trim() + '"'
+            : "";
+        }
+      }
+
+      search.addEventListener("input", apply);
+      sortBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          sortMode = btn.getAttribute("data-sort");
+          sortBtns.forEach(function (b) { b.setAttribute("aria-pressed", String(b === btn)); });
+          apply();
+        });
+      });
+
+      // Escape clears the search field.
+      search.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && search.value) { search.value = ""; apply(); }
+      });
+
+      apply();
+    })();
+  </script>
+</BaseLayout>
+
+<style>
+  .partners-page {
+    background:     var(--color-bg-surface);
+    padding-block:  var(--space-16) var(--space-12);
+  }
+
+  .partners-page__intro {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-4);
+    align-items:    center;
+    text-align:     center;
+    margin-bottom:  var(--space-16);
+  }
+
+  .partners-page__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .partners-page__heading {
+    font-size: var(--fs-display);
+    max-width: 22ch;
+  }
+
+  .partners-page__lead {
+    max-width: 52ch;
+    color:     var(--color-text-muted);
+  }
+
+  /* ── Toolbar ──────────────────────────────────────────────── */
+  .partners-toolbar {
+    display:         flex;
+    flex-wrap:       wrap;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             var(--space-4);
+    margin-bottom:   var(--space-8);
+  }
+
+  .partners-toolbar__search { flex: 1 1 260px; }
+
+  .partners-toolbar__search input {
+    width:         100%;
+    padding:       var(--space-3) var(--space-6);
+    font-family:   var(--font-body);
+    font-size:     var(--fs-body);
+    color:         var(--color-text-heading);
+    background:    var(--color-bg-surface);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    transition:    border-color var(--transition-fast);
+  }
+
+  .partners-toolbar__search input:hover { border-color: rgba(0, 82, 233, 0.35); }
+
+  .partners-toolbar__search input:focus-visible {
+    outline:      none;
+    border-color: var(--color-brand-blue);
+    box-shadow:   var(--focus-ring);
+  }
+
+  .partners-toolbar__controls {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-6);
+    flex-wrap:   wrap;
+  }
+
+  .partners-toolbar__field {
+    display:     inline-flex;
+    align-items: center;
+    gap:         var(--space-2);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-muted);
+  }
+
+
+
+  .partners-toolbar__view {
+    display:       inline-flex;
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-pill);
+    overflow:      hidden;
+  }
+
+  .partners-toolbar__view button {
+    padding:     var(--space-2) var(--space-4);
+    font-family: var(--font-display);
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color:       var(--color-text-muted);
+    background:  transparent;
+    border:      none;
+    transition:  background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .partners-toolbar__view button:hover { color: var(--color-brand-blue); }
+
+  .partners-toolbar__view button[aria-pressed="true"] {
+    background: var(--color-brand-blue);
+    color:      var(--color-text-on-brand);
+  }
+
+  .partners-page__status {
+    min-height:    1.5em;
+    margin-bottom: var(--space-4);
+    font-size:     var(--fs-small);
+    color:         var(--color-text-muted);
+  }
+
+  .partners-page__empty {
+    font-size: var(--fs-body);
+    color:     var(--color-text-muted);
+  }
+
+  /* ── Groups (Sponsors / Partners) ─────────────────────────── */
+  .partners-page__group + .partners-page__group {
+    margin-top: var(--space-24);
+  }
+
+  .partners-page__group-head {
+    margin-bottom:  var(--space-8);
+    padding-bottom: var(--space-4);
+    border-bottom:  1px solid var(--color-border-subtle);
+  }
+
+  .partners-page__group-heading { font-size: var(--fs-h2); }
+
+  /* Full container width – the text only wraps at the page edge and
+     thus scales with the viewport instead of early at a fixed width. */
+  .partners-page__group-desc {
+    margin-top:  var(--space-2);
+    font-size:   var(--fs-body);
+    line-height: var(--lh-body);
+    color:       var(--color-text-muted);
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────────
+     auto-fill: the column count is derived from the width so that
+     new partners simply join without any layout adjustment.      */
+  .partners-page__grid {
+    display:               grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap:                   var(--space-6);
+  }
+
+  .partners-page__card {
+    background:    var(--color-bg-surface);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow:    var(--shadow-card);
+    transition:    box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .partners-page__card:hover {
+    box-shadow: var(--shadow-lift);
+    transform:  translateY(-2px);
+  }
+
+  /* Applies to the <a> as well as the <div> variant (partners without a website). */
+  .partners-page__card > * {
+    display:         flex;
+    flex-direction:  column;
+    align-items:     center;
+    gap:             var(--space-4);
+    padding:         var(--space-8) var(--space-6);
+    height:          100%;
+    text-decoration: none;
+  }
+
+  .partners-page__card a:hover { text-decoration: none; }
+
+  .partners-page__logo {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    height:          72px;
+  }
+
+  .partners-page__logo img {
+    max-height: 72px;
+    max-width:  100%;
+    width:      auto;
+    object-fit: contain;
+  }
+
+  .partners-page__name {
+    font-family: var(--font-display);
+    font-weight: var(--fw-semibold);
+    font-size:   var(--fs-small);
+    color:       var(--color-text-heading);
+    text-align:  center;
+  }
+
+  /* ── List view ────────────────────────────────────────────────
+     One column, logo and name side by side. Layout only – the same
+     card is switched, no second markup.                          */
+  /* Without a toggle: desktop shows the grid, mobile automatically the list */
+  @media (max-width: 760px) {
+    .partners-page__grid {
+      grid-template-columns: 1fr;
+      gap:                   var(--space-3);
+    }
+
+    .partners-page__card:hover { transform: none; }
+
+    .partners-page__card > * {
+      flex-direction: row;
+      align-items:    center;
+      gap:            var(--space-6);
+      padding:        var(--space-4) var(--space-6);
+    }
+
+    .partners-page__logo {
+      flex:   0 0 120px;
+      height: 44px;
+    }
+
+    .partners-page__logo img { max-height: 44px; }
+
+    .partners-page__name {
+      text-align: left;
+      font-size:  var(--fs-body);
+    }
+  }
+</style>

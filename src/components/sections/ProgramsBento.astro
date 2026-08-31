@@ -1,0 +1,349 @@
+---
+// src/components/sections/ProgramsBento.astro
+// "Our Programs" – bento mosaic with all five AIM programs.
+// Implementation of draft 4A from the Claude design project
+// ("What is OneAIM Options.dc.html", section 4A "TALL BENTO MOSAIC").
+//
+// Layout of the grid (6 columns, rows of 120px):
+//   ┌───────────────┬───────────────┐
+//   │               │  AIM Code     │  ← photo + scrim
+//   │  AIM Connect  ├───────────────┤
+//   │  (photo top,  │  AIM Innovate │  ← blue/violet gradient
+//   │   text below) ├───────────────┤
+//   ├───────────────┤               │
+//   │  AIM Educate  │  AIM Science  │
+//   └───────────────┴───────────────┘
+//
+// Not to be confused with ProgramTeasers.astro – that is the
+// city-specific teaser grid on /munich and /aachen.
+
+import { programs } from "../../data/programs";
+---
+
+<section class="programs" id="programs" aria-labelledby="programs-heading">
+  <div class="container">
+    <div class="programs__panel">
+      <header class="programs__header">
+        <p class="programs__overline">What we do</p>
+        <h2 id="programs-heading" class="programs__heading">
+          Our <span class="text-accent">Programs</span>
+        </h2>
+        <p class="programs__lead">
+          Each chapter runs its own programs on the shared OneAIM blueprint: the
+          same formats in every city, with local partners, projects and dates.
+        </p>
+      </header>
+
+      <ul class="programs__grid">
+        {programs.map(p => (
+          <li class={`programs__cell programs__cell--${p.variant}`}>
+            <a class="programs__card" href={`/programs/${p.slug}`}>
+              {p.variant === "feature" && (
+                <span class="programs__media">
+                  <img src={p.image} alt={p.imageAlt ?? ""} loading="lazy" decoding="async" />
+                </span>
+              )}
+
+              {p.variant === "photo" && (
+                <>
+                  <img
+                    class="programs__bg"
+                    src={p.image}
+                    alt={p.imageAlt ?? ""}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span class="programs__scrim" aria-hidden="true"></span>
+                </>
+              )}
+
+              <span class="programs__body">
+                {p.badges && (
+                  <span class="programs__badges">
+                    {p.badges.map(b => <span class="programs__badge">{b}</span>)}
+                  </span>
+                )}
+                <h3 class="programs__name">{p.cardName ?? p.name}</h3>
+                <span class="programs__text">{p.text}</span>
+                <span class="programs__more">Learn more <span class="programs__more-arrow" aria-hidden="true">→</span></span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .programs {
+    background:    var(--color-bg-surface);
+    padding-block: var(--space-6) var(--space-6);
+    /* Jump target of the hero button: spacing so the heading
+       does not end up under the sticky header. */
+    scroll-margin-top: var(--header-height);
+  }
+
+  .programs__panel {
+    background:    var(--color-bg-surface);
+    border-radius: var(--radius-lg);
+    box-shadow:    0 8px 32px rgba(35, 42, 207, 0.08);
+    padding:       clamp(var(--space-8), 6vw, 96px) clamp(var(--space-6), 5vw, 72px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-12);
+  }
+
+  .programs__header {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-4);
+    max-width:      640px;
+  }
+
+  .programs__overline {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .programs__heading {
+    font-size:      clamp(1.9rem, 1.3rem + 2vw, 2.75rem);
+    line-height:    1.1;
+    letter-spacing: -0.01em;
+  }
+
+  /* Note below the heading: the five programs are a shared
+     framework, each is run locally. */
+  .programs__lead {
+    font-size:   var(--fs-body);
+    line-height: var(--lh-body);
+    color:       var(--color-text-muted);
+    max-width:   58ch;
+  }
+
+  /* ── Grid ─────────────────────────────────────────────────────
+     6 columns, row height 120px. The cards are placed
+     automatically; only the spans are set.                       */
+  .programs__grid {
+    display:               grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows:        120px;
+    gap:                   22px;
+  }
+
+  .programs__cell            { display: flex; }
+  .programs__cell--feature   { grid-column: span 3; grid-row: span 4; }
+  .programs__cell--photo,
+  .programs__cell--gradient,
+  .programs__cell--light,
+  .programs__cell--outline   { grid-column: span 3; grid-row: span 2; }
+
+  /* Visual order only (data order stays: it also drives the nav dropdown):
+     the Impact Hub tile sits above AIM Code on the right. */
+  .programs__cell--feature  { order: 1; }
+  .programs__cell--gradient { order: 2; }
+  .programs__cell--photo    { order: 3; }
+  .programs__cell--light    { order: 4; }
+  .programs__cell--outline  { order: 5; }
+
+  /* ── Card (shared base) ───────────────────────────────────── */
+  .programs__card {
+    position:        relative;
+    overflow:        hidden;
+    border-radius:   var(--radius-lg);
+    width:           100%;
+    display:         flex;
+    flex-direction:  column;
+    text-decoration: none;
+    transition:      box-shadow var(--transition-base), transform var(--transition-base);
+  }
+
+  .programs__card:hover { text-decoration: none; transform: translateY(-2px); }
+
+  /* Always visible click hint – also works without hover (mobile) */
+  .programs__more {
+    display:     inline-flex;
+    align-items: center;
+    gap:         6px;
+    margin-top:  6px;
+    font-family: var(--font-display);
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+  }
+
+  .programs__more-arrow { transition: transform var(--transition-fast); }
+  .programs__card:hover .programs__more-arrow { transform: translateX(4px); }
+
+  /* On photo and gradient cards: white text on a dark chip,
+     so the hint has enough contrast even over photo/gradient */
+  .programs__cell--photo .programs__more,
+  .programs__cell--gradient .programs__more {
+    color:         #fff;
+    background:    rgba(11, 14, 24, 0.45);
+    padding:       5px 12px;
+    border-radius: var(--radius-pill);
+    align-self:    flex-start;
+  }
+
+  .programs__body {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-2);
+  }
+
+  .programs__name   { font-size: 24px; }
+  .programs__text   { font-size: 14px; line-height: 1.55; }
+
+  /* ── Variant: feature (photo top, text below) ─────────────── */
+  .programs__cell--feature .programs__card {
+    background: var(--color-bg-surface);
+    border:     1px solid var(--color-border-subtle);
+  }
+
+  .programs__cell--feature .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.14);
+  }
+
+  .programs__media {
+    flex:       1;
+    min-height: 0;
+    display:    block;
+  }
+
+  .programs__media img {
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+  }
+
+  .programs__cell--feature .programs__body { padding: 26px 30px 30px; }
+  .programs__cell--feature .programs__name { font-size: 26px; }
+  .programs__cell--feature .programs__text {
+    font-size:   15px;
+    line-height: 1.65;
+    color:       var(--color-text-body);
+  }
+
+  .programs__badges { display: flex; gap: 6px; align-self: flex-start; flex-wrap: wrap; }
+
+
+
+  .programs__badge {
+    align-self:     flex-start;
+    font-size:      12px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color:          var(--color-brand-blue);
+    background:     #E5EDFF;
+    border-radius:  var(--radius-pill);
+    padding:        5px 12px;
+  }
+
+  /* ── Variant: photo with scrim ────────────────────────────── */
+  .programs__cell--photo .programs__card { justify-content: flex-end; }
+
+  .programs__cell--photo .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.18);
+  }
+
+  .programs__bg {
+    position:   absolute;
+    inset:      0;
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+    /* Crop slightly higher than center: keeps the projector screen in
+       view instead of mostly tables. */
+    object-position: center 30%;
+  }
+
+  .programs__scrim {
+    position: absolute;
+    inset:    0;
+    background: linear-gradient(
+      to top,
+      rgba(6, 10, 30, 0.8),
+      rgba(6, 10, 30, 0.1) 65%
+    );
+  }
+
+  .programs__cell--photo .programs__body {
+    position: relative;   /* above photo and scrim */
+    gap:      var(--space-1);
+    padding:  0 28px 22px;
+  }
+
+  .programs__cell--photo .programs__name { color: var(--color-text-on-dark); }
+  .programs__cell--photo .programs__text { color: rgba(255, 255, 255, 0.88); }
+
+  /* ── Variant: gradient ────────────────────────────────────── */
+  .programs__cell--gradient .programs__card {
+    background:      linear-gradient(135deg, var(--color-brand-blue), var(--color-accent-purple));
+    justify-content: flex-end;
+  }
+
+  .programs__cell--gradient .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(141, 45, 241, 0.3);
+  }
+
+  .programs__cell--gradient .programs__body { padding: 28px 30px; }
+  .programs__cell--gradient .programs__name { color: var(--color-text-on-dark); }
+  .programs__cell--gradient .programs__text { color: rgba(255, 255, 255, 0.9); }
+
+  /* ── Variant: light blue ──────────────────────────────────── */
+  .programs__cell--light .programs__card {
+    background:      var(--color-brand-blue-light);
+    justify-content: flex-end;
+  }
+
+  .programs__cell--light .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.18);
+  }
+
+  .programs__cell--light .programs__body { padding: 28px 30px; }
+  .programs__cell--light .programs__name,
+  .programs__cell--light .programs__text { color: var(--color-brand-blue-dark); }
+
+  /* ── Variant: outline ─────────────────────────────────────── */
+  .programs__cell--outline .programs__card {
+    background:      #F7F9FE;
+    border:          1px solid var(--color-border-subtle);
+    justify-content: flex-end;
+  }
+
+  .programs__cell--outline .programs__card:hover {
+    box-shadow: 0 12px 32px rgba(35, 42, 207, 0.12);
+  }
+
+  .programs__cell--outline .programs__body { padding: 28px 30px; }
+  .programs__cell--outline .programs__text { color: var(--color-text-body); }
+
+  /* ── Responsive ───────────────────────────────────────────────
+     Below 900px the 6-column grid no longer works: one column,
+     heights follow the content. The two photo variants
+     then need a minimum height, otherwise they collapse.          */
+  @media (max-width: 900px) {
+    .programs__grid {
+      grid-template-columns: 1fr;
+      grid-auto-rows:        auto;
+      gap:                   var(--space-4);
+    }
+
+    .programs__cell--feature,
+    .programs__cell--photo,
+    .programs__cell--gradient,
+    .programs__cell--light,
+    .programs__cell--outline {
+      grid-column: 1 / -1;
+      grid-row:    auto;
+    }
+
+    .programs__media           { flex: 0 0 220px; height: 220px; }
+    .programs__cell--photo .programs__card { min-height: 240px; }
+  }
+</style>

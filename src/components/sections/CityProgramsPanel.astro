@@ -1,0 +1,1184 @@
+---
+// src/components/sections/CityProgramsPanel.astro
+//
+// "Our programs in [City]" – implementation of draft 6a
+// ("City Past Programs Options.dc.html", "Full Connect panel").
+//
+// Structure:
+//   • Program pills (AIM Connect / AIM Code) switch panels
+//   • AIM Connect: intro + photo → "Three key components" (numbered bar)
+//     → semester timeline with toggle "Upcoming batch" / "How the last
+//     year went" → fee card → "Already on board" partner picker → Apply
+//   • The partner picker shows LOGOS as buttons and automatically cycles
+//     through the partners (every 4 s). A click selects manually and stops
+//     the cycling; with prefers-reduced-motion it never starts at all.
+//   • AIM Code: intro + "Last semester" recap + CTA + photo
+//
+// STATE: scaffold. City-specific facts (dates, partners, fee) appear as
+// [placeholders] or come – where available – from src/data/applications.ts
+// (application opening and deadline for AIM Connect). The explanatory program
+// texts are deliberately fixed: they are the same at all locations.
+//
+// Interactivity is pure inline JS (hidden attributes) – no framework.
+
+import { getApplicationFor, getStatus, getTermLabel } from "../../data/applications";
+import { getUpcomingEvents, getEventDateLabel } from "../../data/eventsData";
+import { cityData, type CitySlug } from "../../data/cityData";
+
+interface TimelineRow {
+  date: string;
+  title: string;
+  text: string;
+  /** "hollow" = application step, "filled" = date, "accent" = highlight */
+  dot?: "hollow" | "filled" | "accent";
+  /** Shows the "Fixed" chip behind the title */
+  /** Partner rows below the entry (name + optional person/role).
+      `wide` = rectangular tile for wordmarks instead of a square one. */
+  partners?: { name: string; detail?: string; logo?: string; wide?: boolean }[];
+}
+
+interface SecuredPartner {
+  name: string;
+  text: string;
+  /** White chips in the detail card, e.g. ["OP visit", "Week 4", "Dr. X · Position"] */
+  chips?: string[];
+  logo?: string;
+}
+
+interface Props {
+  city?: string;
+  citySlug?: CitySlug;
+  contactHref?: string;
+  applyHref?: string;
+  /** Recap timeline "How the last batch went" */
+  pastTimeline?: TimelineRow[];
+  /** Fixed dates of the upcoming semester (after the application steps) */
+  upcomingEvents?: TimelineRow[];
+  fee?: { amount: string; note: string; includes: string[] };
+  securedPartners?: SecuredPartner[];
+  codeRecap?: { term: string; text: string };
+}
+
+const SECURED_PLACEHOLDER: SecuredPartner[] = [1, 2, 3, 4, 5].map(n => ({
+  name: `[Partner ${n}]`,
+  text: "[1–2 sentences: who this partner is and what participants will experience with them.]",
+  chips: ["[Visit type]", "[Week]", "[Name · Position]"],
+}));
+
+const UPCOMING_PLACEHOLDER: TimelineRow[] = [
+    { date: "[24–26 Oct]", dot: "filled", title: "Kickoff Weekend", text: "Meet the cohort: team building and intro talks." },
+    { date: "Week 1–8", dot: "filled", title: "Partner visits & workshops", text: "One visit or workshop per week with our partners: hospitals, labs, MedTech companies and startups." },
+    { date: "[06–08 Feb]", dot: "accent", title: "Makeathon", text: "48-hour build weekend. Your team turns its project into a prototype." },
+    { date: "[20 Feb]", dot: "accent", title: "Summit", text: "The closing event: final pitches in front of partners and guests." },
+  ];
+
+const PAST_PLACEHOLDER: TimelineRow[] = [
+    { date: "[Date]", dot: "filled", title: "Kickoff Weekend", text: "[One line about the kickoff.]",
+      partners: [
+        { name: "[Partner 1]", detail: "[Name · Position]" },
+        { name: "[Partner 2]", detail: "[Name · Position]" },
+        { name: "[Partner 3]", detail: "[Name · Position]" },
+      ] },
+    { date: "Week 1", dot: "filled", title: "[Expert talk: topic]", text: "[One line about the talk.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "Week 2", dot: "filled", title: "[Lab visit: topic]", text: "[One line about the visit.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "Week 3", dot: "filled", title: "[Workshop: topic]", text: "[One line about the workshop.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "Week 4", dot: "filled", title: "[Clinic visit]", text: "[One line about the visit.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "Week 5", dot: "filled", title: "[Company visit: partner]", text: "[One line about the visit.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "Week 6", dot: "filled", title: "[Startup evening]", text: "[One line about the evening.]",
+      partners: [{ name: "[Partner]", detail: "[Name · Position]" }] },
+    { date: "[Date]", dot: "accent", title: "Makeathon & Summit", text: "48-hour hackathon, prototype teams, closing summit.",
+      partners: [{ name: "[Host & sponsor partners]" }] },
+  ];
+
+const {
+  city        = "[City]",
+  citySlug,
+  contactHref = "/contact",
+  applyHref,
+
+
+  fee = {
+    amount: "50 €",
+    note: "Participation fee, due only after a positive interview and your invitation to the batch.",
+    includes: [
+      "Accommodation for 2 nights in Berlin",
+      "All partner visits",
+      "All other material costs",
+    ],
+  },
+
+
+  codeRecap    = { term: "[Term]", text: "[What the last edition looked like: courses, workshops, outcomes]" },
+} = Astro.props as Props;
+
+// Secured partners of the upcoming round: prop → location database → placeholder.
+const securedPartners =
+  (Astro.props as Props).securedPartners
+  ?? (citySlug ? cityData[citySlug]?.connectSecuredPartners : undefined)
+  ?? SECURED_PLACEHOLDER;
+
+// Fixed dates of the upcoming round: prop → location database → placeholder.
+const upcomingEvents =
+  (Astro.props as Props).upcomingEvents
+  ?? (citySlug ? cityData[citySlug]?.connectUpcomingEvents : undefined)
+  ?? UPCOMING_PLACEHOLDER;
+
+// Recap timeline: explicit prop → location database → placeholder.
+const pastTimeline =
+  (Astro.props as Props).pastTimeline
+  ?? (citySlug ? cityData[citySlug]?.connectPastTimeline : undefined)
+  ?? PAST_PLACEHOLDER;
+
+// Application steps: dates come from the applications database as soon as
+// there is an Aim Connect round for this location there.
+const round = citySlug ? getApplicationFor(citySlug, "aim-connect") : undefined;
+
+// Field term in the Connect texts: default "MedTech", Munich says "HealthTech".
+const fieldTerm = (citySlug ? cityData[citySlug]?.connectFieldTerm : undefined) ?? "MedTech";
+
+// Same format as the fixed dates ("23–25 Oct"): day first, month short.
+// en-GB abbreviates September as "Sept" – normalize to three letters
+// so it matches the hand-maintained dates ("23–25 Oct").
+const fmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const compact = { format: (x: Date) => fmt.format(x).replace("Sept", "Sep") };
+const dayNum  = new Intl.DateTimeFormat("en-GB", { day: "numeric" });
+const d = (iso?: string) => (iso ? compact.format(new Date(iso)) : "[Date]");
+
+// Range in the same format as the fixed dates: "18–22 Sep" or "19 Oct–13 Dec".
+const dRange = (from?: string, to?: string) => {
+  if (!from || !to) return "[Date]";
+  const a = new Date(from), b = new Date(to);
+  return a.getMonth() === b.getMonth()
+    ? `${dayNum.format(a)}–${compact.format(b)}`
+    : `${compact.format(a)}–${compact.format(b)}`;
+};
+
+const applicationSteps: TimelineRow[] = [
+  { date: d(round?.opensAt),  dot: "hollow", title: "Applications open",     text: "Apply online. Open to students of all disciplines." },
+  { date: round && !round.deadline ? "TBA" : d(round?.deadline), dot: "hollow", title: "Application deadline",  text: "Last day to submit your application." },
+  { date: round?.interviewsLabel ?? dRange(round?.interviewsFrom, round?.interviewsTo), dot: "hollow", title: "Interviews", text: "Short personal conversations. We want to get to know you, not grill you." },
+  { date: d(round?.decisionBy), dot: "hollow", title: "Final decision",      text: "You hear back from us and the cohort is complete." },
+];
+
+const upcomingLabel = round ? `The upcoming batch (${getTermLabel(round)})` : "The upcoming batch ([Term])";
+// Recap: label of the toggle and optional note text
+// (cityData.ts → connectPastToggleLabel / connectPastNote). Frankfurt thereby
+// shows the Munich example program instead of a batch of its own.
+const pastToggleLabel = (citySlug ? cityData[citySlug]?.connectPastToggleLabel : undefined) ?? "How the last batch went";
+const pastNote        = citySlug ? cityData[citySlug]?.connectPastNote : undefined;
+
+// Show the AIM Innovate tab? (cityData.ts → showInnovate)
+const showInnovate = citySlug ? Boolean(cityData[citySlug]?.showInnovate) : false;
+const innovateRound = citySlug && showInnovate ? getApplicationFor(citySlug, "aim-innovate") : undefined;
+
+// Show the participation fee card? (cityData.ts → connectShowFee)
+const showFee = citySlug ? Boolean(cityData[citySlug]?.connectShowFee) : true;
+
+// AIM Code still being set up? (cityData.ts → codeComingSoon)
+const codeComingSoon = citySlug ? Boolean(cityData[citySlug]?.codeComingSoon) : false;
+
+// Show AIM Code at this location? (cityData.ts → showCode, default: yes)
+const showCode = citySlug ? cityData[citySlug]?.showCode !== false : true;
+
+// Show the "Already on board" section? (cityData.ts, default: yes)
+const showSecured = citySlug ? cityData[citySlug]?.connectShowSecuredPartners !== false : true;
+
+// AIM Educate: upcoming events of this location (events without a city = everywhere)
+const educateEvents = citySlug
+  ? getUpcomingEvents().filter(e => !e.city || e.city === citySlug)
+  : [];
+
+// Connect intro photo from the location database (cityData.ts).
+const connectImage    = citySlug ? cityData[citySlug]?.connectImage    : undefined;
+const connectImageAlt = citySlug ? cityData[citySlug]?.connectImageAlt : "";
+
+// Apply button only when a round is open; the target is the application form
+// (applications.ts → applyUrl, e.g. the Tally link), until it is entered
+// it is the contact page.
+const applicationsOpen  = round ? getStatus(round) === "open" : false;
+const resolvedApplyHref = applyHref ?? round?.applyUrl ?? contactHref;
+
+// Split the recap into two columns (as in the draft). With an odd
+// count the RIGHT column gets the extra row – the tall kickoff entry
+// is on the left, so the columns stay visually balanced.
+const split = (rows: TimelineRow[]) => {
+  const h = Math.floor(rows.length / 2);
+  return [rows.slice(0, h), rows.slice(h)];
+};
+const pastCols = split(pastTimeline);
+
+// Example timelines of other cities (cityData.ts → connectExampleFrom):
+// Frankfurt thereby shows the programs from Munich and Aachen alternately.
+// Without connectExampleFrom there is exactly one view: the own recap.
+const exampleFrom = (citySlug ? cityData[citySlug]?.connectExampleFrom : undefined) ?? [];
+const pastTermOf = (slug: CitySlug) => cityData[slug]?.connectPastTerm;
+const pastViews = exampleFrom.length
+  ? exampleFrom.map(slug => ({
+      slug,
+      name: cityData[slug].displayName,
+      caption: `The ${cityData[slug].displayName} batch (${pastTermOf(slug) ?? "[Term]"})`,
+      cols: split(cityData[slug].connectPastTimeline ?? []),
+    }))
+  : [{
+      slug: "own",
+      name: "",
+      caption: `The last batch (${(citySlug ? pastTermOf(citySlug) : undefined) ?? "[Term]"})`,
+      cols: pastCols,
+    }];
+
+const upcomingRows = [...applicationSteps, ...upcomingEvents];
+---
+
+<section class="cpp" id="programs" aria-labelledby="cpp-heading">
+  <div class="cpp__head">
+    <p class="cpp__overline">Our programs in {city}</p>
+    <h2 id="cpp-heading">Know what you're signing up for</h2>
+    <p class="cpp__sub">Pick a program to see what it offers, and how a semester with us is built.</p>
+  </div>
+
+  <div class="cpp__pills" role="tablist" aria-label="Programs">
+    <button type="button" class="cpp__pill is-active" data-tab="connect" aria-pressed="true">AIM Connect</button>
+    {showCode && (
+      <button type="button" class="cpp__pill" data-tab="code" aria-pressed="false">AIM Code</button>
+    )}
+    {showInnovate && (
+      <button type="button" class="cpp__pill" data-tab="innovate" aria-pressed="false">AIM Innovate Impact Hub</button>
+    )}
+    <button type="button" class="cpp__pill" data-tab="educate" aria-pressed="false">AIM Educate</button>
+  </div>
+
+  <!-- ── AIM Connect ─────────────────────────────────────────── -->
+  <div class="cpp__panel" data-panel="connect">
+    <div class="cpp__connect-intro">
+      <p class="cpp__text">
+        AIM Connect is an exclusive add-on study program for students passionate about the
+        intersection of medicine, entrepreneurship, and technology. Over the semester,
+        participants gain in-depth insights into the {fieldTerm} field, from hospitals and
+        research institutions to startups and established companies.
+      </p>
+      <div class="cpp__media">
+        {connectImage
+          ? <img src={connectImage} alt={connectImageAlt} loading="lazy" decoding="async" />
+          : <div class="cpp__slot">Photo: kickoff / cohort</div>}
+      </div>
+    </div>
+
+    <div class="cpp__components">
+      <p class="cpp__label">Three key components</p>
+      <p class="cpp__text cpp__text--wide">
+        Every AIM Connect semester is built on three pillars: the kickoff weekend to form
+        your cohort, regular partner visits and workshops, and a team project, built
+        intensively at the Makeathon weekend, and pitched at the closing summit.
+      </p>
+      <div class="cpp__steps">
+        <div class="cpp__steps-line" aria-hidden="true"></div>
+        <div class="cpp__step">
+          <span class="cpp__step-n">1</span>
+          <h3>Kickoff Weekend</h3>
+          <p>Three days to get to know your cohort: intro talks, the first 2-3 partner visits, team building and a look at the semester ahead.</p>
+        </div>
+        <div class="cpp__step">
+          <span class="cpp__step-n">2</span>
+          <h3>Partner visits &amp; workshops</h3>
+          <p>Weekly sessions with our partners: clinicians, labs, start-ups, established companies and all other parts of {fieldTerm} innovation.</p>
+        </div>
+        <div class="cpp__step">
+          <span class="cpp__step-n">3</span>
+          <h3>Team project: Makeathon &amp; Summit</h3>
+          <p>In interdisciplinary teams you work on a {fieldTerm} project: preparation sessions during the semester, an intensive build at the Makeathon weekend, and the final pitch at the summit.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cpp__tl-head">
+      <p class="cpp__label">Semester timeline</p>
+      <div class="cpp__toggle" role="group" aria-label="Timeline view">
+        <button type="button" class="cpp__toggle-btn is-active" data-tl="next" aria-pressed="true">Upcoming batch</button>
+        <button type="button" class="cpp__toggle-btn" data-tl="past" aria-pressed="false">{pastToggleLabel}</button>
+      </div>
+    </div>
+
+    <!-- Upcoming semester -->
+    <div data-tlview="next">
+      <p class="cpp__tl-caption">{upcomingLabel}</p>
+      <div class="cpp__next">
+        <div class="cpp__tl">
+          {upcomingRows.map(row => (
+            <div class="cpp__row">
+              <span class={`cpp__date ${row.dot === "accent" ? "cpp__date--accent" : ""}`}>{row.date}</span>
+              <span class="cpp__rail">
+                <span class={`cpp__dot cpp__dot--${row.dot ?? "filled"}`} aria-hidden="true"></span>
+                <span class="cpp__line" aria-hidden="true"></span>
+              </span>
+              <div class="cpp__row-body">
+                <h4>{row.title}</h4>
+                <p>{row.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {showFee && (
+          <aside class="cpp__fee">
+            <p class="cpp__fee-amount">{fee.amount}</p>
+            <p class="cpp__fee-note">{fee.note}</p>
+            <p class="cpp__fee-included">Included:</p>
+            <ul>{fee.includes.map(i => <li>{i}</li>)}</ul>
+          </aside>
+        )}
+      </div>
+
+      {showSecured && (
+      <div class="cpp__secured">
+        <div class="cpp__secured-head">
+          <p class="cpp__label">Already on board for the upcoming batch</p>
+          <p class="cpp__secured-sub">These partners are secured for the semester you are applying to.</p>
+        </div>
+
+        <div class="cpp__secured-split">
+          <div class="cpp__prows">
+            {securedPartners.map((p, i) => (
+              <button
+                type="button"
+                class={`cpp__prow ${i === 0 ? "is-active" : ""}`}
+                data-pt={String(i)}
+                aria-pressed={i === 0 ? "true" : "false"}
+              >
+                <span class={`cpp__prow-logo ${p.wide ? "cpp__prow-logo--wide" : ""}`}>
+                  {p.logo ? <img src={p.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}
+                </span>
+                <span>{p.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {securedPartners.map((p, i) => (
+            <div class="cpp__pdetail" data-ptcard={String(i)} hidden={i !== 0}>
+              <span class={`cpp__pdetail-logo ${p.wide ? "cpp__pdetail-logo--wide" : ""}`}>
+                {p.logo ? <img src={p.logo} alt="" loading="lazy" decoding="async" /> : <span>LOGO</span>}
+              </span>
+              <h4>{p.name}</h4>
+              <p>{p.text}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      )}
+
+      {applicationsOpen && (
+        <a
+          class="cpp__apply"
+          href={resolvedApplyHref}
+          {...resolvedApplyHref.startsWith("http")
+            ? { target: "_blank", rel: "noopener noreferrer" }
+            : {}}
+        >Apply for AIM Connect →</a>
+      )}
+    </div>
+
+    <!-- Recap -->
+    <div data-tlview="past" hidden>
+      {pastNote && <p class="cpp__past-note">{pastNote}</p>}
+      {pastViews.length > 1 && (
+        <div class="cpp__toggle cpp__toggle--excity" role="group" aria-label="Example city">
+          {pastViews.map((v, i) => (
+            <button type="button" class={`cpp__toggle-btn ${i === 0 ? "is-active" : ""}`} data-exbtn={v.slug} aria-pressed={i === 0 ? "true" : "false"}>{v.name}</button>
+          ))}
+        </div>
+      )}
+      {pastViews.map((v, i) => (
+      <div data-excity={v.slug} hidden={i !== 0}>
+        <p class="cpp__tl-caption">{v.caption}</p>
+        <div class="cpp__past">
+        {v.cols.map(col => (
+          <div class="cpp__tl">
+            {col.map(row => (
+              <div class="cpp__row">
+                <span class={`cpp__date ${row.dot === "accent" ? "cpp__date--accent" : ""}`}>{row.date}</span>
+                <span class="cpp__rail">
+                  <span class={`cpp__dot cpp__dot--${row.dot ?? "filled"}`} aria-hidden="true"></span>
+                  <span class="cpp__line" aria-hidden="true"></span>
+                </span>
+                <div class="cpp__row-body">
+                  <h4>{row.title}</h4>
+                  <p>{row.text}</p>
+                  {row.partners && (
+                    <div class="cpp__mini-partners">
+                      {row.partners.map(pp => (
+                        <div class="cpp__mini">
+                          {/* Tile only with a logo or for placeholder entries ("[…]");
+                              real entries without a logo (e.g. individuals) come without a tile. */}
+                          {(pp.logo || pp.name.startsWith("[")) && (
+                            <span class={`cpp__mini-logo ${pp.wide ? "cpp__mini-logo--wide" : ""}`}>{pp.logo ? <img src={pp.logo} alt="" loading="lazy" decoding="async" /> : "LOGO"}</span>
+                          )}
+                          <span class="cpp__mini-text"><strong>{pp.name}</strong>{pp.detail && <><br/>{pp.detail}</>}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+        </div>
+      </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- ── AIM Code (only if showCode) ─────────────────────────── -->
+  {showCode && (
+  <div class={`cpp__panel cpp__panel--simple ${codeComingSoon ? "cpp__panel--single" : ""}`} data-panel="code" hidden>
+    <div class="cpp__simple-copy">
+      <p class="cpp__text">
+        Within AIM Code, we offer specialized coding courses for students and medical
+        professionals, from hands-on introductory Python workshops to advanced sessions on
+        artificial intelligence in healthcare. All courses are free of charge.
+      </p>
+      {codeComingSoon ? (
+        <div class="cpp__recap cpp__recap--soon">
+          <p class="cpp__recap-label">Coming soon</p>
+          <p>
+            AIM Code in {city} is in preparation. Course details and registration dates
+            will be announced here as soon as they are set. Until then, have a look at
+            what the courses are about.
+          </p>
+          <a class="cpp__btn cpp__btn--outline" href="/programs/aim-code">About AIM Code →</a>
+        </div>
+      ) : (
+        <>
+          <div class="cpp__recap">
+            <p class="cpp__recap-label">Last semester ({codeRecap.term})</p>
+            <p>{codeRecap.text}</p>
+          </div>
+          <a class="cpp__btn" href={contactHref}>Join the next course</a>
+        </>
+      )}
+    </div>
+    {!codeComingSoon && (
+      <div class="cpp__media cpp__media--tall"><div class="cpp__slot">Photo: coding course</div></div>
+    )}
+  </div>
+  )}
+
+  <!-- ── AIM Innovate ────────────────────────────────────────── -->
+  {showInnovate && (
+    <div class="cpp__panel cpp__panel--simple cpp__panel--single" data-panel="innovate" hidden>
+      <div class="cpp__simple-copy">
+        <p class="cpp__text">
+          The AIM Innovate Impact Hub is our incubator dedicated to everything
+          behind HealthTech innovation: capability building, creation sprints
+          and start-up incubation, with the ambition to translate ideas into
+          your own startup.
+        </p>
+        {innovateRound ? (
+          <div class="cpp__recap">
+            <p class="cpp__recap-label">Next round ({getTermLabel(innovateRound)})</p>
+            <p>
+              Applications {new Date() < new Date(innovateRound.opensAt) ? `open on ${innovateRound.opensAt}` : "are open"}.
+              Details and the full program are on the Impact Hub page.
+            </p>
+            <a class="cpp__btn" href="/programs/aim-innovate">About the Impact Hub →</a>
+          </div>
+        ) : (
+          <div class="cpp__recap cpp__recap--soon">
+            <p class="cpp__recap-label">Coming soon</p>
+            <p>
+              The next Impact Hub round in {city} is in preparation. Dates and
+              the application will be announced here as soon as they are set.
+              Until then, have a look at what the program is about.
+            </p>
+            <a class="cpp__btn cpp__btn--outline" href="/programs/aim-innovate">About the Impact Hub →</a>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+
+  <!-- ── AIM Educate: open events from eventsData.ts ──────────── -->
+  <div class="cpp__panel cpp__panel--simple cpp__panel--single" data-panel="educate" hidden>
+    <div class="cpp__simple-copy">
+      <p class="cpp__text">
+        With AIM Educate, we host open events: summits, lecture series and
+        expert talks on Health AI and MedTech. Open to everyone, event by
+        event: no semester-long commitment, no application.
+      </p>
+      {educateEvents.length > 0 ? (
+        <>
+          <div class="cpp__events">
+            {educateEvents.map(e => (
+              <div class="cpp__event">
+                <span class="cpp__event-date">{getEventDateLabel(e)}</span>
+                <div class="cpp__event-body">
+                  <p class="cpp__event-title">{e.title}</p>
+                  {(e.location || e.text) && (
+                    <p class="cpp__event-text">{e.location ?? e.text}</p>
+                  )}
+                </div>
+                {e.registerUrl && (
+                  <a class="cpp__btn cpp__btn--outline" href={e.registerUrl} target="_blank" rel="noopener noreferrer">Register</a>
+                )}
+              </div>
+            ))}
+          </div>
+          <a class="cpp__btn cpp__btn--outline" href="/programs/aim-educate">All AIM Educate events →</a>
+        </>
+      ) : (
+        <div class="cpp__recap cpp__recap--soon">
+          <p class="cpp__recap-label">No upcoming events right now</p>
+          <p>
+            There are currently no open AIM Educate events in {city}. New
+            summits, lecture series and expert talks are announced as soon as
+            the dates are set: have a look at the overview page for all events.
+          </p>
+          <a class="cpp__btn cpp__btn--outline" href="/programs/aim-educate">All AIM Educate events →</a>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var root = document.currentScript.closest(".cpp");
+      if (!root) return;
+
+      function wire(btnSel, btnAttr, viewSel, viewAttr) {
+        var btns = [].slice.call(root.querySelectorAll(btnSel));
+        btns.forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var key = btn.getAttribute(btnAttr);
+            btns.forEach(function (b) {
+              var on = b === btn;
+              b.classList.toggle("is-active", on);
+              b.setAttribute("aria-pressed", String(on));
+            });
+            [].slice.call(root.querySelectorAll(viewSel)).forEach(function (v) {
+              v.hidden = v.getAttribute(viewAttr) !== key;
+            });
+          });
+        });
+      }
+
+      wire("[data-tab]",  "data-tab", "[data-panel]",  "data-panel");
+      wire("[data-tl]",   "data-tl",  "[data-tlview]", "data-tlview");
+      wire("[data-exbtn]", "data-exbtn", "[data-excity]", "data-excity");
+
+      // ── Deep links: /munich#aim-connect opens the matching panel.
+      // Suffixes control the scroll target within the Connect panel:
+      //   #aim-connect-timeline → semester timeline
+      //   #aim-connect-apply    → "Apply for AIM Connect" button, scrolled
+      //                           so that it sits at the bottom of the view
+      function applyHash(initial) {
+        var m = (location.hash || "").match(/^#aim-([a-z]+?)(?:-(timeline|apply))?$/);
+        if (!m) return;
+        var target = root.querySelector('[data-tab="' + m[1] + '"]');
+        if (!target) return;
+        target.click();
+        var el = m[2] === "timeline" ? root.querySelector(".cpp__tl-head")
+               : m[2] === "apply"    ? root.querySelector(".cpp__apply")
+               : root;
+        // Target invisible (another panel active)? Then go to the panel start.
+        if (!el || !el.offsetParent) el = root;
+        var block = m[2] === "apply" && el !== root ? "end" : "start";
+        // Scroll multiple times: immediately and after the layout has
+        // settled – images loading in above would otherwise shift the position.
+        setTimeout(function () { el.scrollIntoView({ block: block }); }, 60);
+        setTimeout(function () { el.scrollIntoView({ block: block }); }, 450);
+        if (initial) {
+          window.addEventListener("load", function () {
+            el.scrollIntoView({ block: block });
+          }, { once: true });
+        }
+      }
+      applyHash(true);
+      window.addEventListener("hashchange", function () { applyHash(false); });
+
+      // Clicking a link with an UNCHANGED hash again triggers no
+      // hashchange – then scroll directly (e.g. "More info" in the hero,
+      // after having scrolled back up).
+      document.addEventListener("click", function (e) {
+        var a = e.target && e.target.closest ? e.target.closest('a[href*="#aim-"]') : null;
+        if (!a) return;
+        var url = new URL(a.getAttribute("href"), location.href);
+        var samePath = url.pathname.replace(/\/$/, "") === location.pathname.replace(/\/$/, "");
+        if (samePath && url.hash === location.hash) {
+          e.preventDefault();
+          applyHash(false);
+        }
+      });
+
+      // ── Partner picker: click + automatic advancing ────────────────
+      // Every 4 s the selection jumps to the next partner, so that
+      // interested visitors get to see all secured partners.
+      // A click selects manually and ends the rotation; while the
+      // mouse is over the box, it pauses. With reduced motion
+      // there is no rotation at all.
+      var ptBtns = [].slice.call(root.querySelectorAll("[data-pt]"));
+      if (ptBtns.length) {
+        var ptCards = [].slice.call(root.querySelectorAll("[data-ptcard]"));
+        var securedBox = root.querySelector(".cpp__secured");
+        var current = 0;
+        var timer = null;
+
+        function showPartner(i) {
+          current = i;
+          var key = ptBtns[i].getAttribute("data-pt");
+          ptBtns.forEach(function (b, j) {
+            b.classList.toggle("is-active", j === i);
+            b.setAttribute("aria-pressed", String(j === i));
+          });
+          ptCards.forEach(function (c) {
+            c.hidden = c.getAttribute("data-ptcard") !== key;
+          });
+        }
+
+        function stopRotation() {
+          if (timer) { clearInterval(timer); timer = null; }
+        }
+
+        ptBtns.forEach(function (btn, i) {
+          btn.addEventListener("click", function () {
+            stopRotation();          // manual selection wins permanently
+            showPartner(i);
+          });
+        });
+
+        var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (ptBtns.length > 1 && !reduceMotion) {
+          timer = setInterval(function () {
+            // Checked live instead of via mouseenter/mouseleave flags: the
+            // event pairs can fire without a counterpart during scroll
+            // restoration and halt the rotation permanently.
+            if (document.hidden || securedBox.matches(":hover")) return;
+            showPartner((current + 1) % ptBtns.length);
+          }, 4000);
+        }
+      }
+    })();
+  </script>
+</section>
+
+<style>
+  /* AIM Educate events on the city pages */
+  .cpp__events { display: flex; flex-direction: column; gap: 12px; }
+
+  .cpp__event {
+    display:       flex;
+    align-items:   center;
+    gap:           18px;
+    flex-wrap:     wrap;
+    background:    #F7F9FE;
+    border:        1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    padding:       16px 20px;
+  }
+
+  .cpp__event-date {
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+    white-space: nowrap;
+    min-width:   110px;
+  }
+
+  .cpp__event-body  { display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px; }
+  .cpp__event-title { font-size: 16px; font-weight: 800; color: var(--color-text-heading); }
+  .cpp__event-text  { font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }
+
+  .cpp {
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+    padding:        0 clamp(var(--space-6), 5vw, 64px) clamp(var(--space-12), 5vw, 56px);
+  }
+
+  /* The hidden attribute only works via display:none of the UA styles –
+     any own display declaration (grid of the panels/cards) would
+     override it. Therefore enforce it explicitly here. */
+  .cpp [hidden] { display: none !important; }
+
+  .cpp__head { display: flex; flex-direction: column; gap: 10px; max-width: 760px; }
+  .cpp__head h2 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem); letter-spacing: -0.5px; }
+  .cpp__sub { font-size: var(--fs-body); line-height: 1.6; }
+
+  .cpp__overline,
+  .cpp__label {
+    font-size:      13px;
+    font-weight:    800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .cpp__text { font-size: var(--fs-body); line-height: 1.65; }
+  .cpp__text--wide { max-width: 900px; font-size: 15px; }
+
+  .cpp__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    width:           100%;
+    height:          100%;
+    font-size:       var(--fs-small);
+    font-weight:     var(--fw-semibold);
+    color:           var(--color-text-muted);
+    background:      #F7F9FE;
+    border:          2px dashed var(--color-border-subtle);
+    border-radius:   16px;
+  }
+
+  /* ── Program pills ────────────────────────────────────────── */
+  .cpp__pills { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .cpp__pill {
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   800;
+    color:         var(--color-text-body);
+    background:    #EEF1F7;
+    border:        none;
+    border-radius: var(--radius-pill);
+    padding:       10px 22px;
+    transition:    background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .cpp__pill:hover { color: var(--color-brand-blue); }
+  .cpp__pill.is-active { background: var(--color-brand-blue); color: var(--color-text-on-brand); }
+
+  .cpp__panel {
+    display:        flex;
+    flex-direction: column;
+    gap:            clamp(var(--space-8), 3vw, 48px);
+    border-top:     1px solid var(--color-border-subtle);
+    padding-top:    var(--space-8);
+  }
+
+  /* ── Connect: Intro ───────────────────────────────────────── */
+  .cpp__connect-intro {
+    display:               grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap:                   48px;
+    align-items:           center;
+  }
+
+  .cpp__media { height: 200px; }
+  .cpp__media--tall { height: 300px; }
+  .cpp__media img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+
+  /* ── Three components ─────────────────────────────────────── */
+  .cpp__components { display: flex; flex-direction: column; gap: var(--space-4); }
+
+  .cpp__steps {
+    display:               grid;
+    grid-template-columns: repeat(3, 1fr);
+    position:              relative;
+    margin-top:            var(--space-4);
+  }
+
+  .cpp__steps-line {
+    position:   absolute;
+    top:        17px;
+    left:       20px;
+    right:      20px;
+    height:     2px;
+    background: var(--color-border-subtle);
+  }
+
+  .cpp__step { display: flex; flex-direction: column; gap: 14px; position: relative; padding-right: 32px; }
+
+  .cpp__step-n {
+    width:           36px;
+    height:          36px;
+    border-radius:   50%;
+    background:      var(--color-brand-blue);
+    color:           #fff;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       15px;
+    font-weight:     800;
+    border:          4px solid var(--color-bg-surface);
+  }
+
+
+  .cpp__step h3 { font-size: 17px; }
+  .cpp__step p  { font-size: 14px; line-height: 1.6; }
+
+  /* ── Timeline head + toggle ───────────────────────────────── */
+  .cpp__tl-head {
+    scroll-margin-top: calc(var(--header-height) + var(--space-4));
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             var(--space-6);
+    flex-wrap:       wrap;
+  }
+
+  .cpp__toggle { display: flex; gap: 6px; background: #EEF1F7; border-radius: var(--radius-pill); padding: 4px; }
+
+  .cpp__toggle-btn {
+    font-family:   var(--font-display);
+    font-size:     14px;
+    font-weight:   800;
+    color:         var(--color-text-body);
+    background:    transparent;
+    border:        none;
+    border-radius: var(--radius-pill);
+    padding:       8px 20px;
+    transition:    background var(--transition-fast), color var(--transition-fast);
+  }
+
+  .cpp__toggle-btn.is-active { background: var(--color-brand-blue); color: #fff; }
+
+  .cpp__tl-caption { font-size: 13px; font-weight: var(--fw-bold); color: var(--color-text-body); margin-bottom: var(--space-4); }
+
+  /* City toggle above the example timelines */
+  .cpp__toggle--excity { align-self: flex-start; margin-bottom: var(--space-8, 32px); }
+
+  /* Note above the recap (e.g. example program from Munich) */
+  .cpp__past-note {
+    font-size:     14px;
+    line-height:   1.6;
+    color:         var(--color-text-body);
+    background:    var(--color-bg-subtle);
+    border:        1px solid var(--color-border-subtle);
+    border-radius: 12px;
+    padding:       14px 18px;
+    margin-bottom: var(--space-8, 32px);
+  }
+
+  /* ── Timeline ─────────────────────────────────────────────── */
+  .cpp__tl { display: flex; flex-direction: column; }
+
+  .cpp__row {
+    display:               grid;
+    grid-template-columns: 90px 16px minmax(0, 1fr);
+    gap:                   0 16px;
+  }
+
+  .cpp__date {
+    text-align:  right;
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+
+  .cpp__date--accent { color: var(--color-accent-purple); }
+
+  .cpp__rail { display: flex; flex-direction: column; align-items: center; }
+
+  .cpp__dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 3px; flex-shrink: 0; }
+  .cpp__dot--filled { background: var(--color-brand-blue); }
+  .cpp__dot--hollow { background: #fff; border: 3px solid var(--color-brand-blue); }
+  .cpp__dot--accent { background: linear-gradient(135deg, #8D2DF1, #D400FF); }
+
+  .cpp__line { width: 2px; flex: 1; background: var(--color-border-subtle); }
+  .cpp__row:last-child .cpp__line { display: none; }
+
+  .cpp__row-body { padding-bottom: 28px; }
+  .cpp__row:last-child .cpp__row-body { padding-bottom: 0; }
+
+  .cpp__row-body h4 { font-size: 15px; }
+  .cpp__row-body p  { font-size: 13px; line-height: 1.5; margin-top: 2px; }
+
+
+  /* Partner miniatures in the recap */
+  .cpp__mini-partners { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .cpp__mini { display: flex; align-items: center; gap: 10px; }
+
+  .cpp__mini-logo {
+    width:           32px;
+    height:          32px;
+    border-radius:   8px;
+    background:      #fff;
+    border:          1px solid var(--color-border-subtle);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    overflow:        hidden;
+    flex-shrink:     0;
+    font-size:       10px;
+    font-weight:     800;
+    color:           #98A1B4;
+  }
+
+  .cpp__mini-logo img { max-width: 26px; max-height: 26px; object-fit: contain; }
+
+  /* Rectangular tile for wide wordmarks (e.g. CSI Aachen). */
+  .cpp__mini-logo--wide { width: 96px; padding: 0 6px; }
+  .cpp__mini-logo--wide img { max-width: 84px; }
+  .cpp__mini-text { font-size: 12px; line-height: 1.4; }
+  .cpp__mini-text strong { color: var(--color-text-heading); }
+
+  /* ── Upcoming semester: timeline + fee card ───────────────── */
+  .cpp__next { display: flex; gap: 40px; align-items: flex-start; }
+  .cpp__next .cpp__tl { flex: 1; max-width: 760px; }
+
+  .cpp__fee {
+    width:          300px;
+    flex-shrink:    0;
+    background:     #EDF2FF;
+    border-radius:  16px;
+    padding:        24px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+  }
+
+  .cpp__fee-amount { font-size: 28px; font-weight: 800; color: var(--color-brand-blue); line-height: 1; }
+  .cpp__fee-note { font-size: 14px; font-weight: 800; color: var(--color-brand-blue-dark); }
+  .cpp__fee-included { font-size: 13px; color: var(--color-brand-blue-dark); }
+
+  .cpp__fee ul { display: flex; flex-direction: column; gap: 6px; }
+  .cpp__fee li {
+    font-size:    13px;
+    line-height:  1.5;
+    color:        var(--color-brand-blue-dark);
+    padding-left: var(--space-4);
+    position:     relative;
+  }
+  .cpp__fee li::before { content: "·"; position: absolute; left: 0; color: var(--color-brand-blue); font-weight: 800; }
+
+  /* ── Secured partners ─────────────────────────────────────── */
+  /* White border instead of wash (updated draft 6a) */
+  .cpp__secured {
+    background:     var(--color-bg-surface);
+    border:         1px solid #DEE3ED;
+    border-radius:  20px;
+    padding:        32px 36px;
+    display:        flex;
+    flex-direction: column;
+    gap:            24px;
+    margin-top:     var(--space-6);
+  }
+
+
+  .cpp__secured-head { display: flex; flex-direction: column; gap: 6px; }
+  .cpp__secured-sub { font-size: 15px; line-height: 1.5; color: var(--color-text-body); }
+
+  /* List on the left, detail on the right */
+  .cpp__secured-split {
+    display:               grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap:                   32px;
+    align-items:           stretch;
+  }
+
+  .cpp__prows { display: flex; flex-direction: column; gap: 8px; }
+
+  .cpp__prow {
+    display:       flex;
+    align-items:   center;
+    gap:           12px;
+    text-align:    left;
+    font-family:   var(--font-display);
+    font-size:     15px;
+    font-weight:   800;
+    color:         var(--color-text-heading);
+    background:    var(--color-bg-surface);
+    border:        1px solid #DEE3ED;
+    border-radius: 14px;
+    padding:       12px 16px;
+    transition:    color var(--transition-fast), border-color var(--transition-fast),
+                   box-shadow var(--transition-fast);
+  }
+
+  .cpp__prow:hover { color: var(--color-brand-blue); }
+
+  .cpp__prow.is-active {
+    color:        var(--color-brand-blue);
+    border-color: var(--color-brand-blue);
+    box-shadow:   inset 0 0 0 2px var(--color-brand-blue);
+  }
+
+  .cpp__prow-logo {
+    width:           36px;
+    height:          36px;
+    border-radius:   8px;
+    background:      #EEF1F7;
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    overflow:        hidden;
+    flex-shrink:     0;
+    font-size:       9px;
+    font-weight:     800;
+    color:           #98A1B4;
+  }
+
+  .cpp__prow-logo img { max-width: 30px; max-height: 30px; object-fit: contain; }
+
+  /* Wide tile for wordmark logos (e.g. Cinven, Nordic Capital) */
+  .cpp__prow-logo--wide { width: 84px; }
+  .cpp__prow-logo--wide img { max-width: 76px; }
+
+  /* Detail card on a light-blue surface */
+  .cpp__pdetail {
+    background:      #EDF2FF;
+    border-radius:   20px;
+    padding:         32px 36px;
+    display:         flex;
+    flex-direction:  column;
+    justify-content: center;
+    gap:             12px;
+    animation:       cpp-card-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @keyframes cpp-card-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cpp__pdetail { animation: none; }
+  }
+
+  .cpp__pdetail-logo {
+    width:           64px;
+    height:          64px;
+    border-radius:   12px;
+    background:      var(--color-bg-surface);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    overflow:        hidden;
+    font-size:       11px;
+    font-weight:     800;
+    color:           #98A1B4;
+  }
+
+  .cpp__pdetail-logo img { max-width: 52px; max-height: 52px; object-fit: contain; }
+
+  .cpp__pdetail-logo--wide { width: 132px; }
+  .cpp__pdetail-logo--wide img { max-width: 116px; }
+
+  .cpp__pdetail h4 { font-size: 20px; color: var(--color-brand-blue-dark); }
+  .cpp__pdetail p  { font-size: 14px; line-height: 1.65; color: var(--color-brand-blue-dark); }
+
+
+
+  /* Full gradient apply across the whole width */
+  .cpp__apply {
+    scroll-margin-bottom: var(--space-6);
+    align-self:      stretch;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             10px;
+    font-family:     var(--font-display);
+    font-size:       18px;
+    font-weight:     800;
+    color:           #fff;
+    background:      linear-gradient(90deg, var(--color-brand-blue), var(--color-accent-purple));
+    border-radius:   var(--radius-pill);
+    padding:         18px 32px;
+    margin-top:      var(--space-10, 40px);
+    text-decoration: none;
+    box-shadow:      0 8px 24px rgba(0, 82, 233, 0.35);
+    transition:      transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .cpp__apply:hover {
+    transform:       translateY(-2px);
+    box-shadow:      0 12px 32px rgba(0, 82, 233, 0.45);
+    text-decoration: none;
+  }
+
+  .cpp__btn {
+    align-self:      flex-start;
+    font-family:     var(--font-display);
+    background:      var(--color-brand-blue);
+    color:           #fff;
+    font-size:       14px;
+    font-weight:     800;
+    padding:         12px 24px;
+    border-radius:   var(--radius-pill);
+    text-decoration: none;
+    transition:      background var(--transition-fast);
+  }
+
+  .cpp__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+
+  /* ── Recap: two columns ───────────────────────────────────── */
+  .cpp__past {
+    display:               grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:                   0 64px;
+  }
+
+  /* ── Simple panel (Code) ──────────────────────────────────── */
+  .cpp__panel--simple {
+    display:               grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap:                   48px;
+    align-items:           start;
+  }
+
+  .cpp__simple-copy { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Coming-soon state: single column, note box with a dashed border. */
+  .cpp__panel--single { grid-template-columns: minmax(0, 1fr); }
+  .cpp__recap--soon { border: 2px dashed #C4CBD9; background: #F7F9FE; }
+  .cpp__recap--soon .cpp__btn { align-self: flex-start; margin-top: 6px; }
+  .cpp__btn--outline {
+    background:   transparent;
+    color:        var(--color-brand-blue);
+    border:       2px solid var(--color-brand-blue);
+  }
+  .cpp__btn--outline:hover { background: #E5EDFF; }
+
+  .cpp__recap {
+    background:     #EDF2FF;
+    border-radius:  16px;
+    padding:        24px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+  }
+
+  .cpp__recap-label {
+    font-size:      12px;
+    font-weight:    800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+  }
+
+  .cpp__recap p:not(.cpp__recap-label) { font-size: 14px; line-height: 1.8; color: var(--color-brand-blue-dark); }
+
+  /* ── Responsive ───────────────────────────────────────────── */
+  @media (max-width: 940px) {
+    .cpp__connect-intro,
+    .cpp__panel--simple { grid-template-columns: minmax(0, 1fr); }
+    .cpp__next { flex-direction: column; }
+    .cpp__secured-split { grid-template-columns: minmax(0, 1fr); }
+
+    /* Stack all partner detail cards in the SAME grid cell and hide the
+       inactive ones only visually: the box then always keeps the height
+       of the tallest card instead of jumping while clicking through. */
+    .cpp__secured-split .cpp__pdetail { grid-column: 1; grid-row: 2; }
+    .cpp__secured-split .cpp__pdetail[hidden] {
+      display:        flex !important;
+      visibility:     hidden;
+      pointer-events: none;
+    }
+    .cpp__fee  { width: 100%; }
+    .cpp__past { grid-template-columns: minmax(0, 1fr); }
+    /* Stacked columns: the connector line must continue through the last
+       row of the FIRST column, otherwise the thread visibly breaks
+       between week 4 and week 5. */
+    .cpp__past .cpp__tl:first-child .cpp__row:last-child .cpp__line { display: block; }
+    .cpp__past .cpp__tl:first-child .cpp__row:last-child .cpp__row-body { padding-bottom: 28px; }
+    .cpp__steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+    .cpp__steps-line { display: none; }
+    .cpp__step { padding-right: 0; }
+  }
+</style>

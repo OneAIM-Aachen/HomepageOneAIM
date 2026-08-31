@@ -1,0 +1,300 @@
+---
+// src/components/sections/CityTeamCarousel.astro
+//
+// Team section of the location pages – implementation of draft 3a
+// ("City Team Options.dc.html", "Lead row + team row, arrow scrolling").
+//
+// ONE horizontally scrolling row with all members (President and
+// Team Leads not separated – they stand at the front and carry their role
+// in the description; the President card stays blue). Arrow buttons scroll
+// the row; hovering over a person reveals a LinkedIn overlay
+// (only if a link is stored).
+//
+// Role line below the name:
+//   President  → "President | <Team>"
+//   Team Lead  → "Team Lead | <Team>"
+//   otherwise  → "<Team>"
+//
+// The data source is src/data/teamData.ts: if `citySlug` is set, the
+// row fills itself automatically (President first, then Team Leads, then
+// all remaining). As long as the database is empty for the location, the
+// placeholder cards remain. `members` overrides the database.
+
+import { getLeadsByCity, getMembersByCity } from "../../data/teamData";
+import type { TeamMember as DbMember } from "../../data/teamData";
+import type { CitySlug } from "../../data/cityData";
+
+interface CardMember {
+  name: string;
+  /** Displayed line below the name – the person's team */
+  position: string;
+  photo?: string;
+  linkedin?: string;
+  president?: boolean;
+}
+
+interface Props {
+  city?: string;
+  citySlug?: CitySlug;
+  /** Optional link to the separate team page */
+  teamHref?: string;
+  members?: CardMember[];
+}
+
+const {
+  city = "[City]",
+  citySlug,
+  teamHref,
+  members,
+} = Astro.props as Props;
+
+// Derive the role line from the flags – "Team Lead | AIM Connect" etc.
+// A set `position` field in the database overrides the derivation.
+const roleLine = (m: DbMember): string =>
+  m.position
+  ?? (m.president ? `President | ${m.team}`
+    : m.teamLead ? `Team Lead | ${m.team}`
+    : m.team);
+
+// Initials as a photo substitute, e.g. "Lucas Gildehaus" → "LG".
+const initials = (name: string): string =>
+  name.split(/\s+/).map(part => part[0] ?? "").join("").slice(0, 2).toUpperCase();
+
+const fromDb = (m: DbMember): CardMember => ({
+  name:      m.name,
+  position:  roleLine(m),
+  photo:     m.photo,
+  linkedin:  m.linkedIn,
+  president: m.president,
+});
+
+// Order: President, then Team Leads, then all remaining.
+const dbAll = citySlug
+  ? [...getLeadsByCity(citySlug), ...getMembersByCity(citySlug)].map(fromDb)
+  : [];
+
+// Props → database → placeholders (as long as the database is empty)
+const resolvedMembers = members ?? (dbAll.length ? dbAll : [
+  { name: "[Name]", position: "President | [Team]", president: true },
+  { name: "[Name]", position: "Team Lead | [Team]" },
+  { name: "[Name]", position: "Team Lead | [Team]" },
+  ...Array.from({ length: 7 }, () => ({ name: "[Name]", position: "[Team]" })),
+]);
+---
+
+<section class="ctc" aria-labelledby="ctc-heading">
+  <div class="ctc__head">
+    <div>
+      <p class="ctc__overline">Our team</p>
+      <h2 id="ctc-heading">The people behind OneAIM {city}</h2>
+    </div>
+    <div class="ctc__head-actions">
+      {teamHref && <a class="ctc__all" href={teamHref}>Full team overview →</a>}
+      <div class="ctc__nav">
+        <button type="button" class="ctc__nav-btn" data-nav="prev" data-row="team" aria-label="Scroll team back">←</button>
+        <button type="button" class="ctc__nav-btn" data-nav="next" data-row="team" aria-label="Scroll team forward">→</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctc__block">
+    <div class="ctc__scroll" data-scroll="team" tabindex="0">
+      {resolvedMembers.map(m => (
+        <div class={`ctc__lead ${m.president ? "ctc__lead--president" : ""}`}>
+          {m.linkedin && (
+            <a class="ctc__overlay" href={m.linkedin} target="_blank" rel="noopener noreferrer"
+               aria-label={`${m.name} on LinkedIn`}>
+              <span class="ctc__in">in</span>
+            </a>
+          )}
+          {m.photo
+            ? <img class="ctc__lead-photo" src={m.photo} alt="" loading="lazy" decoding="async" />
+            : <span class="ctc__lead-photo ctc__slot" aria-hidden="true">{initials(m.name)}</span>}
+          <div>
+            <p class="ctc__lead-name">{m.name}</p>
+            <p class="ctc__lead-role">{m.position}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var root = document.currentScript.closest(".ctc");
+      if (!root) return;
+      [].slice.call(root.querySelectorAll("[data-nav]")).forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var row = root.querySelector('[data-scroll="' + btn.getAttribute("data-row") + '"]');
+          if (!row) return;
+          var dir = btn.getAttribute("data-nav") === "next" ? 1 : -1;
+          // Roughly one screen width of the row, so cards do not
+          // end up half cut off.
+          row.scrollBy({ left: dir * row.clientWidth * 0.8, behavior: "smooth" });
+        });
+      });
+    })();
+  </script>
+</section>
+
+<style>
+  .ctc {
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+    padding:        clamp(var(--space-12), 5vw, 80px) clamp(var(--space-6), 5vw, 72px);
+    background:     var(--color-bg-surface);
+  }
+
+  .ctc__head {
+    display:         flex;
+    align-items:     flex-end;
+    justify-content: space-between;
+    gap:             var(--space-8);
+    flex-wrap:       wrap;
+  }
+
+  .ctc__head h2 { font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem); letter-spacing: -0.5px; }
+
+  .ctc__overline {
+    font-size:      13px;
+    font-weight:    800;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color:          var(--color-accent-purple);
+    margin-bottom:  var(--space-2);
+  }
+
+  .ctc__all { font-size: 14px; font-weight: var(--fw-bold); color: var(--color-brand-blue); white-space: nowrap; }
+
+  /* On mobile the head row wraps – then link on the left, arrows on the right */
+  @media (max-width: 760px) {
+    .ctc__head-actions {
+      width:           100%;
+      justify-content: space-between;
+    }
+
+  }
+
+  .ctc__block { display: flex; flex-direction: column; gap: var(--space-4); }
+
+  .ctc__head-actions { display: flex; align-items: center; gap: var(--space-6); }
+
+  .ctc__nav { display: flex; gap: 8px; }
+
+  /* On phones you swipe the row directly, the arrows just take up space.
+     (Placed after the base rule above, which would otherwise win.) */
+  @media (max-width: 760px) {
+    .ctc__nav { display: none; }
+  }
+
+  .ctc__nav-btn {
+    width:           40px;
+    height:          40px;
+    border-radius:   50%;
+    border:          1px solid #DEE3ED;
+    background:      var(--color-bg-surface);
+    color:           var(--color-text-heading);
+    font-size:       16px;
+    font-weight:     800;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    transition:      border-color var(--transition-fast), color var(--transition-fast);
+  }
+
+  .ctc__nav-btn:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
+
+  /* Scrolling row – scrollbar hidden, keyboard keeps access */
+  .ctc__scroll {
+    display:         flex;
+    gap:             20px;
+    overflow-x:      auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding-bottom:  4px;
+  }
+
+  .ctc__scroll::-webkit-scrollbar { display: none; }
+
+  .ctc__scroll:focus-visible {
+    outline:       none;
+    box-shadow:    var(--focus-ring);
+    border-radius: var(--radius-md);
+  }
+
+  /* Initials instead of a photo – same look as on the team page */
+  .ctc__slot {
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-family:     var(--font-display);
+    font-size:       34px;
+    font-weight:     800;
+    color:           var(--color-brand-blue);
+    background:      #EDF2FF;
+  }
+
+  /* ── Lead cards ───────────────────────────────────────────── */
+  .ctc__lead {
+    position:       relative;
+    flex:           0 0 220px;
+    background:     #EDF2FF;
+    border-radius:  20px;
+    padding:        18px 16px 20px;
+    display:        flex;
+    flex-direction: column;
+    align-items:    center;
+    gap:            12px;
+    text-align:     center;
+  }
+
+  .ctc__lead-photo {
+    width:         140px;
+    height:        140px;
+    border-radius: 50%;
+    object-fit:    cover;
+    background:    var(--color-bg-surface);
+  }
+
+  .ctc__lead-name { font-size: 17px; font-weight: 800; color: var(--color-brand-blue-dark); }
+  .ctc__lead-role { font-size: 12px; font-weight: var(--fw-bold); color: var(--color-brand-blue); margin-top: 3px; }
+
+  .ctc__lead--president { background: var(--color-brand-blue); }
+  .ctc__lead--president .ctc__lead-photo { border: 4px solid rgba(255, 255, 255, 0.4); }
+  .ctc__lead--president .ctc__lead-name { color: var(--color-text-on-dark); }
+  .ctc__lead--president .ctc__lead-role { color: #A6BEFF; }
+  .ctc__lead--president .ctc__slot { background: rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.75); border-color: rgba(255, 255, 255, 0.4); }
+
+  /* ── LinkedIn overlay ─────────────────────────────────────── */
+  .ctc__overlay {
+    position:        absolute;
+    inset:           0;
+    z-index:         1;
+    border-radius:   20px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    opacity:         0;
+    background:      rgba(0, 82, 233, 0.45);
+    text-decoration: none;
+    transition:      opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .ctc__overlay:hover,
+  .ctc__overlay:focus-visible { opacity: 1; text-decoration: none; }
+
+  .ctc__in {
+    width:           44px;
+    height:          44px;
+    border-radius:   10px;
+    background:      var(--color-bg-surface);
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       20px;
+    font-weight:     800;
+    font-family:     var(--font-display);
+  }
+</style>

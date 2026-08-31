@@ -1,0 +1,190 @@
+// src/data/programs.ts
+//
+// Single source of all program data.
+//
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  ADDING A NEW PROGRAM – one step:                            ║
+// ║  Add an entry below. From it, the following are created      ║
+// ║  automatically:                                              ║
+// ║    • the card in the bento grid on the home page             ║
+// ║    • the subpage /programs/<slug>                            ║
+// ║    • the entry in the header's "Programs" dropdown           ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+/** Layout variant of the card in the bento grid on the home page. */
+export type ProgramVariant = "feature" | "photo" | "gradient" | "light" | "outline";
+
+export interface Program {
+  /** URL segment under /programs/ */
+  slug: string;
+  name: string;
+  /** Short text for the card on the home page */
+  text: string;
+  variant: ProgramVariant;
+  /** Optional labels on the card, e.g. ["Flagship"] or ["New"] */
+  badges?: string[];
+  /** Different card title on the home page, e.g. "AIM Innovate Impact Hub" */
+  cardName?: string;
+  image?: string;
+  imageAlt?: string;
+
+  /** Introduction on the program page */
+  intro: string;
+  /** Bullet points on the program page */
+  highlights: { title: string; text: string }[];
+  /**
+   * Cities with their own page for this program.
+   * Creates the per-city links on the program page.
+   * Leave empty as long as there is no city-specific page.
+   */
+  citySlugs?: ("munich" | "aachen")[];
+}
+
+export const programs: Program[] = [
+  {
+    slug: "aim-connect",
+    name: "AIM Connect",
+    badges: ["Flagship"],
+    variant: "feature",
+    image: "/images/connect/landing-card.jpg",
+    imageAlt: "AIM Connect group during a partner visit at LivaNova",
+    text:
+      "An exclusive add-on study program at the intersection of medicine, " +
+      "entrepreneurship and technology, with insights from hospitals, research, " +
+      "startups and industry.",
+    intro:
+      "AIM Connect is our flagship program: a curated add-on to your degree that " +
+      "takes you inside the places where MedTech actually happens. Over the course " +
+      "of a semester you visit hospitals, research institutes, startups and " +
+      "established companies, and work alongside the people building the field.",
+    highlights: [
+      {
+        title: "Curated visits",
+        text: "A series of on-site sessions with clinics, research groups, startups and industry partners.",
+      },
+      {
+        title: "Opening and makeathon",
+        text: "The program is framed by a multi-day opening event and closes with a makeathon and summit.",
+      },
+      {
+        title: "End-to-end perspective",
+        text: "You follow an idea from clinical need through technology and regulation to a working solution.",
+      },
+    ],
+    citySlugs: ["munich", "aachen"],
+  },
+  {
+    slug: "aim-code",
+    name: "AIM Code",
+    variant: "photo",
+    image: "/images/code/landing-card.jpg",
+    imageAlt: "AIM Code lecture on healthcare innovation",
+    text: "Free coding courses, from Python workshops to AI in healthcare.",
+    intro:
+      "AIM Code makes the technical side of MedTech accessible, free of charge and " +
+      "open to students of every background. Courses start at the basics and build " +
+      "towards machine learning on real healthcare data.",
+    highlights: [
+      {
+        title: "From zero to model",
+        text: "Python fundamentals, data handling and machine learning, taught in sequence.",
+      },
+      {
+        title: "Healthcare use cases",
+        text: "Exercises use medical datasets and diagnostic problems rather than generic examples.",
+      },
+      {
+        title: "Free and open",
+        text: "No fees and no prior programming experience required.",
+      },
+    ],
+    citySlugs: ["munich", "aachen"],
+  },
+  {
+    slug: "aim-innovate",
+    name: "AIM Innovate",
+    badges: ["New"],
+    cardName: "AIM Innovate Impact Hub",
+    variant: "gradient",
+    text:
+      "From idea to startup: regulation, policy and strategy with entrepreneurs, " +
+      "investors and experts.",
+    intro:
+      "AIM Innovate follows what happens after the prototype. Together with founders, " +
+      "investors and regulatory experts, you work through what it takes to turn a " +
+      "MedTech idea into something that can reach patients.",
+    highlights: [
+      {
+        title: "Regulation and approval",
+        text: "How medical devices and software are classified, certified and brought to market.",
+      },
+      {
+        title: "Strategy and funding",
+        text: "Business models, reimbursement and the funding landscape for health ventures.",
+      },
+      {
+        title: "Founders and investors",
+        text: "Sessions with people who have built and financed MedTech companies.",
+      },
+    ],
+  },
+  {
+    slug: "aim-educate",
+    name: "AIM Educate",
+    variant: "light",
+    text: "Open format lectures, events and workshops. No commitment needed.",
+    intro:
+      "AIM Educate is our open format: talks on medical AI with no prerequisites and " +
+      "no registration. Come for a single evening, ask questions, and stay for the " +
+      "conversation afterwards.",
+    highlights: [
+      {
+        title: "Open to all",
+        text: "No application, no fee and no particular background required.",
+      },
+      {
+        title: "Informal by design",
+        text: "Short talks in a relaxed setting, built around discussion rather than slides.",
+      },
+      {
+        title: "Broad topics",
+        text: "From diagnostic models to ethics, data protection and clinical practice.",
+      },
+    ],
+  },
+  {
+    slug: "aim-science",
+    name: "AIM Science",
+    variant: "outline",
+    text:
+      "Advancing AI research in healthcare, from chatbots taking the medical state " +
+      "exam to generative patient imagery.",
+    intro:
+      "AIM Science is where members run their own research. Projects are student-led, " +
+      "supervised by researchers and clinicians, and aimed at results worth publishing.",
+    highlights: [
+      {
+        title: "Student-led projects",
+        text: "You propose and run the work, with supervision from research and clinical partners.",
+      },
+      {
+        title: "Real research questions",
+        text: "Past themes include language models on medical exams and generative patient imaging.",
+      },
+      {
+        title: "Towards publication",
+        text: "Projects are set up so results can be written up and submitted.",
+      },
+    ],
+  },
+];
+
+export function getProgram(slug: string): Program | undefined {
+  return programs.find(p => p.slug === slug);
+}
+
+/** Entries for the "Programs" dropdown in the header. */
+export const programNavItems = programs.map(p => ({
+  label: p.name,
+  href: `/programs/${p.slug}`,
+}));

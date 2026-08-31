@@ -1,15 +1,20 @@
 ---
 // src/pages/[city]/index.astro
 //
-// Stadt-Hub (Übersicht) – erzeugt /muenchen und /aachen.
+// City page – automatically generates one page per entry in the
+// city database (src/data/cityData.ts), currently /munich, /aachen
+// and /frankfurt.
 //
-// showApplicationInfo={true} → Bewerbungsbereich erscheint im Hero
-// der Übersichtsseite (nicht erst bei AIM Connect).
-// Alle Inhalte kommen ausschließlich aus src/data/application.ts.
+// The page consists only of the blueprint CityBlueprint.astro. All
+// content comes from the central databases:
+//   • cityData.ts     – hero photo, university, Instagram, founding year, story …
+//   • applications.ts – application card + "Coming up" line
+//   • newsData.ts     – news band
+//   • teamData.ts     – team carousel
+// As long as fields are missing in cityData.ts, the blueprint shows placeholders.
 
-import CityLayout      from "../../layouts/CityLayout.astro";
-import ContentSection  from "../../components/sections/ContentSection.astro";
-import ProgramTeasers  from "../../components/sections/ProgramTeasers.astro";
+import BaseLayout     from "../../layouts/BaseLayout.astro";
+import CityBlueprint  from "../../components/sections/CityBlueprint.astro";
 
 import { getCityStaticPaths } from "../../data/cityData";
 import type { CityData }       from "../../data/cityData";
@@ -20,101 +25,11 @@ export function getStaticPaths() {
 
 interface Props { city: CityData }
 const { city } = Astro.props as Props;
-
-const teasers = [
-  {
-    label:       "AIM Connect",
-    slug:        "aim-connect",
-    description: city.aimConnect.intro,
-    image:       city.teaserImages.aimConnect,
-  },
-  {
-    label:       "AIM Code",
-    slug:        "aim-code",
-    description: city.aimCode.intro,
-    image:       city.teaserImages.aimCode,
-  },
-  {
-    label:       "Team",
-    slug:        "team",
-    description: `Meet our team behind OneAIM ${city.displayName}.`,
-    image:       city.teaserImages.team,
-  },
-];
 ---
 
-<CityLayout
-  city={city}
-  pageTitle="Übersicht"
-  showApplicationInfo={true}
+<BaseLayout
+  title={city.displayName}
+  description={`OneAIM ${city.displayName} chapter overview.`}
 >
-  <!-- Instagram-Button: oben rechts, stadtspezifischer Link aus cityData.ts -->
-  <div class="city-social">
-    <a
-      href={city.instagram}
-      class="city-social__btn"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`OneAIM ${city.displayName} auf Instagram (öffnet in neuem Tab)`}
-    >
-      <!-- Instagram-Icon -->
-      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"
-          fill="none" stroke="currentColor" stroke-width="2"/>
-        <circle cx="12" cy="12" r="4"
-          fill="none" stroke="currentColor" stroke-width="2"/>
-        <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/>
-      </svg>
-      Instagram
-    </a>
-  </div>
-
-  <ContentSection heading={`OneAIM in ${city.displayName}`} background="page">
-    {city.introText.map(p => <p>{p}</p>)}
-  </ContentSection>
-
-  <ProgramTeasers citySlug={city.slug} teasers={teasers} />
-</CityLayout>
-
-<style>
-  /* Instagram-Button: rechtsbündig, direkt unter den CityTabs */
-  .city-social {
-    display:          flex;
-    justify-content:  flex-end;
-    padding:          var(--space-4) var(--container-padding);
-    max-width:        var(--container-max);
-    margin-inline:    auto;
-    background:       var(--color-bg-page);
-  }
-
-  .city-social__btn {
-    display:         inline-flex;
-    align-items:     center;
-    gap:             var(--space-2);
-    padding:         var(--space-2) var(--space-4);
-    border-radius:   var(--radius-pill);
-    border:          1.5px solid var(--color-border-subtle);
-    background:      var(--color-bg-surface);
-    color:           var(--color-text-heading);
-    font-family:     var(--font-display);
-    font-size:       var(--fs-small);
-    font-weight:     var(--fw-medium);
-    text-decoration: none;
-    transition:
-      background    var(--transition-fast),
-      border-color  var(--transition-fast),
-      color         var(--transition-fast);
-  }
-
-  .city-social__btn:hover {
-    background:      var(--color-brand-blue);
-    border-color:    var(--color-brand-blue);
-    color:           var(--color-text-on-brand);
-    text-decoration: none;
-  }
-
-  .city-social__btn:focus-visible {
-    outline:    none;
-    box-shadow: var(--focus-ring);
-  }
-</style>
+  <CityBlueprint citySlug={city.slug} />
+</BaseLayout>

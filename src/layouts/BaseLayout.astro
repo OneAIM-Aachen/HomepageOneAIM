@@ -1,16 +1,16 @@
 ---
 // src/layouts/BaseLayout.astro
 //
-// Globales Layout. Bindet CookieBanner ein.
+// Global layout. Includes the CookieBanner.
 //
-// COOKIE-BANNER DEAKTIVIEREN:
-//   <CookieBanner /> in Kommentar setzen.
+// TO DISABLE THE COOKIE BANNER:
+//   Comment out <CookieBanner />.
 //
-// GOOGLE FONTS SELBST HOSTEN (DSGVO-sauberer, kein Banner nötig):
-//   1. Raleway von https://fonts.google.com/specimen/Raleway herunterladen
-//   2. Dateien nach public/fonts/ kopieren
-//   3. Den Google-Fonts-<link> unten durch @font-face in tokens.css ersetzen
-//   4. <CookieBanner /> auskommentieren
+// SELF-HOSTING GOOGLE FONTS (cleaner for GDPR, no banner needed):
+//   1. Download Raleway from https://fonts.google.com/specimen/Raleway
+//   2. Copy the files to public/fonts/
+//   3. Replace the Google Fonts <link> below with @font-face in tokens.css
+//   4. Comment out <CookieBanner />
 
 import Header      from "../components/navigation/Header.astro";
 import Footer      from "../components/navigation/Footer.astro";
@@ -37,13 +37,14 @@ const pageTitle = title ? `${title} | OneAIM` : "OneAIM";
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <title>{pageTitle}</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!--
       Google Fonts – Raleway (400, 500, 600, 700).
-      DSGVO-Hinweis: Beim Laden von Google-Servern wird die IP des Nutzers
-      übertragen. Daher wird der CookieBanner angezeigt.
-      Alternative: Raleway selbst hosten (public/fonts/) → dann kein Banner nötig.
+      GDPR note: when loading from Google servers, the user's IP is
+      transmitted. That is why the CookieBanner is shown.
+      Alternative: self-host Raleway (public/fonts/) → then no banner needed.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -64,8 +65,10 @@ const pageTitle = title ? `${title} | OneAIM` : "OneAIM";
 
     <Footer />
 
-    <!-- Cookie-Banner: erscheint beim ersten Besuch.
-         Zum Deaktivieren: diese Zeile in einen Kommentar setzen. -->
-    <CookieBanner />
+    <!-- Cookie banner: appears on the first visit.
+         To disable: turn this line into a comment. -->
+    <!-- CookieBanner disabled (request: no Google Fonts notice).
+         To re-enable: remove the comment. -->
+    <!-- <CookieBanner /> -->
   </body>
 </html>

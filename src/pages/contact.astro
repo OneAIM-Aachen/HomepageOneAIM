@@ -1,73 +1,76 @@
 ---
 // src/pages/contact.astro
 //
-// Dedizierte Kontaktseite.
-// Zeigt die E-Mail-Adressen der einzelnen Standorte.
-//
-// E-MAIL-ADRESSEN ÄNDERN:
-// Die Kontaktdaten der Standorte stehen direkt unten im locations-Array.
-// Einfach die jeweilige email-Adresse anpassen – keine Komponente nötig.
+// Contact page: one card per chapter with Instagram and email.
+// Everything comes from the city database (cityData.ts): maintain
+// instagramHref and contactEmail there – a new chapter appears automatically.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
-
-const locations = [
-  {
-    city:        "München",
-    slug:        "muenchen",
-    email:       "muenchen@platzhalter-oneaim.de",   // ← vor Go-Live ersetzen
-    description: "Für alle Fragen rund um OneAIM München, AIM Connect und AIM Code am Standort München.",
-  },
-  {
-    city:        "Aachen",
-    slug:        "aachen",
-    email:       "aachen@platzhalter-oneaim.de",      // ← vor Go-Live ersetzen
-    description: "Für alle Fragen rund um OneAIM Aachen, AIM Connect und AIM Code am Standort Aachen.",
-  },
-];
+import { cities } from "../data/cityData";
 ---
 
 <BaseLayout
   title="Contact Us"
-  description="Kontaktiere OneAIM – Emailadressen für München und Aachen."
+  description="Contact OneAIM: Instagram and email for the chapters in Munich, Aachen and Frankfurt."
 >
-  <!-- Kopfbereich -->
+  <!-- Header area -->
   <section class="contact-header" aria-labelledby="contact-page-heading">
     <div class="container contact-header__inner">
       <h1 id="contact-page-heading">Contact Us</h1>
       <p class="contact-header__sub">
-        Du hast eine Frage oder möchtest mit uns in Kontakt treten?
-        Schreib uns direkt an den Standort, der dir am nächsten ist.
+        Have a question or want to get in touch? Reach out to the chapter
+        closest to you, on Instagram or by email.
       </p>
     </div>
   </section>
 
-  <!-- Standort-Karten -->
-  <section class="contact-locations" aria-label="Kontaktadressen der Standorte">
+  <!-- Chapter cards -->
+  <section class="contact-locations" aria-label="Contact details per chapter">
     <div class="container contact-locations__grid">
-      {locations.map(loc => (
+      {cities.map(city => (
         <article class="contact-card">
-          <!-- Standort-Überschrift -->
-          <h2 class="contact-card__city">{loc.city}</h2>
-          <p class="contact-card__desc">{loc.description}</p>
+          <h2 class="contact-card__city">{city.displayName}</h2>
+          <p class="contact-card__desc">
+            For everything about OneAIM {city.displayName} and the programs at
+            the {city.displayName} chapter.
+          </p>
 
-          <!-- E-Mail als klickbarer Link -->
-          <a
-            href={`mailto:${loc.email}`}
-            class="contact-card__email"
-            aria-label={`E-Mail an OneAIM ${loc.city} senden`}
-          >
-            <svg viewBox="0 0 20 20" width="18" height="18"
-                 aria-hidden="true" focusable="false">
-              <path fill="none" stroke="currentColor" stroke-width="1.5"
-                    stroke-linecap="round" stroke-linejoin="round"
-                    d="M2.5 5.5h15v10h-15zM2.5 5.5l7.5 6 7.5-6"/>
-            </svg>
-            {loc.email}
-          </a>
+          <div class="contact-card__links">
+            {city.instagramHref && (
+              <a
+                href={city.instagramHref}
+                class="contact-card__link-row"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`OneAIM ${city.displayName} on Instagram (opens in new tab)`}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+                {city.instagram ?? "Instagram"}
+              </a>
+            )}
+            {city.contactEmail && (
+              <a
+                href={`mailto:${city.contactEmail}`}
+                class="contact-card__link-row"
+                aria-label={`Email OneAIM ${city.displayName}`}
+              >
+                <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+                  <path fill="none" stroke="currentColor" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        d="M2.5 5.5h15v10h-15zM2.5 5.5l7.5 6 7.5-6"/>
+                </svg>
+                {city.contactEmail}
+              </a>
+            )}
+          </div>
 
-          <!-- Link zur Stadtseite -->
-          <a href={`/${loc.slug}`} class="contact-card__link">
-            Zur {loc.city}-Seite →
+          <a href={`/${city.slug}`} class="contact-card__link">
+            Go to the {city.displayName} page →
           </a>
         </article>
       ))}
@@ -76,19 +79,14 @@ const locations = [
 </BaseLayout>
 
 <style>
-  /* ── Kopfbereich ────────────────────────────────────── */
+  /* ── Header area ────────────────────────────────────── */
   .contact-header {
     background:    var(--color-bg-subtle);
     padding-block: var(--space-16) var(--space-12);
     border-bottom: 1px solid var(--color-border-subtle);
   }
 
-  .contact-header__inner {
-    display:        flex;
-    flex-direction: column;
-    gap:            var(--space-3);
-  }
-
+  .contact-header__inner { display: flex; flex-direction: column; gap: var(--space-3); }
   .contact-header__inner h1 { font-size: var(--fs-h1); }
 
   .contact-header__sub {
@@ -98,87 +96,67 @@ const locations = [
     margin:    0;
   }
 
-  /* ── Standort-Grid ──────────────────────────────────── */
+  /* ── Chapter grid ───────────────────────────────────── */
   .contact-locations {
     background:    var(--color-bg-page);
-    padding-block: var(--space-12) var(--space-24);
+    padding-block: var(--space-12) var(--space-12);
   }
 
   .contact-locations__grid {
     display:               grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     gap:                   var(--space-6);
   }
 
-  @media (max-width: 640px) {
-    .contact-locations__grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* ── Einzelne Kontaktkarte ──────────────────────────── */
+  /* ── Single contact card ────────────────────────────── */
   .contact-card {
-    background:     var(--color-bg-surface);
-    border-radius:  var(--radius-md);
-    border:         1px solid var(--color-border-subtle);
-    box-shadow:     var(--shadow-card);
-    padding:        var(--space-8);
     display:        flex;
     flex-direction: column;
     gap:            var(--space-4);
+    padding:        var(--space-8);
+    background:     var(--color-bg-surface);
+    border:         1px solid var(--color-border-subtle);
+    border-radius:  var(--radius-lg);
+    box-shadow:     var(--shadow-card);
   }
 
-  .contact-card__city {
-    font-size:   var(--fs-h2);
-    font-weight: var(--fw-bold);
-    color:       var(--color-brand-blue);
-    margin:      0;
-  }
+  .contact-card__city { font-size: var(--fs-h2); color: var(--color-brand-blue); }
 
   .contact-card__desc {
     font-size:   var(--fs-body);
-    color:       var(--color-text-body);
     line-height: var(--lh-body);
-    margin:      0;
+    color:       var(--color-text-body);
   }
 
-  /* E-Mail-Button */
-  .contact-card__email {
+  .contact-card__links { display: flex; flex-direction: column; gap: var(--space-2); }
+
+  .contact-card__link-row {
     display:         inline-flex;
     align-items:     center;
-    gap:             var(--space-3);
-    padding:         var(--space-3) var(--space-6);
-    background:      var(--color-brand-blue);
-    color:           var(--color-text-on-brand);
-    border-radius:   var(--radius-sm);
-    font-family:     var(--font-display);
-    font-weight:     var(--fw-medium);
-    font-size:       var(--fs-body);
-    text-decoration: none;
+    gap:             var(--space-2);
     align-self:      flex-start;
-    transition:
-      background var(--transition-fast),
-      transform  var(--transition-fast);
+    font-family:     var(--font-display);
+    font-weight:     var(--fw-bold);
+    font-size:       var(--fs-body);
+    color:           var(--color-text-heading);
+    padding:         8px 14px;
+    border:          1px solid var(--color-border-subtle);
+    border-radius:   var(--radius-pill);
+    text-decoration: none;
+    transition:      color var(--transition-fast), border-color var(--transition-fast);
+    word-break:      break-all;
   }
 
-  .contact-card__email:hover {
-    background:      var(--color-brand-blue-dark);
-    transform:       translateY(-1px);
+  .contact-card__link-row:hover {
+    color:           var(--color-brand-blue);
+    border-color:    var(--color-brand-blue);
     text-decoration: none;
   }
 
-  .contact-card__email:focus-visible {
-    outline:    none;
-    box-shadow: var(--focus-ring);
-  }
-
-  /* Link zur Stadtseite */
   .contact-card__link {
-    font-size:   var(--fs-small);
-    font-weight: var(--fw-medium);
-    color:       var(--color-brand-blue);
     margin-top:  auto;
+    font-size:   var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color:       var(--color-brand-blue);
   }
-
-  .contact-card__link:hover { text-decoration: underline; }
 </style>

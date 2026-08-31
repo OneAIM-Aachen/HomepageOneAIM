@@ -1,10 +1,10 @@
 ---
 // src/components/ui/Button.astro
-// Wiederverwendbarer CTA-Button nach OneAIM Brand Style Guide.
+// Reusable CTA button following the OneAIM Brand Style Guide.
 //
-// variant="primary"   → AIM Blue #0052E9 (Hauptfarbe, Vertrauen/Medizin)
-// variant="secondary" → Pink-Purple-Gradient #D400FF → #8D2DF1
-//                        (Kreativität/Innovation, laut Guide immer als Duo)
+// variant="primary"   → AIM Blue #0052E9 (primary color, trust/medicine)
+// variant="secondary" → pink-purple gradient #D400FF → #8D2DF1
+//                        (creativity/innovation, per the guide always as a duo)
 
 interface Props {
   href:      string;
@@ -32,14 +32,14 @@ const { href, variant = "primary", external = false, class: className } = Astro.
     justify-content: center;
     gap: var(--space-2);
 
-    /* Raleway Bold, wie im Guide für alle Texte vorgeschrieben */
+    /* Raleway Bold, as prescribed in the guide for all text */
     font-family: var(--font-display);
     font-weight: var(--fw-bold);
     font-size: var(--fs-body);
     line-height: 1;
 
-    padding: var(--space-3) var(--space-8);
-    border-radius: var(--radius-sm);
+    padding: 14px 28px;
+    border-radius: var(--radius-pill);
     white-space: nowrap;
     text-decoration: none;
     border: none;
@@ -53,8 +53,7 @@ const { href, variant = "primary", external = false, class: className } = Astro.
 
   .btn:hover {
     text-decoration: none;
-    transform: translateY(-1px);
-    opacity: 0.92;
+    transform: translateY(-2px);
   }
 
   .btn:active {
@@ -67,35 +66,37 @@ const { href, variant = "primary", external = false, class: className } = Astro.
     box-shadow: var(--focus-ring);
   }
 
-  /* Primär: AIM Blue – erste Hauptfarbe (Style Guide S. 6) */
+  /* Primary: AIM Blue – first primary color (Style Guide p. 6) */
   .btn--primary {
     background: var(--color-brand-blue);   /* #0052E9 */
     color:      var(--color-text-on-brand);
+    box-shadow: 0 6px 18px rgba(0, 82, 233, 0.28);
   }
 
   .btn--primary:hover {
-    background: var(--color-brand-blue-dark); /* #232ACF beim Hover */
+    background: #0041ba;
     opacity: 1;
   }
 
-  /* Sekundär: Pink + Purple als Gradient – laut Guide immer als Duo     */
-  /* (Style Guide S. 9–10: "Usually use together as graduation")          */
+  /* Secondary: pink + purple as a gradient – per the guide always a duo */
+  /* (Style Guide p. 9–10: "Usually use together as graduation")          */
   .btn--secondary {
-    background: var(--gradient-btn-secondary); /* #D400FF → #8D2DF1 */
-    color:      var(--color-text-on-brand);
+    background: transparent;
+    color:      var(--color-brand-blue);
+    border:     1.5px solid rgba(0, 82, 233, 0.35);
   }
 
   .btn--secondary:hover {
-    opacity: 0.88;
+    background: rgba(0, 82, 233, 0.06);
   }
 
-  /* ── Startseiten-Hero-Buttons (München / Aachen) ──────────────────
-     Größer und leicht transparent. Nur diese zwei Buttons sind betroffen.
-     Padding und Schriftgröße hier anpassen – wirkt sofort.             */
+  /* ── Homepage hero buttons (München / Aachen) ─────────────────────
+     Larger and slightly transparent. Only these two buttons are affected.
+     Adjust padding and font size here – takes effect immediately.     */
   .btn.hero-city-btn {
-    padding:   var(--space-4) var(--space-12);   /* ← Größe */
-    font-size: var(--fs-body-lg);               /* ← Schrift */
-    opacity:   0.82;                            /* ← Transparenz (0–1) */
+    padding:   var(--space-4) var(--space-12);   /* ← size */
+    font-size: var(--fs-body-lg);               /* ← font */
+    opacity:   0.82;                            /* ← transparency (0–1) */
   }
 
   .btn.hero-city-btn:hover {
