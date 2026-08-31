@@ -1,0 +1,14 @@
+# Netlify redirects: URLs of the old one-aim.org website that Google still
+# has in its index. 301 = permanent, so search engines carry the ranking
+# over to the new address and stale results stop landing on 404 pages.
+/aim-connect     /programs/aim-connect     301
+/aim-code        /programs/aim-code        301
+/aim-innovate    /programs/aim-innovate    301
+/aim-educate     /programs/aim-educate     301
+/aim-science     /programs/aim-science     301
+/events          /programs/aim-educate     301
+/apply           /programs/aim-connect     301
+/join            /contact                  301
+/imprint         /impressum                301
+/privacy         /datenschutz              301
+/privacy-policy  /datenschutz              301
