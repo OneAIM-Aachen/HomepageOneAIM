@@ -22,7 +22,8 @@
 /submit                /contact                  301
 /opportunities         /programs/aim-connect     301
 /datenschutzerklaerung /datenschutz              301
-/bridging-disciplines-for-medical-innovation /about 301
+/bridging-disciplines-for-medical-innovation /      301
+/about           /                         301
 /new-aimconnect-aachen     /aachen               301
 /new-aimconnect-aachen/*   /aachen               301
 /lmu-klinikum-doctor-thes   /news                301
