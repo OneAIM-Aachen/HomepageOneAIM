@@ -103,7 +103,7 @@ export const applications: Application[] = [
     program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-09-01",
+    opensAt:  "2026-09-04",
     deadline: "2026-09-13",
     interviewsFrom: "2026-09-18",
     interviewsTo:   "2026-09-22",

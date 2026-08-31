@@ -265,31 +265,12 @@ for (let tries = 0; tries < 1000; tries++) {
     to   { transform: translateX(-50%); }
   }
 
-  /* ── Reduced motion ───────────────────────────────────────────
-     No run, no mask: the logos become a static,
-     wrapping grid. The decorative second copy is dropped.
-     !important beats the global reduced-motion rule in
-     global.css, which otherwise only sets the duration to 0.001ms and
-     would thereby freeze the band at its end point (-50 %).       */
-  @media (prefers-reduced-motion: reduce) {
-    .partners-marquee {
-      mask-image:         none;
-      -webkit-mask-image: none;
-    }
-
-    .partners-marquee__track {
-      animation: none !important;
-      width:     100%;
-    }
-
-    .partners-marquee__set {
-      flex-wrap:       wrap;
-      justify-content: center;
-      width:           100%;
-    }
-
-    .partners-marquee__set[aria-hidden="true"] {
-      display: none;
-    }
+  /* Deliberately no prefers-reduced-motion fallback: the band should
+     roll in every browser. The !important guards against the global
+     reduced-motion rule in global.css, which would otherwise set the
+     duration to 0.001ms and freeze the band at its end point (-50 %). */
+  .partners-marquee__track {
+    animation-duration:        var(--marquee-duration) !important;
+    animation-iteration-count: infinite                !important;
   }
 </style>
