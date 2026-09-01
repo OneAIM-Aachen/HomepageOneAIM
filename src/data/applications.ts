@@ -103,13 +103,13 @@ export const applications: Application[] = [
     program:  "aim-connect",
     semester: "WS",
     year:     2026,
-    opensAt:  "2026-09-04",
+    opensAt:  "2026-09-01",
     deadline: "2026-09-13",
     interviewsFrom: "2026-09-18",
     interviewsTo:   "2026-09-22",
     decisionBy:     "2026-09-27",
     startsAt: "2026-10-16",
-    // applyUrl: add application link
+    applyUrl: "https://tally.so/r/5BAxZM",
   },
   {
     id:       "frankfurt-aim-connect-ws26",
