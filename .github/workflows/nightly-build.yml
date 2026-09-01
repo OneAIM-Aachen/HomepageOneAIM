@@ -1,0 +1,27 @@
+# Nightly rebuild: pushes an empty commit to main every night, which
+# triggers the normal Netlify deploy. This keeps the build-time dates
+# (application statuses, deadlines, events) fresh each morning.
+# No setup needed. Can also be run by hand via the Actions tab.
+
+name: Nightly rebuild
+
+on:
+  schedule:
+    # 02:30 UTC = 03:30/04:30 German time, shortly after the date change.
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push empty commit to trigger the Netlify deploy
+        run: |
+          git config user.name "nightly-rebuild"
+          git config user.email "actions@github.com"
+          git commit --allow-empty -m "Nightly rebuild (refresh build-time dates)"
+          git push
