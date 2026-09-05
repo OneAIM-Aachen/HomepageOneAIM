@@ -1,7 +1,13 @@
-# Nightly rebuild: pushes an empty commit to main every night, which
-# triggers the normal Netlify deploy. This keeps the build-time dates
-# (application statuses, deadlines, events) fresh each morning.
-# No setup needed. Can also be run by hand via the Actions tab.
+# Scheduled rebuild: checks every night whether the website's build
+# output changes today (an application round opening/closing, an event
+# becoming past) and only then pushes an empty commit to main, which
+# triggers the Netlify deploy. On all other days it does nothing.
+#
+# The flip dates come straight from src/data/applications.ts and
+# src/data/eventsData.ts (see .github/scripts/is-flip-date.mjs), so
+# editing the databases is all that is ever needed.
+# Can also be run by hand via the Actions tab; a manual run always
+# rebuilds, regardless of the date.
 
 name: Nightly rebuild
 
@@ -19,9 +25,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check whether the site changes today
+        id: flip
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run: rebuilding regardless of the date."
+            echo "rebuild=yes" >> "$GITHUB_OUTPUT"
+          elif node .github/scripts/is-flip-date.mjs; then
+            echo "rebuild=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "rebuild=no" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Push empty commit to trigger the Netlify deploy
+        if: steps.flip.outputs.rebuild == 'yes'
         run: |
           git config user.name "nightly-rebuild"
           git config user.email "actions@github.com"
-          git commit --allow-empty -m "Nightly rebuild (refresh build-time dates)"
+          git commit --allow-empty -m "Scheduled rebuild (refresh build-time dates)"
           git push
