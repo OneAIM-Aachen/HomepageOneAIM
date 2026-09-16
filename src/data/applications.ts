@@ -131,7 +131,7 @@ export const applications: Application[] = [
     semester: "WS",
     year:     2026,
     opensAt:  "2026-08-30",
-    deadline: "2026-09-21",
+    deadline: "2026-09-20",
     interviewsFrom: "2026-09-25",
     interviewsTo:   "2026-09-27",
     decisionBy:     "2026-09-27",
