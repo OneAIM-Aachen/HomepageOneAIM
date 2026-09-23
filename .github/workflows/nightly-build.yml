@@ -1,20 +1,27 @@
-# Scheduled rebuild: checks every night whether the website's build
-# output changes today (an application round opening/closing, an event
-# becoming past) and only then pushes an empty commit to main, which
-# triggers the Netlify deploy. On all other days it does nothing.
+# Scheduled rebuild at MIDNIGHT GERMAN TIME on days when the website's
+# build output changes (an application round opening/closing, an event
+# becoming past). It pushes an empty commit to main, which triggers the
+# Netlify deploy; on all other days it does nothing.
+#
+# Two cron slots cover summer and winter time: whichever run happens
+# first after German midnight pushes; the other one sees that today's
+# push already exists and skips. (GitHub cron can fire with delay, so
+# "midnight" in practice means "shortly after midnight".)
 #
 # The flip dates come straight from src/data/applications.ts and
 # src/data/eventsData.ts (see .github/scripts/is-flip-date.mjs), so
 # editing the databases is all that is ever needed.
-# Can also be run by hand via the Actions tab; a manual run always
-# rebuilds, regardless of the date.
+# A manual run via the Actions tab always rebuilds, regardless of date.
 
 name: Nightly rebuild
 
 on:
   schedule:
-    # 02:30 UTC = 03:30/04:30 German time, shortly after the date change.
-    - cron: "30 2 * * *"
+    # 22:04 UTC = 00:04 German summer time (CEST)
+    - cron: "4 22 * * *"
+    # 23:04 UTC = 00:04 German winter time (CET); 01:04 in summer,
+    # where the dedup check below skips it.
+    - cron: "4 23 * * *"
   workflow_dispatch:
 
 permissions:
@@ -23,8 +30,13 @@ permissions:
 jobs:
   rebuild:
     runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Berlin
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The dedup check below looks at the last few commits.
+          fetch-depth: 15
 
       - name: Check whether the site changes today
         id: flip
@@ -32,7 +44,18 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manual run: rebuilding regardless of the date."
             echo "rebuild=yes" >> "$GITHUB_OUTPUT"
-          elif node .github/scripts/is-flip-date.mjs; then
+            exit 0
+          fi
+          # Before German midnight (winter: the 22:04 UTC slot) -> wait
+          # for the later slot; and if today's push already happened
+          # (summer: the 23:04 UTC slot), don't push twice.
+          if git log -10 --format='%s %cd' --date=format-local:'%Y-%m-%d' \
+              | grep -qF "rebuild (refresh build-time dates) $(date +%F)"; then
+            echo "Already rebuilt today, skipping."
+            echo "rebuild=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if node .github/scripts/is-flip-date.mjs; then
             echo "rebuild=yes" >> "$GITHUB_OUTPUT"
           else
             echo "rebuild=no" >> "$GITHUB_OUTPUT"

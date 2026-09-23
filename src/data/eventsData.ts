@@ -81,6 +81,15 @@ function day(iso: string): number {
   return new Date(`${iso}T00:00:00`).getTime();
 }
 
+/**
+ * "Today" as a GERMAN calendar date – the build may run on a UTC server
+ * (Netlify), where a plain new Date() is still yesterday between
+ * midnight and 2 am German time.
+ */
+function todayBerlin(): number {
+  return day(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date()));
+}
+
 const dayMonthYear = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 const dayOnly      = new Intl.DateTimeFormat("en-GB", { day: "2-digit" });
 
@@ -96,16 +105,20 @@ export function getEventDateLabel(e: EducateEvent): string {
 }
 
 /** Upcoming events (end ≥ today), earliest first. */
-export function getUpcomingEvents(today: Date = new Date()): EducateEvent[] {
-  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+export function getUpcomingEvents(today?: Date): EducateEvent[] {
+  const now = today
+    ? new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    : todayBerlin();
   return events
     .filter(e => day(e.endDate ?? e.date) >= now)
     .sort((a, b) => day(a.date) - day(b.date));
 }
 
 /** Past events, most recent first. */
-export function getPastEvents(today: Date = new Date()): EducateEvent[] {
-  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+export function getPastEvents(today?: Date): EducateEvent[] {
+  const now = today
+    ? new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    : todayBerlin();
   return events
     .filter(e => day(e.endDate ?? e.date) < now)
     .sort((a, b) => day(b.date) - day(a.date));

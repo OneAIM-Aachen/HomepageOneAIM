@@ -149,8 +149,20 @@ function day(iso: string): number {
   return new Date(`${iso}T00:00:00`).getTime();
 }
 
-export function getStatus(app: Application, today: Date = new Date()): ApplicationStatus {
-  const now = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+/**
+ * "Today" as a GERMAN calendar date. The build may run on a UTC server
+ * (Netlify), where a plain new Date() is still yesterday between
+ * midnight and 2 am German time – a date flip published at midnight
+ * would silently not happen there.
+ */
+function todayBerlin(): number {
+  return day(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date()));
+}
+
+export function getStatus(app: Application, today?: Date): ApplicationStatus {
+  const now = today
+    ? new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    : todayBerlin();
   if (now < day(app.opensAt))  return "upcoming";
   if (!app.deadline || now <= day(app.deadline)) return "open";
   return "closed";
@@ -194,9 +206,12 @@ export function getApplicationTitle(app: Application): string {
 }
 
 /** Days left until the deadline (negative once it has passed). */
-export function getDaysLeft(app: Application, today: Date = new Date()): number {
+export function getDaysLeft(app: Application, today?: Date): number {
   if (!app.deadline) return Number.POSITIVE_INFINITY;
-  const ms = day(app.deadline) - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const now = today
+    ? new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    : todayBerlin();
+  const ms = day(app.deadline) - now;
   return Math.round(ms / 86_400_000);
 }
 
