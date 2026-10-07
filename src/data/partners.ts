@@ -567,6 +567,14 @@ export const partners: Partner[] = [
     logoAlt: "Abiomed – Logo",
     website: "https://www.abiomed.com/",
   },
+  {
+    id: "virdx",
+    type: "partner",
+    name: "Virdx (QuantCo)",
+    logo: "/images/partners/virdxinc_logo.jpg",
+    logoAlt: "Virdx – Logo",
+    website: "https://www.virdx.com/",
+  },
 
   // ── Frankfurt ──────────────────────────────────────────────────────────
   {
