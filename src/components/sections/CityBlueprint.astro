@@ -255,7 +255,7 @@ const resolvedNews = news ?? (cityNews.length
           </div>
 
           {citySlug ? (
-            <ApplicationCard city={citySlug} cityName={city} variant="hero">
+            <ApplicationCard city={citySlug} cityName={city} variant="hero" hideEmptyCta>
               {resolvedUpcoming && (
                 <div class="bp__upcoming">
                   <span><strong>Coming up:</strong> {resolvedUpcoming.text}</span>

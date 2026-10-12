@@ -560,20 +560,28 @@ export const partners: Partner[] = [
   },
 
   {
-    id: "abiomed",
-    type: "partner",
-    name: "Abiomed (J&J MedTech)",
-    logo: "/images/partners/abiomed.svg",
-    logoAlt: "Abiomed – Logo",
-    website: "https://www.abiomed.com/",
-  },
-  {
     id: "virdx",
     type: "partner",
-    name: "Virdx (QuantCo)",
+    name: "Virdx",
     logo: "/images/partners/virdxinc_logo.jpg",
     logoAlt: "Virdx – Logo",
     website: "https://www.virdx.com/",
+  },
+  {
+    id: "quantco",
+    type: "partner",
+    name: "QuantCo",
+    logo: "/images/partners/quantco.svg",
+    logoAlt: "QuantCo – Logo",
+    website: "https://www.quantco.com/",
+  },
+  {
+    id: "mirantus-health",
+    type: "partner",
+    name: "Mirantus Health",
+    logo: "/images/partners/mirantus-health.svg",
+    logoAlt: "Mirantus Health – Logo",
+    website: "https://www.mirantus.com/",
   },
 
   // ── Frankfurt ──────────────────────────────────────────────────────────

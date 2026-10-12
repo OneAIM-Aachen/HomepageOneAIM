@@ -253,6 +253,21 @@ export function getApplicationFor(
 }
 
 /**
+ * Like getApplicationFor, but falls back to the most recently closed round
+ * once the application phase is over. Feeds the semester timeline on the
+ * location pages, which should keep showing the current batch's dates.
+ */
+export function getCurrentRoundFor(
+  city: CitySlug, program: string, today?: Date,
+): Application | undefined {
+  return getApplicationFor(city, program, today)
+      ?? applications
+           .filter(matches(city, program))
+           .filter(a => getStatus(a, today) === "closed")
+           .sort((a, b) => day(b.opensAt) - day(a.opensAt))[0];
+}
+
+/**
  * The round highlighted in the hero of a location page:
  * the open one with the nearest deadline – if there is none, the next upcoming one.
  */

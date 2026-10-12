@@ -21,7 +21,7 @@
 //
 // Interactivity is pure inline JS (hidden attributes) – no framework.
 
-import { getApplicationFor, getStatus, getTermLabel } from "../../data/applications";
+import { getApplicationFor, getCurrentRoundFor, getStatus, getTermLabel } from "../../data/applications";
 import { getUpcomingEvents, getEventDateLabel } from "../../data/eventsData";
 import { cityData, type CitySlug } from "../../data/cityData";
 
@@ -135,8 +135,9 @@ const pastTimeline =
   ?? PAST_PLACEHOLDER;
 
 // Application steps: dates come from the applications database as soon as
-// there is an Aim Connect round for this location there.
-const round = citySlug ? getApplicationFor(citySlug, "aim-connect") : undefined;
+// there is an Aim Connect round for this location there. After the deadline
+// the most recent round stays in place, so the timeline keeps its dates.
+const round = citySlug ? getCurrentRoundFor(citySlug, "aim-connect") : undefined;
 
 // Field term in the Connect texts: default "MedTech", Munich says "HealthTech".
 const fieldTerm = (citySlug ? cityData[citySlug]?.connectFieldTerm : undefined) ?? "MedTech";
@@ -176,8 +177,6 @@ const pastNote        = citySlug ? cityData[citySlug]?.connectPastNote : undefin
 const showInnovate = citySlug ? Boolean(cityData[citySlug]?.showInnovate) : false;
 const innovateRound = citySlug && showInnovate ? getApplicationFor(citySlug, "aim-innovate") : undefined;
 
-// Show the participation fee card? (cityData.ts → connectShowFee)
-const showFee = citySlug ? Boolean(cityData[citySlug]?.connectShowFee) : true;
 
 // AIM Code still being set up? (cityData.ts → codeComingSoon)
 const codeComingSoon = citySlug ? Boolean(cityData[citySlug]?.codeComingSoon) : false;
@@ -202,6 +201,10 @@ const connectImageAlt = citySlug ? cityData[citySlug]?.connectImageAlt : "";
 // it is the contact page.
 const applicationsOpen  = round ? getStatus(round) === "open" : false;
 const resolvedApplyHref = applyHref ?? round?.applyUrl ?? contactHref;
+
+// Show the participation fee card? (cityData.ts → connectShowFee)
+// Only while applications are open – it is only relevant to applicants.
+const showFee = (citySlug ? Boolean(cityData[citySlug]?.connectShowFee) : true) && applicationsOpen;
 
 // Split the recap into two columns (as in the draft). With an odd
 // count the RIGHT column gets the extra row – the tall kickoff entry
@@ -336,7 +339,6 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
       <div class="cpp__secured">
         <div class="cpp__secured-head">
           <p class="cpp__label">Already on board for the upcoming batch</p>
-          <p class="cpp__secured-sub">These partners are secured for the semester you are applying to.</p>
         </div>
 
         <div class="cpp__secured-split">
@@ -962,7 +964,6 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
 
   .cpp__secured-head { display: flex; flex-direction: column; gap: 6px; }
-  .cpp__secured-sub { font-size: 15px; line-height: 1.5; color: var(--color-text-body); }
 
   /* List on the left, detail on the right */
   .cpp__secured-split {
