@@ -13,14 +13,16 @@
 // Role line below the name:
 //   President  → "President | <Team>"
 //   Team Lead  → "Team Lead | <Team>"
+//   Alumni     → "Alumni"
 //   otherwise  → "<Team>"
 //
 // The data source is src/data/teamData.ts: if `citySlug` is set, the
-// row fills itself automatically (President first, then Team Leads, then
-// all remaining). As long as the database is empty for the location, the
-// placeholder cards remain. `members` overrides the database.
+// row fills itself automatically (President first, then founders, then
+// Team Leads, then all remaining, alumni last). As long as the database is
+// empty for the location, the placeholder cards remain. `members` overrides
+// the database.
 
-import { getLeadsByCity, getMembersByCity } from "../../data/teamData";
+import { getVisibleMembersByCity } from "../../data/teamData";
 import type { TeamMember as DbMember } from "../../data/teamData";
 import type { CitySlug } from "../../data/cityData";
 
@@ -52,7 +54,8 @@ const {
 // A set `position` field in the database overrides the derivation.
 const roleLine = (m: DbMember): string =>
   m.position
-  ?? (m.president ? `President | ${m.team}`
+  ?? (m.alumni ? "Alumni"
+    : m.president ? `President | ${m.team}`
     : m.teamLead ? `Team Lead | ${m.team}`
     : m.team);
 
@@ -65,12 +68,13 @@ const fromDb = (m: DbMember): CardMember => ({
   position:  roleLine(m),
   photo:     m.photo,
   linkedin:  m.linkedIn,
-  president: m.president,
+  president: m.president && !m.alumni,
 });
 
-// Order: President, then Team Leads, then all remaining.
+// Order: President, founders, Team Leads, all remaining, alumni last
+// (defined once in teamData.ts, shared with /team).
 const dbAll = citySlug
-  ? [...getLeadsByCity(citySlug), ...getMembersByCity(citySlug)].map(fromDb)
+  ? getVisibleMembersByCity(citySlug).map(fromDb)
   : [];
 
 // Props → database → placeholders (as long as the database is empty)

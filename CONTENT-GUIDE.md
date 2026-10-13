@@ -150,11 +150,20 @@ All members of all chapters in one array. Photo goes into `public/images/team/`.
   photo: "/images/team/lucas-gildehaus.jpg",  // (optional)
   linkedIn: "https://www.linkedin.com/in/...",// (optional) enables the hover overlay
   formerMember: true,                    // (optional) hides the person, keeps the entry
+  alumni: true,                          // (optional) stays visible, marked as "Alumni"
+  founder: true,                         // (optional) shown right after the presidents
 }
 ```
 
 Both flags false = regular tile in "The full team" row. When someone leaves,
-set `formerMember: true` instead of deleting.
+set `formerMember: true` instead of deleting. Former members who should stay
+visible get `alumni: true` instead: their role line reads "Alumni" (unless
+`position` is set), their card moves to the very end, and on /team the city
+line reads "Munich | Alumni" and the "Alumni" filter shows them. `alumni`
+overrides `president`/`teamLead`; `formerMember` still hides the person.
+
+Order on /team and the city pages: presidents → founders (`founder: true`,
+also as alumni) → team leads → everyone else → alumni.
 
 ---
 

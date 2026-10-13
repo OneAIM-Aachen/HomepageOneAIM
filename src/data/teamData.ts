@@ -15,6 +15,9 @@
 // ║                                                                          ║
 // ║  LEAVING: do not delete anyone – set formerMember: true. The person      ║
 // ║  disappears from the page but is kept as history.                        ║
+// ║  ALUMNI: former members who should stay visible get alumni: true         ║
+// ║  instead – role line "Alumni", shown at the very end.                    ║
+// ║  FOUNDERS: founder: true → shown right after the presidents.             ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 
 import type { CitySlug } from "./cityData";
@@ -45,6 +48,15 @@ export interface TeamMember {
    * alumni section), but does not appear on any location page.
    */
   formerMember?: boolean;
+  /**
+   * true = alumnus who stays visible: role line "Alumni" (unless `position`
+   * is set), shown at the very end; on /team the city line reads
+   * "<City> | Alumni". Overrides president/teamLead; formerMember: true
+   * still hides the person.
+   */
+  alumni?: boolean;
+  /** true = (co-)founder – shown right after the presidents, also as alumnus. */
+  founder?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -203,6 +215,16 @@ export const teamMembers: TeamMember[] = [
   // ── Munich – Marketing ─────────────────────────────────────────────────
   { name: "Jeanette Luu", team: "Marketing", teamLead: false, president: false, city: "munich" },
 
+  // ── Munich – Alumni ────────────────────────────────────────────────────
+  { name: "Matthias Lutz", team: "Board", teamLead: false, president: false, city: "munich", alumni: true, founder: true,
+    position: "Co-Founder OneAIM",
+    linkedIn: "https://www.linkedin.com/in/matthias-lutz",
+    photo: "/images/team/matthias-lutz.jpg" },
+  { name: "Finn Kosina",   team: "Board", teamLead: false, president: false, city: "munich", alumni: true, founder: true,
+    position: "Co-Founder OneAIM",
+    linkedIn: "https://www.linkedin.com/in/finn-kosina/",
+    photo: "/images/team/finn-kosina.jpg" },
+
   // ── Aachen – Board ─────────────────────────────────────────────────────
   { name: "Lucas Gildehaus", team: "Board", teamLead: false, president: true, city: "aachen", linkedIn: "https://www.linkedin.com/in/lucas-gildehaus-0b3bba291/",
     photo: "/images/team/lucas-gildehaus.jpg" },
@@ -272,7 +294,7 @@ export const teamMembers: TeamMember[] = [
  * within the groups the order of the array is preserved.
  */
 export function getActiveMembers(): TeamMember[] {
-  const active = teamMembers.filter(m => !m.formerMember);
+  const active = teamMembers.filter(m => !m.formerMember && !m.alumni);
   return [
     ...active.filter(m => m.president),
     ...active.filter(m => m.teamLead && !m.president),
@@ -280,9 +302,36 @@ export function getActiveMembers(): TeamMember[] {
   ];
 }
 
-/** All ACTIVE members of a location – former members are filtered out. */
+/**
+ * Display order on /team and the location pages:
+ * presidents → founders → team leads → everyone else → alumni.
+ */
+const displayRank = (m: TeamMember): number =>
+  m.president && !m.alumni ? 0
+  : m.founder              ? 1
+  : m.alumni               ? 4
+  : m.teamLead             ? 2
+  : 3;
+
+/**
+ * All VISIBLE members org-wide (active members and alumni) in display
+ * order – for the team page (/team). Within the groups the order of the
+ * array is preserved.
+ */
+export function getVisibleMembers(): TeamMember[] {
+  return teamMembers
+    .filter(m => !m.formerMember)
+    .sort((a, b) => displayRank(a) - displayRank(b));
+}
+
+/** All VISIBLE members of a location in display order – for the team row. */
+export function getVisibleMembersByCity(city: CitySlug): TeamMember[] {
+  return getVisibleMembers().filter(m => m.city === city);
+}
+
+/** All ACTIVE members of a location – former members and alumni are filtered out. */
 export function getTeamByCity(city: CitySlug): TeamMember[] {
-  return teamMembers.filter(m => m.city === city && !m.formerMember);
+  return teamMembers.filter(m => m.city === city && !m.formerMember && !m.alumni);
 }
 
 /** Former members of a location – for a future alumni section. */

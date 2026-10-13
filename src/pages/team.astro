@@ -6,7 +6,8 @@
 //
 // Everything fills itself automatically from the databases:
 //   • teamData.ts – the members (formerMember is filtered out;
-//     presidents first, then team leads, then all others)
+//     presidents first, then founders, then team leads, then all
+//     others, alumni last)
 //   • cityData.ts – the city pills and the city counter
 //
 // As long as teamData.ts is empty, the grid shows placeholder tiles.
@@ -17,23 +18,26 @@
 // whatever does not match via `hidden`.
 
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { getActiveMembers, type TeamMember } from "../data/teamData";
+import { getVisibleMembers, type TeamMember } from "../data/teamData";
 import { cities, cityData } from "../data/cityData";
 
-const members = getActiveMembers();
+const members = getVisibleMembers();
+const hasAlumni = members.some(m => m.alumni);
 
 // Position line as on the city pages (CityTeamCarousel):
-// President → "President | Team", Team Lead → "Team Lead | Team", otherwise Team.
+// President → "President | Team", Team Lead → "Team Lead | Team",
+// Alumni → "Alumni", otherwise Team.
 // A set `position` field completely overrides the derivation.
 const roleLine = (m: TeamMember): string =>
   m.position
-  ?? (m.president ? `President | ${m.team}`
+  ?? (m.alumni ? "Alumni"
+    : m.president ? `President | ${m.team}`
     : m.teamLead ? `Team Lead | ${m.team}`
     : m.team);
 
 // Role slug for the role filter.
 const roleOf = (m: TeamMember): string =>
-  m.president ? "president" : m.teamLead ? "lead" : "member";
+  m.alumni ? "alumni" : m.president ? "president" : m.teamLead ? "lead" : "member";
 
 // Initials as a photo substitute, e.g. "Lucas Gildehaus" → "LG".
 const initials = (name: string): string =>
@@ -45,10 +49,11 @@ const tiles = members.map(m => ({
   cityName:  cityData[m.city].displayName,
   citySlug:  m.city,
   role:      roleOf(m),
+  alumni:    m.alumni,
   photo:     m.photo,
   initials:  initials(m.name),
   linkedIn:  m.linkedIn,
-  search:    `${m.name} ${roleLine(m)}`.toLowerCase(),
+  search:    `${m.name} ${roleLine(m)}${m.alumni ? " alumni" : ""}`.toLowerCase(),
 }));
 
 const hasMembers = tiles.length > 0;
@@ -87,6 +92,9 @@ const hasMembers = tiles.length > 0;
               <button type="button" class="team-page__pill team-page__pill--role" data-role-pill="president">Presidents</button>
               <button type="button" class="team-page__pill team-page__pill--role" data-role-pill="lead">Team leads</button>
               <button type="button" class="team-page__pill team-page__pill--role" data-role-pill="member">Members</button>
+              {hasAlumni && (
+                <button type="button" class="team-page__pill team-page__pill--role" data-role-pill="alumni">Alumni</button>
+              )}
             </div>
           </div>
           <div class="team-page__toolbar-right">
@@ -138,7 +146,7 @@ const hasMembers = tiles.length > 0;
                 <div class="team-page__meta">
                   <div class="team-page__name">{t.name}</div>
                   <div class="team-page__position">{t.position}</div>
-                  <div class="team-page__city">{t.cityName}</div>
+                  <div class="team-page__city">{t.cityName}{t.alumni && " | Alumni"}</div>
                 </div>
               </div>
             ))}
