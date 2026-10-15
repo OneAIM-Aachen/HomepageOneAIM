@@ -1,6 +1,6 @@
 // src/data/teamData.ts
 //
-// ╔═══════════════════════════════════════════════════════════════[...]
+// ╔══════════════════════════════════════════════════════════════════════════╗
 // ║  CENTRAL TEAM DATABASE – all locations in one array.                     ║
 // ║                                                                          ║
 // ║  ADDING A NEW MEMBER – two steps:                                        ║
@@ -18,7 +18,7 @@
 // ║  ALUMNI: former members who should stay visible get alumni: true         ║
 // ║  instead – role line "Alumni", shown at the very end.                    ║
 // ║  FOUNDERS: founder: true → shown right after the presidents.             ║
-// ╚═══════════════════════════════════════════════════════════════[...]
+// ╚══════════════════════════════════════════════════════════════════════════╝
 
 import type { CitySlug } from "./cityData";
 
@@ -59,7 +59,7 @@ export interface TeamMember {
   founder?: boolean;
 }
 
-// ────────────────────────────────────────────────────────────────[...]
+// ─────────────────────────────────────────────────────────────────────────────
 // Members
 //
 // Still empty – as long as nothing is listed here, the location pages show
@@ -74,7 +74,7 @@ export interface TeamMember {
 //     photo:     "/images/team/lucas-gildehaus.png",
 //     linkedIn:  "https://www.linkedin.com/in/…",
 //   },
-// ────────────────────────────────────────────────────────────────[...]
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const teamMembers: TeamMember[] = [
 
@@ -125,7 +125,7 @@ export const teamMembers: TeamMember[] = [
    },
   { name: "Daniel Centelles Steiger", team: "AIM Connect", teamLead: false, president: false, city: "munich",
     linkedIn: "https://www.linkedin.com/in/daniel-centelles-steiger-b8725a245",
-    photo: "/images/team/daniel--steiger.jpeg"
+    photo: "/images/team/daniel-steiger.jpeg"
   },
   { name: "Denisa Pitzl",            team: "AIM Connect", teamLead: false, president: false, city: "munich",
     linkedIn: "https://www.linkedin.com/in/denisa-pitzl-24aa02222",
@@ -295,7 +295,7 @@ export const teamMembers: TeamMember[] = [
   // ── Frankfurt – Founding team ──────────────────────────────────────────
   { name: "Medi Bergmann",       team: "Board", teamLead: false, president: true, city: "frankfurt", linkedIn: "https://www.linkedin.com/in/medi-bergmann-305644250",
     photo: "/images/team/medi-bergmann.jpg" },
-  { name: "Maximilian Pfeiffer", team: "Marketing", teamLead: true, president: false, city: "frankfurt", position: "Vice-President | Marketing", linkedIn: "https://www.linkedin.com/in/maximilian-pfeiffer-6a2b0b1b6/",
+  { name: "Maximilian Pfeiffer", team: "Marketing", teamLead: true, president: false, city: "frankfurt", position: "Vice-President | Marketing", linkedIn: "https://www.linkedin.com/in/maximilian-pfeiffer-52576a1bb/",
     photo: "/images/team/maximilian-pfeiffer.jpg" },
   { name: "Paul Rössler",        team: "Community & Recruiting", teamLead: true, president: false, city: "frankfurt", linkedIn: "https://www.linkedin.com/in/paul-r%C3%B6ssler-925b301b7",
     photo: "/images/team/paul-roessler.jpg" },
@@ -307,9 +307,9 @@ export const teamMembers: TeamMember[] = [
     photo: "/images/team/justus-fricke.jpg" },
 ];
 
-// ────────────────────────────────────────────────────────────────[...]
+// ─────────────────────────────────────────────────────────────────────────────
 // Derived lists
-// ────────────────────────────────────────────────────────────────[...]
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * All ACTIVE members org-wide – for the team page (/team).
