@@ -11,7 +11,7 @@
 //                       Sprints / Capability Building), detail box
 //                       below; changes only on click (no auto-rotation)
 //                       The AIMcubate box (pillar 01) also holds the batch
-//                       roadmap: three phases with milestones (`roadmap`)
+//                       roadmap: phases with milestones (`roadmap`)
 //   ④ Applications    – ONE card per location from applications.ts
 //                       (taken over from the old AIM Innovate page)
 //   ⑤ FAQ             – AIMcubate questions, accordion in the style of the
@@ -69,38 +69,28 @@ const news = getNewsByProgram("aim-innovate", 3);
 //   gate:      pill below the item (quality gates); winner: dark pill
 // detailTitle / detail: text box that appears below the timeline when the
 // phase header is clicked.
+// tone: color of the phase's bar/border (1 = dark blue → purple,
+// 2 = light purple, 3 = purple → dark blue), independent of its position.
+// The number of columns follows the number of phases automatically.
 type RoadmapItem = { title: string; week?: string; milestone?: boolean; gate?: string; winner?: string };
-const roadmap: { phase: string; title: string; when: string; detailTitle: string; detail: string; items: RoadmapItem[] }[] = [
+const roadmap: { phase: string; title: string; when: string; tone: 1 | 2 | 3; detailTitle: string; detail: string; items: RoadmapItem[] }[] = [
   {
-    phase: "Phase 1", title: "Scoping Hackathon", when: "Week 0 · 2 days",
-    detailTitle: "Phase 1 · Scoping Hackathon · 2 days",
-    detail:
-      "You scope your challenge precisely and develop a solution approach. At the end, " +
-      "your team pitches the approach, a roadmap, and the business opportunity behind it. " +
-      "No prototype is built at this stage.",
-    items: [
-      { title: "Kick-off weekend & Scoping Hackathon", week: "Week 0", milestone: true,
-        gate: "Quality Gate 1 · 2 per challenge + open track advance" },
-    ],
-  },
-  {
-    phase: "Phase 2", title: "Primary Phase", when: "Weeks 1–5",
-    detailTitle: "Phase 2 · Primary Phase · 5 weeks",
+    phase: "Phase 1", title: "Primary Phase", when: "Weeks 1–5", tone: 2,
+    detailTitle: "Phase 1 · Primary Phase · 5 weeks",
     detail:
       "You work on an industry challenge week by week. Workshops on healthcare systems, " +
       "regulation, funding, and pitching support you, along with a weekly check-in with " +
       "industry partners. The phase closes with the Midterm Pitch.",
     items: [
-      { title: "Onboarding & iteration workshop", week: "Week 1" },
+      { title: "Onboarding & Scoping Hackathon",  week: "Week 1" },
       { title: "Roast session #1",                week: "Week 2" },
       { title: "Workshop 1: Regulation",          week: "Week 3" },
-      { title: "Midterm Pitch",                   week: "Week 5",
-        gate: "Quality Gate 2 · 1 per challenge + open track advance" },
+      { title: "Midterm Pitch",                   week: "Week 5" },
     ],
   },
   {
-    phase: "Phase 3", title: "Final Phase", when: "Weeks 6–10",
-    detailTitle: "Phase 3 · Final Phase · 5 weeks",
+    phase: "Phase 2", title: "Final Phase", when: "Weeks 6–10", tone: 3,
+    detailTitle: "Phase 2 · Final Phase · 5 weeks",
     detail:
       "You deepen and validate your concept and prepare the final deliverable. " +
       "The culmination is the Final Pitch.",
@@ -292,10 +282,10 @@ const faqs: { q: string; a: string }[] = [
                 <p class="acv__roadmap-hint">Click on a phase to see what happens in it.</p>
               </div>
 
-              <div class="acv__phases">
+              <div class="acv__phases" style={`--phase-count: ${roadmap.length}`}>
                 {roadmap.map((ph, i) => (
                   <>
-                  <div class={`acv__phase acv__phase--${i + 1}`}>
+                  <div class={`acv__phase acv__phase--col-${i + 1} acv__phase--tone-${ph.tone}`}>
                     <!-- Phase header = button: toggles the text box of this phase -->
                     <h3 class="acv__phase-heading">
                       <button type="button" class="acv__phase-head" data-phase={String(i)}
@@ -324,7 +314,7 @@ const faqs: { q: string; a: string }[] = [
 
                   <!-- Text box of the phase: desktop below the whole timeline,
                        mobile directly below its phase (DOM order) -->
-                  <div class={`acv__phase-detail acv__phase-detail--${i + 1}`}
+                  <div class={`acv__phase-detail acv__phase-detail--tone-${ph.tone}`}
                     id={`acv-phase-detail-${i}`} data-phase-detail={String(i)} hidden>
                     <p class="acv__phase-detail-title">{ph.detailTitle}</p>
                     <p class="acv__phase-detail-text">{ph.detail}</p>
@@ -810,7 +800,7 @@ const faqs: { q: string; a: string }[] = [
 
   .acv__phases {
     display:               grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--phase-count, 3), minmax(0, 1fr));
     gap:                   clamp(var(--space-6), 3vw, 40px);
   }
 
@@ -819,9 +809,9 @@ const faqs: { q: string; a: string }[] = [
   /* Desktop: phases side by side in row 1, the open text box full width
      in row 2 (below the timeline). Mobile: auto placement, so each box
      sits right below its phase. */
-  .acv__phase--1 { grid-column: 1; grid-row: 1; }
-  .acv__phase--2 { grid-column: 2; grid-row: 1; }
-  .acv__phase--3 { grid-column: 3; grid-row: 1; }
+  .acv__phase--col-1 { grid-column: 1; grid-row: 1; }
+  .acv__phase--col-2 { grid-column: 2; grid-row: 1; }
+  .acv__phase--col-3 { grid-column: 3; grid-row: 1; }
   .acv__phase-detail { grid-column: 1 / -1; grid-row: 2; }
 
   .acv__phase-heading { margin: 0; font: inherit; }
@@ -895,9 +885,9 @@ const faqs: { q: string; a: string }[] = [
   /* Open phase: white card, border in the phase color, arrow filled and
      turned (no size change, so the three timelines stay aligned) */
   .acv__phase-head[aria-expanded="true"] { background: #fff; }
-  .acv__phase--1 .acv__phase-head[aria-expanded="true"] { border-color: #232ACF; }
-  .acv__phase--2 .acv__phase-head[aria-expanded="true"] { border-color: #A98BF7; }
-  .acv__phase--3 .acv__phase-head[aria-expanded="true"] { border-color: var(--color-accent-purple); }
+  .acv__phase--tone-1 .acv__phase-head[aria-expanded="true"] { border-color: #232ACF; }
+  .acv__phase--tone-2 .acv__phase-head[aria-expanded="true"] { border-color: #A98BF7; }
+  .acv__phase--tone-3 .acv__phase-head[aria-expanded="true"] { border-color: var(--color-accent-purple); }
 
   .acv__phase-head[aria-expanded="true"] .acv__phase-chev {
     background: var(--color-brand-blue);
@@ -924,9 +914,9 @@ const faqs: { q: string; a: string }[] = [
   .acv__phase-detail-text  { font-size: 15px; line-height: 1.7; color: var(--color-text-body); max-width: 860px; }
 
   /* Small marker in the phase's color on the left of the box */
-  .acv__phase-detail--1 { box-shadow: inset 4px 0 0 #232ACF; }
-  .acv__phase-detail--2 { box-shadow: inset 4px 0 0 #A98BF7; }
-  .acv__phase-detail--3 { box-shadow: inset 4px 0 0 var(--color-accent-purple); }
+  .acv__phase-detail--tone-1 { box-shadow: inset 4px 0 0 #232ACF; }
+  .acv__phase-detail--tone-2 { box-shadow: inset 4px 0 0 #A98BF7; }
+  .acv__phase-detail--tone-3 { box-shadow: inset 4px 0 0 var(--color-accent-purple); }
 
   .acv__phase-label {
     font-size:      13px;
@@ -947,9 +937,9 @@ const faqs: { q: string; a: string }[] = [
     margin-top:    16px;
   }
 
-  .acv__phase--1 .acv__phase-bar { background: linear-gradient(90deg, #232ACF, var(--color-accent-purple)); }
-  .acv__phase--2 .acv__phase-bar { background: linear-gradient(90deg, #A98BF7, #C7B5FA); }
-  .acv__phase--3 .acv__phase-bar { background: linear-gradient(90deg, var(--color-accent-purple), #232ACF); }
+  .acv__phase--tone-1 .acv__phase-bar { background: linear-gradient(90deg, #232ACF, var(--color-accent-purple)); }
+  .acv__phase--tone-2 .acv__phase-bar { background: linear-gradient(90deg, #A98BF7, #C7B5FA); }
+  .acv__phase--tone-3 .acv__phase-bar { background: linear-gradient(90deg, var(--color-accent-purple), #232ACF); }
 
   /* Items with a vertical line and dots on the left */
   .acv__phase-items {
@@ -1185,7 +1175,7 @@ const faqs: { q: string; a: string }[] = [
     .acv__skill-detail { grid-template-columns: minmax(0, 1fr); }
     .acv__apply-grid { grid-template-columns: minmax(0, 1fr); }
     .acv__phases { grid-template-columns: minmax(0, 1fr); gap: var(--space-10, 40px); }
-    .acv__phase--1, .acv__phase--2, .acv__phase--3,
+    .acv__phase--col-1, .acv__phase--col-2, .acv__phase--col-3,
     .acv__phase-detail { grid-column: auto; grid-row: auto; }
     .acv__phase-detail:not([hidden]) { margin-top: calc(-1 * var(--space-6)); }
   }
