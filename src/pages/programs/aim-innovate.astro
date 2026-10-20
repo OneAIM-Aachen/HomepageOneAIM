@@ -7,12 +7,16 @@
 // Bands:
 //   ① Hero            – light blue band, photo on the right, "New" pill, CTA
 //   ② What it is      – two columns: heading + two paragraphs
-//   ③ Three pillars   – three interactive cards (Capability Building /
-//                       Creation Sprints / Start-up Incubation), detail box
-//                       below; rotates every 6 s, a click takes over
+//   ③ Three pillars   – three interactive cards (AIMcubate / Creation
+//                       Sprints / Capability Building), detail box
+//                       below; changes only on click (no auto-rotation)
+//                       The AIMcubate box (pillar 01) also holds the batch
+//                       roadmap: phases with milestones (`roadmap`)
 //   ④ Applications    – ONE card per location from applications.ts
 //                       (taken over from the old AIM Innovate page)
-//   ⑤ News            – latest posts with programs: ["aim-innovate"]
+//   ⑤ FAQ             – AIMcubate questions, accordion in the style of the
+//                       AIM Connect page (aim-connect.astro, "acp__faq")
+//   ⑥ News            – latest posts with programs: ["aim-innovate"]
 
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import ApplicationCard from "../../components/ApplicationCard.astro";
@@ -57,6 +61,62 @@ const skills = [
 // ── News ───────────────────────────────────────────────────────────────
 const newsDateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" });
 const news = getNewsByProgram("aim-innovate", 3);
+
+// ── Roadmap (AIMcubate batch, 10 weeks) ──────────────────────────────────
+// One entry per phase, items in display order.
+//   week:      label below the title (optional)
+//   milestone: true = filled dot (key events), otherwise a hollow dot
+//   gate:      pill below the item (quality gates); winner: dark pill
+// detailTitle / detail: text box that appears below the timeline when the
+// phase header is clicked.
+// tone: color of the phase's bar/border (1 = dark blue → purple,
+// 2 = light purple, 3 = purple → dark blue), independent of its position.
+// The number of columns follows the number of phases automatically.
+type RoadmapItem = { title: string; week?: string; milestone?: boolean; gate?: string; winner?: string };
+const roadmap: { phase: string; title: string; when: string; tone: 1 | 2 | 3; detailTitle: string; detail: string; items: RoadmapItem[] }[] = [
+  {
+    phase: "Phase 1", title: "Primary Phase", when: "Weeks 1–5", tone: 2,
+    detailTitle: "Phase 1 · Primary Phase · 5 weeks",
+    detail:
+      "You work on an industry challenge week by week. Workshops on healthcare systems, " +
+      "regulation, funding, and pitching support you, along with a weekly check-in with " +
+      "industry partners. The phase closes with the Midterm Pitch.",
+    items: [
+      { title: "Onboarding & Scoping Hackathon",  week: "Week 1" },
+      { title: "Roast session #1",                week: "Week 2" },
+      { title: "Workshop 1: Regulation",          week: "Week 3" },
+      { title: "Midterm Pitch",                   week: "Week 5" },
+    ],
+  },
+  {
+    phase: "Phase 2", title: "Final Phase", when: "Weeks 6–10", tone: 3,
+    detailTitle: "Phase 2 · Final Phase · 5 weeks",
+    detail:
+      "You deepen and validate your concept and prepare the final deliverable. " +
+      "The culmination is the Final Pitch.",
+    items: [
+      { title: "Workshop 2: Pitching",             week: "Week 6" },
+      { title: "Christmas Sprint" },
+      { title: "Roast session #2",                 week: "Week 7" },
+      { title: "Workshop 3: Start-up & Funding",   week: "Week 8" },
+      { title: "Final Pitch",                      week: "Week 10", milestone: true, winner: "Winner" },
+    ],
+  },
+];
+
+// ── FAQ (AIMcubate) – one entry per question, order = display order ──────
+const faqs: { q: string; a: string }[] = [
+  { q: "Can I take part in both the open track and a challenge track?",
+    a: "No. Each track works on its own challenge, so you choose one path and commit to it fully." },
+  { q: "Can I keep working on my project after the program ends?",
+    a: "Yes, and we strongly encourage teams to keep building their startup beyond the program." },
+  { q: "Can I join remotely?",
+    a: "No. AIMcubate takes place entirely in person in Munich." },
+  { q: "Do I need prior founding experience?",
+    a: "No. Experience helps, but AIMcubate is designed for first-time founders who want to learn by building." },
+  { q: "Who owns the equity?",
+    a: "The team that builds the startup keeps all of it." },
+];
 ---
 
 <BaseLayout
@@ -82,11 +142,12 @@ const news = getNewsByProgram("aim-innovate", 3);
               startup. The extension of two successful AIM Innovate batches.
             </p>
             <div class="acv__hero-actions">
-              <a class="acv__btn" href="#apply">Get involved</a>
-              <span class="acv__hero-chip">
-                <span class="acv__hero-dot" aria-hidden="true"></span>
-                First implementation: Munich
-              </span>
+              <!-- Jumps to "Open applications"; the form link (Tally) sits on the
+                   Munich card there, from applications.ts -->
+              <a class="acv__btn" href="#apply">Apply now!</a>
+              <!-- Opens the "Start-up Incubation" pillar (AIMcubate, "From idea
+                   to venture") and scrolls to it, see the script below. -->
+              <a class="acv__btn acv__btn--secondary" href="#incubation" data-open-pillar="0">How it works</a>
             </div>
           </div>
           <img
@@ -132,33 +193,136 @@ const news = getNewsByProgram("aim-innovate", 3);
           </div>
 
           <div class="acv__pillar-grid">
-            <button type="button" class="acv__pillar acv__pillar--cap is-active" data-pillar="0" aria-pressed="true">
-              <span class="acv__pillar-num acv__pillar-num--blue">01</span>
-              <span class="acv__pillar-title">Capability Building</span>
-              <span class="acv__pillar-text">
-                A curated series of workshops and educational formats covering
-                HealthTech, entrepreneurship, innovation, venture building, and
-                regulation.
+            <button type="button" class="acv__pillar acv__pillar--inc is-active" data-pillar="0" aria-pressed="true">
+              <span class="acv__pillar-toprow">
+                <span class="acv__pillar-num acv__pillar-num--magenta">01</span>
+                <span class="acv__soon">Coming soon</span>
               </span>
-              <span class="acv__pillar-cta acv__pillar-cta--blue" data-pillar-label="0"
-                data-active-label="Showing below ↓" data-idle-label="Explore the capabilities ↓">Showing below ↓</span>
+              <span class="acv__pillar-title">AIMcubate: The HealthTech Incubation Programme</span>
+              <span class="acv__pillar-text">
+                Through strategic partnerships and hands-on programs, we empower
+                teams to work on real-world healthcare challenges and transform
+                promising ideas into impactful HealthTech ventures.
+              </span>
+              <span class="acv__pillar-cta acv__pillar-cta--magenta" data-pillar-label="0"
+                data-active-label="Showing below ↓" data-idle-label="See how we incubate ↓">Showing below ↓</span>
             </button>
 
-          <!-- Detail: Capability Building -->
-          <div class="acv__detail" data-pillar-panel="0">
-            <p class="acv__detail-label acv__detail-label--blue">The capabilities we build</p>
-            <div class="acv__skill-pills">
-              {skills.map((s, i) => (
-                <button type="button" class={`acv__skill-pill ${i === 0 ? "is-active" : ""}`} data-skill={String(i)} aria-pressed={i === 0 ? "true" : "false"}>{s.pill}</button>
-              ))}
+          <!-- Detail: AIMcubate (Start-up Incubation) – target of "How it works" -->
+          <div class="acv__detail" id="incubation" data-pillar-panel="0">
+            <div class="acv__detail-labelrow">
+              <p class="acv__detail-label acv__detail-label--magenta">From idea to venture</p>
+              <span class="acv__soon">Coming soon</span>
             </div>
-            <div class="acv__skill-detail">
-              <div class="acv__skill-copy">
-                <p class="acv__skill-title" data-skill-title>{skills[0].title}</p>
-                <p class="acv__skill-desc" data-skill-desc>{skills[0].desc}</p>
+            <div class="acv__skill-copy acv__skill-copy--wide">
+              <p class="acv__skill-title">Incubating HealthTech ventures</p>
+              <p class="acv__skill-desc">
+                Healthcare presents countless opportunities for meaningful
+                innovation, yet turning promising ideas into viable solutions
+                remains particularly challenging. Building in HealthTech requires
+                medical, technological, and entrepreneurial expertise that rarely
+                comes together naturally, while complex regulation, limited access
+                to networks, and the demands of early-stage execution create real
+                barriers. AIMcubate brings together students from different
+                backgrounds to work on real-world healthcare challenges with
+                partners in the field.
+              </p>
+
+              <!-- AIMcubate in four steps: bold, colored lead-in + paragraph -->
+              <div class="acv__inc-steps">
+                <div class="acv__inc-step">
+                  <p class="acv__inc-step-title">Start with a challenge. Or bring your own.</p>
+                  <p class="acv__skill-desc">
+                    Some teams begin with a real healthcare challenge brought into
+                    the program by our partners. Others bring their own HealthTech
+                    idea through our open track. What matters is not where you
+                    start, but the ambition to build something worth taking forward.
+                  </p>
+                </div>
+                <div class="acv__inc-step">
+                  <p class="acv__inc-step-title">From potential to something real.</p>
+                  <p class="acv__skill-desc">
+                    In 10 weeks, interdisciplinary teams turn early ideas into
+                    advanced HealthTech projects. You explore the problem, build and
+                    iterate on your solution, develop a viable path forward, and
+                    continuously put your assumptions to the test.
+                  </p>
+                </div>
+                <div class="acv__inc-step">
+                  <p class="acv__inc-step-title">Built by teams. Backed by an ecosystem.</p>
+                  <p class="acv__skill-desc">
+                    Founders, healthcare experts, mentors, and challenge partners
+                    bring the expertise, feedback, and connections you need at the
+                    moments that matter, while your team stays responsible for
+                    building and driving the venture forward.
+                  </p>
+                </div>
+                <div class="acv__inc-step">
+                  <p class="acv__inc-step-title">Ready for what comes next.</p>
+                  <p class="acv__skill-desc">
+                    The goal is not to leave with another student project. You
+                    finish with an advanced solution, a clearer path to validation,
+                    and the foundations needed to take the next step toward building
+                    a real HealthTech venture.
+                  </p>
+                </div>
               </div>
-              <div class="acv__skill-img" data-skill-img style={`background-image:url('${skills[0].img}')`}></div>
+
+              <p class="acv__inc-closing">
+                The program ends after 10 weeks. The venture should not.
+              </p>
             </div>
+
+            <!-- Roadmap – AIMcubate batch timeline (data: `roadmap` above); part of
+                 the AIMcubate box, so it only shows while pillar 01 is open -->
+            <section class="acv__roadmap" aria-labelledby="acv-roadmap">
+              <div class="acv__roadmap-head">
+                <p class="acv__overline">The batch · 10 weeks</p>
+                <h2 id="acv-roadmap" class="acv__h2 acv__h2--blue acv__roadmap-title">Your roadmap to the final pitch</h2>
+                <p class="acv__roadmap-hint">Click on a phase to see what happens in it.</p>
+              </div>
+
+              <div class="acv__phases" style={`--phase-count: ${roadmap.length}`}>
+                {roadmap.map((ph, i) => (
+                  <>
+                  <div class={`acv__phase acv__phase--col-${i + 1} acv__phase--tone-${ph.tone}`}>
+                    <!-- Phase header = button: toggles the text box of this phase -->
+                    <h3 class="acv__phase-heading">
+                      <button type="button" class="acv__phase-head" data-phase={String(i)}
+                        aria-expanded="false" aria-controls={`acv-phase-detail-${i}`}>
+                        <span class="acv__phase-label">{ph.phase}</span>
+                        <span class="acv__phase-title">{ph.title}</span>
+                        <span class="acv__phase-when">{ph.when}</span>
+                        <span class="acv__phase-chev" aria-hidden="true">↓</span>
+                        <span class="acv__phase-cta" data-phase-cta
+                          data-open-label="Hide details" data-closed-label="Show details">Show details</span>
+                        <span class="acv__phase-bar" aria-hidden="true"></span>
+                      </button>
+                    </h3>
+                    <ol class="acv__phase-items">
+                      {ph.items.map(it => (
+                        <li class={`acv__phase-item ${it.milestone ? "acv__phase-item--milestone" : ""}`}>
+                          <span class="acv__phase-dot" aria-hidden="true"></span>
+                          <p class="acv__phase-item-title">{it.title}</p>
+                          {it.week && <p class="acv__phase-week">{it.week}</p>}
+                          {it.gate && <span class="acv__phase-pill">{it.gate}</span>}
+                          {it.winner && <span class="acv__phase-pill acv__phase-pill--winner">{it.winner}</span>}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+
+                  <!-- Text box of the phase: desktop below the whole timeline,
+                       mobile directly below its phase (DOM order) -->
+                  <div class={`acv__phase-detail acv__phase-detail--tone-${ph.tone}`}
+                    id={`acv-phase-detail-${i}`} data-phase-detail={String(i)} hidden>
+                    <p class="acv__phase-detail-title">{ph.detailTitle}</p>
+                    <p class="acv__phase-detail-text">{ph.detail}</p>
+                  </div>
+                  </>
+                ))}
+              </div>
+            </section>
           </div>
 
             <button type="button" class="acv__pillar acv__pillar--sprint" data-pillar="1" aria-pressed="false">
@@ -189,35 +353,32 @@ const news = getNewsByProgram("aim-innovate", 3);
             </div>
           </div>
 
-            <button type="button" class="acv__pillar acv__pillar--inc" data-pillar="2" aria-pressed="false">
-              <span class="acv__pillar-toprow">
-                <span class="acv__pillar-num acv__pillar-num--magenta">03</span>
-                <span class="acv__soon">Coming soon</span>
-              </span>
-              <span class="acv__pillar-title">Start-up Incubation</span>
+            <button type="button" class="acv__pillar acv__pillar--cap" data-pillar="2" aria-pressed="false">
+              <span class="acv__pillar-num acv__pillar-num--blue">03</span>
+              <span class="acv__pillar-title">Capability Building</span>
               <span class="acv__pillar-text">
-                Through strategic partnerships and hands-on programs, we empower
-                teams to work on real-world healthcare challenges and transform
-                promising ideas into impactful HealthTech ventures.
+                A curated series of workshops and educational formats covering
+                HealthTech, entrepreneurship, innovation, venture building, and
+                regulation.
               </span>
-              <span class="acv__pillar-cta acv__pillar-cta--magenta" data-pillar-label="2"
-                data-active-label="Showing below ↓" data-idle-label="See how we incubate ↓">See how we incubate ↓</span>
+              <span class="acv__pillar-cta acv__pillar-cta--blue" data-pillar-label="2"
+                data-active-label="Showing below ↓" data-idle-label="Explore the capabilities ↓">Explore the capabilities ↓</span>
             </button>
 
-          <!-- Detail: Start-up Incubation -->
+          <!-- Detail: Capability Building -->
           <div class="acv__detail" data-pillar-panel="2" hidden>
-            <div class="acv__detail-labelrow">
-              <p class="acv__detail-label acv__detail-label--magenta">From idea to venture</p>
-              <span class="acv__soon">Coming soon</span>
+            <p class="acv__detail-label acv__detail-label--blue">The capabilities we build</p>
+            <div class="acv__skill-pills">
+              {skills.map((s, i) => (
+                <button type="button" class={`acv__skill-pill ${i === 0 ? "is-active" : ""}`} data-skill={String(i)} aria-pressed={i === 0 ? "true" : "false"}>{s.pill}</button>
+              ))}
             </div>
-            <div class="acv__skill-copy acv__skill-copy--wide">
-              <p class="acv__skill-title">Incubating HealthTech ventures</p>
-              <p class="acv__skill-desc">
-                Teams work on real-world healthcare challenges together with our
-                partners, with mentoring and hands-on programs that carry
-                promising ideas from first concept to an impactful HealthTech
-                venture. The incubation program launches soon: stay tuned.
-              </p>
+            <div class="acv__skill-detail">
+              <div class="acv__skill-copy">
+                <p class="acv__skill-title" data-skill-title>{skills[0].title}</p>
+                <p class="acv__skill-desc" data-skill-desc>{skills[0].desc}</p>
+              </div>
+              <div class="acv__skill-img" data-skill-img style={`background-image:url('${skills[0].img}')`}></div>
             </div>
           </div>
           </div>
@@ -235,12 +396,31 @@ const news = getNewsByProgram("aim-innovate", 3);
           </div>
           <div class="acv__apply-grid">
             {cities.filter(c => c.showInnovate).map(city => (
-              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-innovate" hideEmptyCta />
+              <ApplicationCard city={city.slug} cityName={city.displayName} program="aim-innovate" hideEmptyCta directApply />
             ))}
           </div>
         </section>
 
-        <!-- ⑤ News – automatically from newsData.ts (programs: ["aim-innovate"]) -->
+        <!-- ⑤ FAQ – same accordion as on the AIM Connect page -->
+        <section class="acv__faq" aria-labelledby="acv-faq">
+          <div class="acv__faq-head">
+            <p class="acv__overline">FAQ</p>
+            <h2 id="acv-faq" class="acv__h2">Frequently asked questions</h2>
+          </div>
+          <div class="acv__faq-list">
+            {faqs.map(faq => (
+              <details class="acv__faq-item">
+                <summary>
+                  <span>{faq.q}</span>
+                  <span class="acv__faq-chev" aria-hidden="true">↓</span>
+                </summary>
+                <p>{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <!-- ⑥ News – automatically from newsData.ts (programs: ["aim-innovate"]) -->
         <section class="acv__news" aria-labelledby="acv-news">
           <div class="acv__news-head">
             <div>
@@ -344,6 +524,15 @@ const news = getNewsByProgram("aim-innovate", 3);
   .acv__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
   .acv__btn--sm { font-size: 14px; padding: 11px 24px; }
 
+  /* Secondary hero button ("How it works"): white pill with blue text */
+  .acv__btn--secondary {
+    background: rgba(255, 255, 255, 0.85);
+    color:      #232ACF;
+    box-shadow: inset 0 0 0 2px rgba(35, 42, 207, 0.18);
+  }
+
+  .acv__btn--secondary:hover { background: #fff; color: #232ACF; }
+
   /* ── ① Hero ───────────────────────────────────────────────── */
   .acv__hero {
     background:            #C9D8FF;
@@ -436,6 +625,10 @@ const news = getNewsByProgram("aim-innovate", 3);
     gap:            var(--space-8);
   }
 
+  /* Scroll target of "How it works": keep it clear of the sticky header */
+  .acv__pillars,
+  .acv__detail { scroll-margin-top: calc(var(--header-height) + var(--space-4)); }
+
   .acv__pillars-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
 
   .acv__pillar-grid {
@@ -447,9 +640,9 @@ const news = getNewsByProgram("aim-innovate", 3);
   /* Desktop: cards in row 1, the open detail panel full-width in row 2.
      The panels live right after their card in the DOM so that on mobile
      (single column, auto placement) each panel sits directly below it. */
-  .acv__pillar--cap    { grid-column: 1; grid-row: 1; }
+  .acv__pillar--inc    { grid-column: 1; grid-row: 1; }
   .acv__pillar--sprint { grid-column: 2; grid-row: 1; }
-  .acv__pillar--inc    { grid-column: 3; grid-row: 1; }
+  .acv__pillar--cap    { grid-column: 3; grid-row: 1; }
   .acv__detail         { grid-column: 1 / -1; grid-row: 2; }
 
   .acv__pillar {
@@ -553,6 +746,30 @@ const news = getNewsByProgram("aim-innovate", 3);
   .acv__skill-title { font-size: 24px; font-weight: 800; color: #232ACF; text-wrap: pretty; }
   .acv__skill-desc  { font-size: 16px; line-height: 1.7; color: var(--color-text-body); }
 
+  /* AIMcubate box: four steps with a bold lead-in in the box's magenta
+     (darker shade --color-accent-pink-dark for readable contrast on white) */
+  .acv__inc-steps { display: flex; flex-direction: column; gap: 20px; margin-top: 8px; }
+  .acv__inc-step  { display: flex; flex-direction: column; gap: 6px; }
+
+  .acv__inc-step-title {
+    font-family: var(--font-display);
+    font-size:   18px;
+    font-weight: 800;
+    color:       var(--color-accent-pink-dark);
+    text-wrap:   pretty;
+  }
+
+  /* Closing line of the box */
+  .acv__inc-closing {
+    margin-top:  12px;
+    padding-top: 20px;
+    border-top:  1px solid var(--color-border-subtle);
+    font-family: var(--font-display);
+    font-size:   18px;
+    font-weight: 800;
+    color:       #232ACF;
+  }
+
   .acv__skill-img {
     width:               100%;
     height:              240px;
@@ -561,6 +778,228 @@ const news = getNewsByProgram("aim-innovate", 3);
     background-size:     cover;
     background-position: center;
   }
+
+  /* ── Roadmap (inside the AIMcubate box) ───────────────────────────────────────────── */
+  .acv__roadmap {
+    /* Inside the AIMcubate box: spacing only towards the text above */
+    margin-top:     var(--space-8);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+  }
+
+  .acv__roadmap-head {
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+    padding-bottom: var(--space-8);
+    border-bottom:  1px solid var(--color-border-subtle);
+  }
+
+  .acv__roadmap-title { font-size: clamp(1.9rem, 1.3rem + 2.2vw, 2.75rem); letter-spacing: -1px; }
+
+  .acv__phases {
+    display:               grid;
+    grid-template-columns: repeat(var(--phase-count, 3), minmax(0, 1fr));
+    gap:                   clamp(var(--space-6), 3vw, 40px);
+  }
+
+  .acv__phase      { display: flex; flex-direction: column; gap: var(--space-6); }
+
+  /* Desktop: phases side by side in row 1, the open text box full width
+     in row 2 (below the timeline). Mobile: auto placement, so each box
+     sits right below its phase. */
+  .acv__phase--col-1 { grid-column: 1; grid-row: 1; }
+  .acv__phase--col-2 { grid-column: 2; grid-row: 1; }
+  .acv__phase--col-3 { grid-column: 3; grid-row: 1; }
+  .acv__phase-detail { grid-column: 1 / -1; grid-row: 2; }
+
+  .acv__phase-heading { margin: 0; font: inherit; }
+
+  .acv__roadmap-hint { font-size: 15px; color: var(--color-text-muted); }
+
+  /* Phase header as a clickable card (same look as the pillar cards above:
+     light blue surface, colored border when open), with a round arrow
+     button top right like the FAQ */
+  .acv__phase-head {
+    position:       relative;
+    display:        flex;
+    flex-direction: column;
+    align-items:    stretch;
+    gap:            4px;
+    width:          100%;
+    padding:        20px 22px 22px;
+    border:         2px solid transparent;
+    background:     #EDF2FF;
+    text-align:     left;
+    font:           inherit;
+    color:          inherit;
+    cursor:         pointer;
+    border-radius:  16px;
+    transition:     border-color var(--transition-fast), box-shadow var(--transition-fast),
+                    transform var(--transition-fast), background var(--transition-fast);
+  }
+
+  .acv__phase-head:hover {
+    border-color: #C7B5FA;
+    box-shadow:   0 8px 22px rgba(35, 42, 207, 0.12);
+    transform:    translateY(-2px);
+  }
+
+  .acv__phase-head:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+  .acv__phase-label,
+  .acv__phase-when,
+  .acv__phase-cta { display: block; }
+
+  /* Round arrow button, top right */
+  .acv__phase-chev {
+    position:        absolute;
+    top:             18px;
+    right:           18px;
+    width:           30px;
+    height:          30px;
+    border-radius:   50%;
+    background:      #fff;
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       14px;
+    font-weight:     800;
+    box-shadow:      0 2px 6px rgba(35, 42, 207, 0.12);
+    transition:      background var(--transition-fast), color var(--transition-fast),
+                     transform var(--transition-fast);
+  }
+
+  .acv__phase-cta {
+    margin-top:  8px;
+    font-size:   13px;
+    font-weight: 800;
+    color:       var(--color-brand-blue);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
+  }
+
+  /* Open phase: white card, border in the phase color, arrow filled and
+     turned (no size change, so the three timelines stay aligned) */
+  .acv__phase-head[aria-expanded="true"] { background: #fff; }
+  .acv__phase--tone-1 .acv__phase-head[aria-expanded="true"] { border-color: #232ACF; }
+  .acv__phase--tone-2 .acv__phase-head[aria-expanded="true"] { border-color: #A98BF7; }
+  .acv__phase--tone-3 .acv__phase-head[aria-expanded="true"] { border-color: var(--color-accent-purple); }
+
+  .acv__phase-head[aria-expanded="true"] .acv__phase-chev {
+    background: var(--color-brand-blue);
+    color:      #fff;
+    transform:  rotate(180deg);
+  }
+
+  /* Text box below the timeline */
+  .acv__phase-detail {
+    background:     #F5F3FF;
+    border-radius:  16px;
+    padding:        24px 28px;
+    display:        flex;
+    flex-direction: column;
+    gap:            8px;
+  }
+
+  .acv__phase-detail[hidden] { display: none; }
+
+  /* Scroll target after a click on a phase: keep clear of the sticky header */
+  .acv__phase-detail { scroll-margin-top: calc(var(--header-height) + var(--space-6)); }
+
+  .acv__phase-detail-title { font-family: var(--font-display); font-size: 16px; font-weight: 800; color: #232ACF; }
+  .acv__phase-detail-text  { font-size: 15px; line-height: 1.7; color: var(--color-text-body); max-width: 860px; }
+
+  /* Small marker in the phase's color on the left of the box */
+  .acv__phase-detail--tone-1 { box-shadow: inset 4px 0 0 #232ACF; }
+  .acv__phase-detail--tone-2 { box-shadow: inset 4px 0 0 #A98BF7; }
+  .acv__phase-detail--tone-3 { box-shadow: inset 4px 0 0 var(--color-accent-purple); }
+
+  .acv__phase-label {
+    font-size:      13px;
+    font-weight:    var(--fw-bold);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color:          var(--color-text-muted);
+  }
+
+  .acv__phase-title { display: block; font-size: 22px; font-weight: 800; color: #232ACF; margin-top: 4px; transition: color var(--transition-fast); }
+  .acv__phase-when  { font-size: 15px; color: var(--color-text-muted); }
+
+  /* Colored bar below each phase: dark → light → dark across the batch */
+  .acv__phase-bar {
+    display:       block;
+    height:        5px;
+    border-radius: var(--radius-pill);
+    margin-top:    16px;
+  }
+
+  .acv__phase--tone-1 .acv__phase-bar { background: linear-gradient(90deg, #232ACF, var(--color-accent-purple)); }
+  .acv__phase--tone-2 .acv__phase-bar { background: linear-gradient(90deg, #A98BF7, #C7B5FA); }
+  .acv__phase--tone-3 .acv__phase-bar { background: linear-gradient(90deg, var(--color-accent-purple), #232ACF); }
+
+  /* Items with a vertical line and dots on the left */
+  .acv__phase-items {
+    list-style:     none;
+    margin:         0;
+    padding:        0;   /* no browser indent: line and dots share the left edge */
+    position:       relative;
+    display:        flex;
+    flex-direction: column;
+    gap:            20px;
+  }
+
+  .acv__phase-items::before {
+    content:       "";
+    position:      absolute;
+    left:          6px;
+    top:           10px;
+    bottom:        0;
+    width:         2px;
+    border-radius: 2px;
+    background:    #DCD3FB;
+  }
+
+  .acv__phase-item {
+    position:       relative;
+    padding-left:   32px;
+    display:        flex;
+    flex-direction: column;
+    align-items:    flex-start;
+    gap:            2px;
+  }
+
+  .acv__phase-dot {
+    position:      absolute;
+    left:          0;
+    top:           4px;
+    width:         14px;
+    height:        14px;
+    border-radius: 50%;
+    background:    #fff;
+    border:        2.5px solid #7A6CF0;
+  }
+
+  .acv__phase-item--milestone .acv__phase-dot { background: #232ACF; border-color: #232ACF; }
+
+  .acv__phase-item-title { font-size: 16px; font-weight: 700; line-height: 1.35; color: #11163A; }
+  .acv__phase-week       { font-size: 14px; font-weight: 700; color: #5B4BE0; }
+
+  .acv__phase-pill {
+    margin-top:    8px;
+    background:    #ECE8FD;
+    color:         #232ACF;
+    font-size:     13px;
+    font-weight:   700;
+    line-height:   1.35;
+    padding:       7px 14px;
+    border-radius: var(--radius-pill);
+  }
+
+  .acv__phase-pill--winner { background: #232ACF; color: #fff; padding: 5px 16px; }
 
   /* ── ④ Applications ───────────────────────────────────────── */
   .acv__apply {
@@ -604,7 +1043,76 @@ const news = getNewsByProgram("aim-innovate", 3);
   .acv__city-line { font-size: 14px; line-height: 1.6; color: var(--color-text-body); }
   .acv__city--planned .acv__city-line { color: #98A1B4; }
 
-  /* ── ⑤ News ───────────────────────────────────────────────── */
+  /* ── ⑤ FAQ (styles as on the AIM Connect page) ────────────── */
+  .acv__faq {
+    padding:        clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 72px);
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-8);
+  }
+
+  /* Both FAQ and News sit on white: News brings its own top spacing,
+     so the FAQ has none at the bottom (no double gap). */
+  .acv__faq { padding-bottom: 0; }
+
+  .acv__faq-head { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+
+  .acv__faq-list { display: flex; flex-direction: column; }
+
+  .acv__faq-item { border-top: 1px solid var(--color-border-subtle); }
+
+  .acv__faq-item:last-child { border-bottom: 1px solid var(--color-border-subtle); }
+
+  .acv__faq-item summary {
+    display:         flex;
+    justify-content: space-between;
+    align-items:     center;
+    gap:             var(--space-6);
+    padding:         18px 4px;
+    cursor:          pointer;
+    list-style:      none;
+    font-family:     var(--font-display);
+    font-size:       16px;
+    font-weight:     800;
+    color:           var(--color-text-heading);
+    transition:      color var(--transition-fast);
+  }
+
+  .acv__faq-item summary::-webkit-details-marker { display: none; }
+
+  .acv__faq-item summary:hover { color: var(--color-brand-blue); }
+
+  .acv__faq-chev {
+    width:           28px;
+    height:          28px;
+    border-radius:   50%;
+    background:      #EEF1F7;
+    color:           var(--color-brand-blue);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    font-size:       14px;
+    font-weight:     800;
+    flex-shrink:     0;
+    transition:      background var(--transition-fast), color var(--transition-fast),
+                     transform var(--transition-fast);
+  }
+
+  .acv__faq-item[open] .acv__faq-chev {
+    background: var(--color-brand-blue);
+    color:      #fff;
+    transform:  rotate(180deg);
+  }
+
+  .acv__faq-item > p {
+    font-size:   15px;
+    line-height: 1.7;
+    color:       var(--color-text-body);
+    max-width:   860px;
+    padding:     0 4px 20px;
+  }
+
+  /* ── ⑥ News ───────────────────────────────────────────────── */
   .acv__news {
     padding:        clamp(var(--space-10, 40px), 5vw, 72px) clamp(var(--space-6), 5vw, 72px);
     display:        flex;
@@ -666,15 +1174,19 @@ const news = getNewsByProgram("aim-innovate", 3);
     .acv__detail { grid-column: auto; grid-row: auto; }
     .acv__skill-detail { grid-template-columns: minmax(0, 1fr); }
     .acv__apply-grid { grid-template-columns: minmax(0, 1fr); }
+    .acv__phases { grid-template-columns: minmax(0, 1fr); gap: var(--space-10, 40px); }
+    .acv__phase--col-1, .acv__phase--col-2, .acv__phase--col-3,
+    .acv__phase-detail { grid-column: auto; grid-row: auto; }
+    .acv__phase-detail:not([hidden]) { margin-top: calc(-1 * var(--space-6)); }
   }
 </style>
 
 <script>
-  // Pillar cards: a click shows the matching detail box; without interaction
-  // the selection rotates every 6 s (as in the draft), the first click stops it.
+  // Pillar cards: a click shows the matching detail box. The automatic
+  // rotation of the draft (every 6 s) is switched off: the AIMcubate box is
+  // long (text + roadmap) and must not jump away while someone is reading.
   const pillarBtns   = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-pillar]"));
   const pillarPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-pillar-panel]"));
-  let paused = false;
 
   function showPillar(i: number) {
     pillarBtns.forEach(b => {
@@ -703,7 +1215,6 @@ const news = getNewsByProgram("aim-innovate", 3);
 
   pillarBtns.forEach(b =>
     b.addEventListener("click", () => {
-      paused = true;
       const isMobile = window.matchMedia("(max-width: 960px)").matches;
       if (isMobile && b.classList.contains("is-active")) {
         collapseAll();
@@ -713,12 +1224,53 @@ const news = getNewsByProgram("aim-innovate", 3);
     })
   );
 
-  let current = 0;
-  setInterval(() => {
-    if (paused) return;
-    current = (current + 1) % pillarPanels.length;
-    showPillar(current);
-  }, 6000);
+  // "How it works" in the hero (and the deep link /programs/aim-innovate#incubation):
+  // open the AIMcubate pillar and scroll to the box.
+  function openPillarAndScroll(i: number) {
+    showPillar(i);
+    const panel = document.querySelector<HTMLElement>(`[data-pillar-panel="${i}"]`);
+    // Desktop: show the cards above the box as well; mobile: the box itself.
+    const isMobile = window.matchMedia("(max-width: 960px)").matches;
+    const target = isMobile ? panel : document.querySelector<HTMLElement>(".acv__pillars");
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  document.querySelectorAll<HTMLAnchorElement>("[data-open-pillar]").forEach(a =>
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      openPillarAndScroll(Number(a.dataset.openPillar));
+      history.replaceState(null, "", a.hash);
+    })
+  );
+
+  if (location.hash === "#incubation") openPillarAndScroll(0);
+
+  // Roadmap phases: a click on a phase header shows its text box below the
+  // timeline and scrolls to its start; a second click (or a click on another
+  // phase) closes it.
+  const phaseBtns    = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-phase]"));
+  const phaseDetails = Array.from(document.querySelectorAll<HTMLElement>("[data-phase-detail]"));
+
+  function showPhase(i: number | null) {
+    phaseBtns.forEach(b => {
+      const on = b.dataset.phase === String(i);
+      b.setAttribute("aria-expanded", String(on));
+      const cta = b.querySelector<HTMLElement>("[data-phase-cta]");
+      if (cta) cta.textContent = (on ? cta.dataset.openLabel : cta.dataset.closedLabel) ?? "";
+    });
+    phaseDetails.forEach(d => d.toggleAttribute("hidden", d.dataset.phaseDetail !== String(i)));
+  }
+
+  phaseBtns.forEach(b =>
+    b.addEventListener("click", () => {
+      const open = b.getAttribute("aria-expanded") === "true";
+      showPhase(open ? null : Number(b.dataset.phase));
+      if (!open) {
+        document.getElementById(b.getAttribute("aria-controls") ?? "")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    })
+  );
 
   // Skill pills of the capability box: switch title, text and image.
   const skillData = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-skill]"));

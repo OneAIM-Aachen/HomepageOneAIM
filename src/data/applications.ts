@@ -138,6 +138,18 @@ export const applications: Application[] = [
     startsAt: "2026-10-23",
     applyUrl: "https://tally.so/r/7RgbEL",
   },
+  {
+    // AIM Innovate Impact Hub (AIMcubate), Munich. The program page shows
+    // the Munich card with a direct button to this form (directApply).
+    id:       "munich-aim-innovate-ws26",
+    city:     "munich",
+    program:  "aim-innovate",
+    semester: "WS",
+    year:     2026,
+    opensAt:  "2026-10-20",
+    deadline: "2026-11-01",
+    applyUrl: "https://tally.so/r/laDy65",
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
