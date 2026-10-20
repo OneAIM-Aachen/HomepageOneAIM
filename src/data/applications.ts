@@ -138,6 +138,18 @@ export const applications: Application[] = [
     startsAt: "2026-10-23",
     applyUrl: "https://tally.so/r/7RgbEL",
   },
+  {
+    // AIM Innovate Impact Hub (AIMcubate), Munich. The program page shows
+    // the Munich card with a direct button to this form (directApply).
+    id:       "munich-aim-innovate-ws26",
+    city:     "munich",
+    program:  "aim-innovate",
+    semester: "WS",
+    year:     2026,
+    opensAt:  "2026-10-20",
+    deadline: "2026-11-01",
+    applyUrl: "https://tally.so/r/laDy65",
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -250,6 +262,21 @@ export function getApplicationFor(
 ): Application | undefined {
   return getOpenApplications(city, program, today)[0]
       ?? getUpcomingApplications(city, program, today)[0];
+}
+
+/**
+ * Like getApplicationFor, but falls back to the most recently closed round
+ * once the application phase is over. Feeds the semester timeline on the
+ * location pages, which should keep showing the current batch's dates.
+ */
+export function getCurrentRoundFor(
+  city: CitySlug, program: string, today?: Date,
+): Application | undefined {
+  return getApplicationFor(city, program, today)
+      ?? applications
+           .filter(matches(city, program))
+           .filter(a => getStatus(a, today) === "closed")
+           .sort((a, b) => day(b.opensAt) - day(a.opensAt))[0];
 }
 
 /**
