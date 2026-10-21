@@ -9,6 +9,7 @@
 import type { CitySlug } from "../data/cityData";
 import {
   getApplicationFor,
+  getDeadlineLabel,
   getFeaturedApplication,
   getProgramName,
   getStatus,
@@ -69,11 +70,19 @@ const applyAnchor = prog ? `${base}#${prog}-apply`    : "/contact";
 // Direct application: only while the round is open and a form link exists
 const direct = Boolean(directApply && app && status === "open" && app.applyUrl);
 
-// Only the city panel's AIM Connect tab has its own apply button to jump to.
-// For other programs, "Apply here" therefore goes straight to the form
-// (e.g. the Munich hero card while the AIM Innovate round is open).
+// Open round with a deadline time ("12:00"): instead of the
+// "Application deadline" row the card says "Application open until 6 November 12:00".
+const untilLine = Boolean(app && status === "open" && app.deadline && app.deadlineTime);
+
+// Where does "Apply here" lead?
+//  • AIM Connect: always to the apply button in the city page's Connect tab.
+//  • AIM Code on its own city page (hero card): to the "Apply now" box in the
+//    city page's AIM Code tab (#aim-code-apply), which holds the form link.
+//  • Otherwise straight to the form (e.g. the Munich hero card while the
+//    AIM Innovate round is open, or the cards on the AIM Code page).
+const toPanel = prog === "aim-connect" || (prog === "aim-code" && onOwnPage);
 const external = Boolean(
-  app && status === "open" && app.applyUrl && (direct || prog !== "aim-connect")
+  app && status === "open" && app.applyUrl && (direct || !toPanel)
 );
 
 const card = app
@@ -90,12 +99,17 @@ const card = app
         ...(status !== "open"
           ? [{ label: "Applications open", value: dateFmt.format(new Date(app.opensAt)) }]
           : []),
-        { label: "Application deadline", value: app.deadline ? dateFmt.format(new Date(app.deadline)) : "To be announced" },
+        ...(untilLine ? [] : [{ label: "Application deadline", value: getDeadlineLabel(app) }]),
         ...(app.startsAt ? [{ label: "Program start", value: dateFmt.format(new Date(app.startsAt)) }] : []),
         ...(app.spots    ? [{ label: "Spots", value: String(app.spots) }] : []),
       ],
       note:     undefined,
-      deadlineLine: direct && app.deadline ? `Application open until ${longDate(app.deadline)}` : undefined,
+      deadlineLine: direct && app.deadline
+        ? `Application open until ${longDate(app.deadline)}${app.deadlineTime ? `, ${app.deadlineTime}` : ""}`
+        : untilLine
+          // non-breaking spaces: "6 November 12:00" never splits across lines
+          ? `Application open until ${getDeadlineLabel(app).replace(/ /g, "\u00A0")}`
+          : undefined,
       ctaLabel: direct ? "Apply now" : status === "open" ? `${ctaVerb} here` : "More info",
       ctaHref:  external ? app.applyUrl! : status === "open" ? applyAnchor : infoAnchor,
     }
@@ -194,9 +208,11 @@ const card = app
   }
 
   .appc__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
-  .appc__row  { display: flex; justify-content: space-between; gap: var(--space-4); }
+  /* Value stays on one line ("6 November 12:00"); if label and value do
+     not fit side by side, the value moves below the label, right-aligned. */
+  .appc__row  { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: var(--space-4); row-gap: 2px; }
   .appc__row dt { font-size: 14px; color: var(--color-text-muted); }
-  .appc__row dd { font-size: 14px; font-weight: 800; color: var(--color-text-heading); margin: 0; }
+  .appc__row dd { font-size: 14px; font-weight: 800; color: var(--color-text-heading); margin: 0 0 0 auto; white-space: nowrap; }
 
   .appc__btn {
     margin-top:      auto;

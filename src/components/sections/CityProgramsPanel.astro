@@ -21,7 +21,7 @@
 //
 // Interactivity is pure inline JS (hidden attributes) – no framework.
 
-import { getApplicationFor, getCurrentRoundFor, getStatus, getTermLabel } from "../../data/applications";
+import { getApplicationFor, getCurrentRoundFor, getDeadlineLabel, getStatus, getTermLabel } from "../../data/applications";
 import { getUpcomingEvents, getEventDateLabel } from "../../data/eventsData";
 import { cityData, type CitySlug } from "../../data/cityData";
 
@@ -180,6 +180,22 @@ const innovateRound = citySlug && showInnovate ? getApplicationFor(citySlug, "ai
 
 // AIM Code still being set up? (cityData.ts → codeComingSoon)
 const codeComingSoon = citySlug ? Boolean(cityData[citySlug]?.codeComingSoon) : false;
+
+// Open AIM Code round at this location (applications.ts)? Then the Code tab
+// shows the registration with deadline and button instead of "Coming soon".
+const codeRoundRaw = citySlug ? getApplicationFor(citySlug, "aim-code") : undefined;
+const codeRound    = codeRoundRaw && getStatus(codeRoundRaw) === "open" ? codeRoundRaw : undefined;
+
+// AIM Code course schedule (cityData.ts → codeSchedule). Sessions are
+// numbered across both days (1–8), breaks get no number.
+const codeScheduleRaw = citySlug ? cityData[citySlug]?.codeSchedule : undefined;
+let sessionNo = 0;
+const codeSchedule = codeScheduleRaw?.map(d => ({
+  ...d,
+  slots: d.slots.map(s => ({ ...s, no: s.type === "break" ? undefined : ++sessionNo })),
+}));
+
+const codeScheduleTitle = (citySlug ? cityData[citySlug]?.codeScheduleTitle : undefined) ?? "Course schedule";
 
 // Show AIM Code at this location? (cityData.ts → showCode, default: yes)
 const showCode = citySlug ? cityData[citySlug]?.showCode !== false : true;
@@ -435,14 +451,54 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
 
   <!-- ── AIM Code (only if showCode) ─────────────────────────── -->
   {showCode && (
-  <div class={`cpp__panel cpp__panel--simple ${codeComingSoon ? "cpp__panel--single" : ""}`} data-panel="code" hidden>
+  <div class={`cpp__panel cpp__panel--simple ${codeComingSoon || codeRound ? "cpp__panel--single" : ""}`} data-panel="code" hidden>
     <div class="cpp__simple-copy">
       <p class="cpp__text">
         Within AIM Code, we offer specialized coding courses for students and medical
         professionals, from hands-on introductory Python workshops to advanced sessions on
         artificial intelligence in healthcare. All courses are free of charge.
       </p>
-      {codeComingSoon ? (
+
+      {codeSchedule && codeSchedule.length > 0 && (
+        <div class="cpp__sched" aria-labelledby="cpp-sched-head">
+          <p class="cpp__recap-label" id="cpp-sched-head">{codeScheduleTitle}</p>
+          <div class="cpp__sched-days">
+            {codeSchedule.map(d => (
+              <div class="cpp__sched-day">
+                <div class="cpp__sched-dayhead">
+                  <h3 class="cpp__sched-dayname">{d.day}</h3>
+                  {d.date && <p class="cpp__sched-date">{d.date}</p>}
+                </div>
+                <ol class="cpp__sched-list">
+                  {d.slots.map(s => s.type === "break" ? (
+                    <li class="cpp__sched-break">
+                      <span>{s.title}</span>
+                      <span class="cpp__sched-break-time">{s.time}</span>
+                    </li>
+                  ) : (
+                    <li class="cpp__sched-slot">
+                      <span class="cpp__sched-no" aria-hidden="true">{s.no}</span>
+                      <span class="cpp__sched-title">{s.title}</span>
+                      <span class="cpp__sched-time">{s.time}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {codeRound ? (
+        <!-- data-apply-box: target of the hero card's "Apply here" (#aim-code-apply) -->
+        <div class="cpp__recap" data-apply-box>
+          <p class="cpp__recap-label">Registration open ({getTermLabel(codeRound)})</p>
+          <p><strong>Application open until {getDeadlineLabel(codeRound)}</strong></p>
+          {codeRound.applyUrl && (
+            <a class="cpp__btn" href={codeRound.applyUrl} target="_blank" rel="noopener noreferrer">Apply now →</a>
+          )}
+        </div>
+      ) : codeComingSoon ? (
         <div class="cpp__recap cpp__recap--soon">
           <p class="cpp__recap-label">Coming soon</p>
           <p>
@@ -462,7 +518,7 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         </>
       )}
     </div>
-    {!codeComingSoon && (
+    {!codeComingSoon && !codeRound && (
       <div class="cpp__media cpp__media--tall"><div class="cpp__slot">Photo: coding course</div></div>
     )}
   </div>
@@ -582,11 +638,15 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
         if (!target) return;
         target.click();
         var el = m[2] === "timeline" ? root.querySelector(".cpp__tl-head")
-               : m[2] === "apply"    ? root.querySelector(".cpp__apply")
+               : m[2] === "apply"    ? (root.querySelector('[data-panel="' + m[1] + '"] [data-apply-box]')
+                                        || root.querySelector(".cpp__apply"))
                : root;
         // Target invisible (another panel active)? Then go to the panel start.
         if (!el || !el.offsetParent) el = root;
-        var block = m[2] === "apply" && el !== root ? "end" : "start";
+        // Connect apply button: bottom of the view; apply box (e.g. AIM Code): centered
+        var block = m[2] === "apply" && el !== root
+          ? (el.hasAttribute("data-apply-box") ? "center" : "end")
+          : "start";
         // Scroll multiple times: immediately and after the layout has
         // settled – images loading in above would otherwise shift the position.
         setTimeout(function () { el.scrollIntoView({ block: block }); }, 60);
@@ -1154,6 +1214,93 @@ const upcomingRows = [...applicationSteps, ...upcomingEvents];
   }
 
   .cpp__recap p:not(.cpp__recap-label) { font-size: 14px; line-height: 1.8; color: var(--color-brand-blue-dark); }
+
+  /* ── AIM Code course schedule (cityData → codeSchedule) ─────
+     Two day columns; sessions as light-blue rows with a numbered badge
+     and a white time chip, breaks as slim muted rows in between.     */
+  .cpp__sched { display: flex; flex-direction: column; gap: 16px; }
+
+  .cpp__sched-days {
+    display:               grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap:                   clamp(20px, 3vw, 40px);
+  }
+
+  .cpp__sched-dayhead {
+    display:        flex;
+    align-items:    baseline;
+    gap:            12px;
+    flex-wrap:      wrap;
+    padding-bottom: 12px;
+    margin-bottom:  14px;
+    border-bottom:  3px solid var(--color-brand-blue);
+  }
+
+  .cpp__sched-dayname { font-size: 22px; font-weight: 800; color: var(--color-brand-blue-dark); margin: 0; }
+  .cpp__sched-date    { font-size: 14px; font-weight: 700; color: var(--color-text-muted); }
+
+  .cpp__sched-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+  .cpp__sched-slot {
+    display:       grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    align-items:   center;
+    gap:           12px;
+    background:    #EDF2FF;
+    border-radius: 14px;
+    padding:       12px 14px;
+  }
+
+  .cpp__sched-no {
+    width:           30px;
+    height:          30px;
+    border-radius:   50%;
+    background:      var(--color-brand-blue);
+    color:           #fff;
+    font-family:     var(--font-display);
+    font-size:       13px;
+    font-weight:     800;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+  }
+
+  .cpp__sched-title {
+    font-family: var(--font-display);
+    font-size:   15px;
+    font-weight: 700;
+    line-height: 1.35;
+    color:       var(--color-brand-blue-dark);
+  }
+
+  .cpp__sched-time {
+    background:    #fff;
+    color:         var(--color-brand-blue);
+    font-size:     13px;
+    font-weight:   800;
+    white-space:   nowrap;
+    padding:       6px 12px;
+    border-radius: var(--radius-pill);
+  }
+
+  .cpp__sched-break {
+    display:         flex;
+    justify-content: space-between;
+    gap:             12px;
+    padding:         6px 14px 6px 56px;
+    font-size:       13px;
+    font-weight:     700;
+    color:           var(--color-text-muted);
+    border-left:     2px dashed #C4CBD9;
+    margin-left:     28px;
+    padding-left:    26px;
+  }
+
+  .cpp__sched-break-time { white-space: nowrap; }
+
+  @media (max-width: 760px) {
+    .cpp__sched-days { grid-template-columns: minmax(0, 1fr); }
+  }
 
   /* ── Responsive ───────────────────────────────────────────── */
   @media (max-width: 940px) {

@@ -47,6 +47,13 @@ export interface SecuredPartner {
 /** Canonical location slugs – the same everywhere in the project. */
 export type CitySlug = "munich" | "aachen" | "frankfurt";
 
+/** One day of the AIM Code course schedule (cityData → codeSchedule). */
+export interface CodeScheduleDay {
+  day:   string;              // "Day 1"
+  date?: string;              // "Saturday, 14 November"
+  slots: { title: string; time: string; type?: "session" | "break" }[];
+}
+
 export interface CityData {
   slug: CitySlug;
   /** Display name, e.g. "Munich" */
@@ -115,6 +122,16 @@ export interface CityData {
    * Remove once the first course is fixed.
    */
   codeComingSoon?: boolean;
+
+  /**
+   * Day-by-day schedule of the AIM Code course, shown in the AIM Code tab
+   * of the location page (two columns on desktop). Per day: label, optional
+   * date and the slots in order; type "break" = lunch/coffee break
+   * (shown smaller, without a number).
+   */
+  codeSchedule?: CodeScheduleDay[];
+  /** Heading above the schedule (default: "Course schedule") */
+  codeScheduleTitle?: string;
 
   /**
    * false = hide AIM Code entirely at this location (no tab in the
@@ -381,6 +398,32 @@ export const cityData: Record<CitySlug, CityData> = {
     connectImage:    "/images/cities/aachen-connect.jpg",
     connectImageAlt: "AIM Connect Aachen cohort at a partner visit",
     codeComingSoon: true,
+    // AIM Code course (Python & ML for medical students), two days
+    codeScheduleTitle: "Course Schedule WS 26/27",
+    codeSchedule: [
+      {
+        day: "Day 1", date: "Saturday, 7 November",
+        slots: [
+          { title: "Introduction to Python",          time: "9:00 – 11:00" },
+          { title: "Python Modules & Libraries",      time: "11:00 – 12:00" },
+          { title: "Lunch",                           time: "12:00 – 13:00", type: "break" },
+          { title: "Data Analytics & Visualization",  time: "13:00 – 15:00" },
+          { title: "Break",                           time: "15:00 – 15:30", type: "break" },
+          { title: "LR & ML Overview",                time: "15:30 – 17:30" },
+        ],
+      },
+      {
+        day: "Day 2", date: "Sunday, 8 November",
+        slots: [
+          { title: "The Power of LLMs",               time: "9:00 – 9:45" },
+          { title: "Neural Networks",                 time: "9:45 – 11:30" },
+          { title: "Lunch",                           time: "11:30 – 12:30", type: "break" },
+          { title: "Convolutional Neural Networks",   time: "12:30 – 14:30" },
+          { title: "Break",                           time: "14:30 – 15:00", type: "break" },
+          { title: "Transfer Learning",               time: "15:00 – 17:30" },
+        ],
+      },
+    ],
     connectShowFee: true,
     connectUpcomingEvents: [
       { date: "23–25 Oct", dot: "filled", title: "Kickoff Weekend in Berlin",

@@ -58,6 +58,14 @@ export interface Application {
    * "to be announced". Once the date is fixed, enter it here.
    */
   deadline?: string;
+  /**
+   * Optional time of day of the deadline, "HH:MM" (German time), e.g. "12:00".
+   * If set, the cards show the deadline written out with the time
+   * ("6 November 12:00") instead of the short form ("6 Nov").
+   * Note: the round still counts as open for the whole deadline day –
+   * the static site only switches at the next nightly build.
+   */
+  deadlineTime?: string;
   /** ISO YYYY-MM-DD – interviews from/to */
   interviewsFrom?: string;
   interviewsTo?: string;
@@ -150,6 +158,17 @@ export const applications: Application[] = [
     deadline: "2026-11-01",
     applyUrl: "https://tally.so/r/laDy65",
   },
+  {
+    id:           "aachen-aim-code-ws26",
+    city:         "aachen",
+    program:      "aim-code",
+    semester:     "WS",
+    year:         2026,
+    opensAt:      "2026-10-21",
+    deadline:     "2026-11-06",
+    deadlineTime: "12:00",
+    applyUrl:     "https://tally.so/r/5XKBp6",
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,6 +234,20 @@ export function getProgramName(app: Application): string {
  */
 export function getApplicationTitle(app: Application): string {
   return `${getProgramName(app)} ${getCityName(app.city)} – ${getTermLabel(app)}`;
+}
+
+/**
+ * Deadline for display on the cards:
+ *   with deadlineTime → "6 November 12:00"
+ *   without           → short form "6 Nov" (as before)
+ */
+export function getDeadlineLabel(app: Application): string {
+  if (!app.deadline) return "To be announced";
+  const d = new Date(`${app.deadline}T00:00:00`);
+  if (app.deadlineTime) {
+    return `${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long" }).format(d)} ${app.deadlineTime}`;
+  }
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d).replace("Sept", "Sep");
 }
 
 /** Days left until the deadline (negative once it has passed). */
