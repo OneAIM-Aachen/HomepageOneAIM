@@ -1,0 +1,60 @@
+// Everything an applicant submitted, rendered field by field.
+// Used in the applicant drawer and in the network profile.
+import type { Answer, Application, FileRef, Submission } from "../../lib/types";
+import { fmtDate } from "../../lib/fields";
+import { act } from "../ui/Ui";
+import { openFile as openStored } from "../../lib/store";
+import { IconDownload, IconFile } from "../ui/Icons";
+
+export function isFile(v: Answer): v is FileRef {
+  return !!v && typeof v === "object" && !Array.isArray(v) && "fileName" in v;
+}
+
+function answerText(v: Answer): string {
+  if (v === undefined || v === null || v === "") return "–";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "–";
+  return String(v);
+}
+
+// Opens via a short-lived signed URL from Supabase storage (private bucket).
+export function openFile(f: FileRef) {
+  act(() => openStored(f));
+}
+
+export function FileCard({ file, label, sub }: { file: FileRef; label?: string; sub?: string }) {
+  return (
+    <div class="file-card">
+      <span class="file-card__icon"><IconFile width={22} /></span>
+      <div style="flex:1;min-width:0">
+        {label && <span class="overline" style="font-size:10.5px">{label}</span>}
+        <strong>{file.fileName}</strong>
+        <span class="muted small">{Math.round(file.size / 1024)} KB{sub ? ` · ${sub}` : ""}</span>
+      </div>
+      <button class="btn btn--secondary btn--sm" onClick={() => openFile(file)}>Open</button>
+      <button class="icon-btn" aria-label={`Download ${file.fileName}`} onClick={() => openFile(file)}><IconDownload /></button>
+    </div>
+  );
+}
+
+export function Answers({ app, sub }: { app: Application; sub: Submission }) {
+  return (
+    <dl class="qa">
+      {app.fields.map(f => {
+        const v = sub.answers[f.id];
+        return (
+          <div>
+            <dt>{f.label}</dt>
+            <dd>
+              {isFile(v)
+                ? <FileCard file={v} sub={`uploaded ${fmtDate(sub.submittedAt)}`} />
+                : (f.kind === "url" || f.kind === "linkedin") && v ? <a href={String(v)} target="_blank" rel="noopener">{String(v)}</a>
+                : f.kind === "email" && v ? <a href={`mailto:${v}`}>{String(v)}</a>
+                : answerText(v)}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}

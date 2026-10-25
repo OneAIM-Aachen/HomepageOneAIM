@@ -1,0 +1,15 @@
+---
+// Prototype start page: links to both sites.
+import Base from "../layouts/Base.astro";
+---
+<Base title="OneAIM portal prototype">
+  <main class="apply-wrap stack" style="max-width:720px;gap:20px;padding-top:80px">
+    <img src="/logo.png" alt="OneAIM" style="height:40px;align-self:flex-start" />
+    <h1>Portal prototype</h1>
+    <p class="muted">Clickable prototype with demo data stored in this browser. Two sites, as they will be deployed:</p>
+    <div class="grid-2">
+      <a class="card stack-s" href="/team"><span class="overline">team.one-aim.org</span><h2>Team area →</h2><p class="muted small">Login, applications, blueprints, network.</p></a>
+      <a class="card stack-s" href="/apply"><span class="overline">apply.one-aim.org</span><h2>Applicant site →</h2><p class="muted small">Open applications and forms.</p></a>
+    </div>
+  </main>
+</Base>
