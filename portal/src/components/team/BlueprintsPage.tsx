@@ -5,7 +5,7 @@ import { fmtDate } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { FormBuilder } from "./FormBuilder";
 import { FormRenderer } from "../apply/FormRenderer";
-import { act, Field, Modal, useParam } from "../ui/Ui";
+import { act, confirmDialog, Field, Modal, useParam } from "../ui/Ui";
 import { IconCopy, IconPlus, IconTrash } from "../ui/Icons";
 
 export default function BlueprintsPage() {
@@ -56,7 +56,11 @@ function List({ startNew }: { startNew: boolean }) {
                   <button class="icon-btn" title="Duplicate" aria-label="Duplicate"
                     onClick={() => act(() => createBlueprint(`${b.name} (copy)`, b), "Blueprint duplicated")}><IconCopy /></button>
                   <button class="icon-btn" title="Delete" aria-label="Delete"
-                    onClick={() => { if (confirm(`Delete blueprint "${b.name}"? Existing applications keep their form.`)) act(() => deleteBlueprint(b.id), "Blueprint deleted"); }}><IconTrash /></button>
+                    onClick={async () => {
+                      if (await confirmDialog({ title: "Delete blueprint?", danger: true, confirmLabel: "Delete blueprint",
+                        message: `Do you really want to delete the blueprint "${b.name}"?\n\nApplications created from it keep their form.` }))
+                        act(() => deleteBlueprint(b.id), "Blueprint deleted");
+                    }}><IconTrash /></button>
                   <a class="btn btn--secondary btn--sm" href={`/team/blueprints?id=${b.id}`}>Edit</a>
                 </span>
               </div>

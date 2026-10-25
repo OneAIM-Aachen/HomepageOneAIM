@@ -4,7 +4,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import { currentAccount, loadAll, logout, useStore } from "../../lib/store";
-import { Avatar, Toaster } from "../ui/Ui";
+import { Avatar, ConfirmHost, Toaster } from "../ui/Ui";
 import {
   IconApps, IconBlueprint, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings,
 } from "../ui/Icons";
@@ -90,6 +90,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
       </aside>
       <main class="main">{children(acc)}</main>
       <Toaster />
+      <ConfirmHost />
     </div>
   );
 }

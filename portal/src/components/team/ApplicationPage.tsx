@@ -11,7 +11,7 @@ import {
 import { TeamShell, PageHead } from "./TeamShell";
 import { FormBuilder } from "./FormBuilder";
 import { Answers } from "./Answers";
-import { act, Avatar, Drawer, Field, Modal, PhaseChip, Stars, StatusChip, toast, useParam } from "../ui/Ui";
+import { act, Avatar, confirmDialog, Drawer, Field, Modal, PhaseChip, Stars, StatusChip, toast, useParam } from "../ui/Ui";
 import { FormRenderer } from "../apply/FormRenderer";
 import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash } from "../ui/Icons";
 
@@ -373,6 +373,7 @@ const IMAGES = ["/images/aachen-connect.jpg", "/images/aachen-hero.jpg", "/image
   "/images/munich-hero.jpg", "/images/frankfurt-connect.jpg", "/images/frankfurt-hero.jpg"];
 
 function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
+  const subCount = useStore(s => s.submissions.filter(x => x.applicationId === app.id).length);
   const tagLists = useStore(s => s.tagLists);
   const [d, setD] = useState<Application>(structuredClone(app));
   const dirty = JSON.stringify(d) !== JSON.stringify(app);
@@ -490,8 +491,15 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
       <section class="card row row--between">
         <div><h3>Delete application</h3><p class="muted small">Removes the round and its submissions. People stay in the network database.</p></div>
         <button class="btn btn--danger" onClick={() => {
-          if (confirm(`Delete "${appTitle(app)}"${hasSubs ? " and all its submissions" : ""}?`))
-            act(() => deleteApplication(app.id)).then(() => { window.location.href = "/team/applications"; });
+          confirmDialog({
+            title: "Delete application?", danger: true, confirmLabel: "Delete application",
+            message: `Do you really want to delete "${appTitle(app)}"?` + (hasSubs
+              ? `\n\nThis also deletes ${subCount === 1 ? "its 1 submission" : `all ${subCount} submissions`} with answers, interview bookings and comments. The applicants stay in the network database.`
+              : "") + "\n\nThis can't be undone.",
+          }).then(ok => {
+            if (ok) act(async () => { await deleteApplication(app.id); return true; }, "Application deleted")
+              .then(done => { if (done) window.location.href = "/team/applications"; });
+          });
         }}><IconTrash width={16} />Delete</button>
       </section>
     </div>
@@ -595,8 +603,13 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
   };
 
   const remove = (id: string) => {
-    if (subs.some(x => x.slotId === id) && !confirm("Someone booked this slot. Remove it anyway? They will need to book again.")) return;
-    act(() => removeSlot(id), "Slot removed");
+    const booked = subs.filter(x => x.slotId === id).length;
+    confirmDialog({
+      title: "Remove interview slot?", danger: true, confirmLabel: "Remove slot",
+      message: booked
+        ? `Do you really want to remove this slot? ${booked === 1 ? "Someone has" : `${booked} people have`} booked it and will need to book again.`
+        : "Do you really want to remove this slot?",
+    }).then(ok => { if (ok) act(() => removeSlot(id), "Slot removed"); });
   };
 
   return (

@@ -127,3 +127,41 @@ export async function act<T>(fn: () => Promise<T>, success?: string | ((r: T) =>
     return undefined;
   }
 }
+
+// Confirmation popup (replaces window.confirm, which embedded browsers
+// silently block). Usage: if (await confirmDialog({ … })) { … }
+interface ConfirmOptions {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  danger?: boolean;
+}
+let pushConfirm: ((o: ConfirmOptions, resolve: (ok: boolean) => void) => void) | null = null;
+
+export function confirmDialog(o: ConfirmOptions): Promise<boolean> {
+  return new Promise(resolve => {
+    if (pushConfirm) pushConfirm(o, resolve);
+    else resolve(window.confirm(`${o.title}\n\n${o.message}`));
+  });
+}
+
+export function ConfirmHost() {
+  const [req, setReq] = useState<{ o: ConfirmOptions; resolve: (ok: boolean) => void } | null>(null);
+  useEffect(() => {
+    pushConfirm = (o, resolve) => setReq({ o, resolve });
+    return () => { pushConfirm = null; };
+  }, []);
+  if (!req) return null;
+  const close = (ok: boolean) => { req.resolve(ok); setReq(null); };
+  return (
+    <Modal title={req.o.title} onClose={() => close(false)}>
+      <p style="white-space:pre-wrap">{req.o.message}</p>
+      <div class="row" style="justify-content:flex-end">
+        <button class="btn btn--ghost" onClick={() => close(false)}>Cancel</button>
+        <button class={`btn ${req.o.danger ? "btn--danger-solid" : "btn--primary"}`} autoFocus onClick={() => close(true)}>
+          {req.o.confirmLabel ?? "Confirm"}
+        </button>
+      </div>
+    </Modal>
+  );
+}

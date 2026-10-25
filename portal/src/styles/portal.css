@@ -590,3 +590,5 @@ select.input { appearance: none; padding-right: 36px;
   .filter-row__chips { flex-wrap: nowrap; overflow-x: auto; padding: 2px 16px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .filter-row__chips::-webkit-scrollbar { display: none; }
 }
+.btn--danger-solid { background: var(--p-red); color: #fff; }
+.btn--danger-solid:hover { background: #a81f31; }
