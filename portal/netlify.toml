@@ -1,0 +1,19 @@
+# Netlify settings for the portal (team + apply).
+# In Netlify set "Base directory" to: portal
+# Environment variables (Site configuration → Environment variables):
+#   PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY   (public values, see .env.example)
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Test/preview: keep search engines out
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
