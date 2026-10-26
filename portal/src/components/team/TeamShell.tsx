@@ -81,7 +81,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           <a class="nav__item" href="/apply" target="_blank" rel="noopener"><IconExternal />Applicant site</a>
         </nav>
         {demoAvailable() && (
-          <label class="demo-switch" title="Adds ~100 made-up Aachen applications, only in this browser">
+          <label class="demo-switch" title="Adds made-up applications from all cities, programs and rounds, only in this browser">
             <input type="checkbox" role="switch" checked={isDemo()} onChange={e => setDemo(e.currentTarget.checked)} />
             <span class="demo-switch__track" aria-hidden="true"><span /></span>
             <span>Demo data</span>
@@ -100,7 +100,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
       <main class="main">
         {isDemo() && (
           <div class="demo-banner" role="status">
-            <strong>Demo data is on:</strong> ~100 made-up Aachen applications are shown in addition to the real ones, only in this browser. Nothing is saved.
+            <strong>Demo data is on:</strong> made-up applications from all cities, programs and rounds are shown in addition to the real ones, only in this browser. Nothing is saved.
             <button class="btn btn--secondary btn--sm" onClick={() => setDemo(false)}>Show real data only</button>
           </div>
         )}

@@ -1,4 +1,4 @@
-// Demo mode: adds ~100 made-up Aachen applications to what's shown in the
+// Demo mode: adds ~700 made-up applications (all cities, programs, rounds) to what's shown in the
 // team area, to try out Insights, network and lists. Nothing is written to
 // Supabase; it only changes what this browser displays.
 // Available locally and where PUBLIC_DEMO_MODE=true (the Netlify test site),
