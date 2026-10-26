@@ -3,9 +3,9 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
-import { currentAccount, loadAll, logout, useStore } from "../../lib/store";
+import { currentAccount, fixEmailLinkBase, loadAll, logout, useStore } from "../../lib/store";
 import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
-import { Avatar, ConfirmHost, Toaster } from "../ui/Ui";
+import { Avatar, ConfirmHost, Toaster, toast } from "../ui/Ui";
 import {
   IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings,
 } from "../ui/Icons";
@@ -41,6 +41,8 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
       try {
         await loadAll();
         setAcc(a);
+        // Email links still on localhost while running on the real site? Fix once.
+        fixEmailLinkBase().then(url => { if (url) toast(`Email links now point to ${url}`); }).catch(() => undefined);
       } catch (e) {
         setLoadError(e instanceof Error ? e.message : String(e));
       }

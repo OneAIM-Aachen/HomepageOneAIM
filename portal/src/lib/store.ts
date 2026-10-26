@@ -594,6 +594,21 @@ export async function saveEmailSettings(s: EmailSettings) {
   }).eq("id", true));
 }
 
+/**
+ * Links in emails (interview booking) must point to a public address.
+ * If they still point to localhost and the team area runs on a real site
+ * (e.g. the Netlify test site), switch them to this site's address.
+ */
+export async function fixEmailLinkBase(): Promise<string | null> {
+  const here = window.location.origin;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(here)) return null;   // local development
+  const { data } = await supabase.from("email_settings").select("apply_base_url").maybeSingle();
+  const current = (data as { apply_base_url?: string } | null)?.apply_base_url ?? "";
+  if (!/localhost|127\.0\.0\.1/.test(current)) return null;
+  const { error } = await supabase.from("email_settings").update({ apply_base_url: here }).eq("id", true);
+  return error ? null : here;
+}
+
 /** Runs the sender now (it also runs automatically). */
 export async function sendQueuedNow(): Promise<{ sent?: number; failed?: number; skipped?: string }> {
   const { data, error } = await supabase.functions.invoke("send-emails", { body: {} });
