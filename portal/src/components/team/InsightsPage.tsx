@@ -7,10 +7,10 @@
 //   cities          → fixed per city (blue, orange, aqua, violet), never by rank
 //   funnel stages   → three steps of the blue ramp (ordinal)
 //   cross table     → one-hue sequential blue
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Application, Person, State, Submission } from "../../lib/types";
 import { useStore } from "../../lib/store";
-import { appTitle, DEGREE_OPTIONS, SEMESTER_OPTIONS } from "../../lib/fields";
+import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { IconDownload } from "../ui/Icons";
 
@@ -36,6 +36,7 @@ function Insights() {
   const [program, setProgram] = useState("");
   const [round, setRound] = useState("");
   const [status, setStatus] = useState<Status>("");
+  const [appId, setAppId] = useState("");
 
   const categoryOf = (name: string) => s.studyPrograms.find(p => p.name === name)?.category ?? "Other";
   const cityColor = (c: string) => CITY_COLORS[Math.max(0, s.tagLists.locations.indexOf(c)) % CITY_COLORS.length]!;
@@ -48,13 +49,27 @@ function Insights() {
   }), [s]);
 
   const entries = all.filter(e =>
+    (!appId || e.app.id === appId) &&
     (!city || e.app.tags.location === city) && (!program || e.app.tags.program === program) && (!round || e.app.tags.semester === round) &&
     (!status || (status === "accepted" ? isAccepted(e.sub) : status === "rejected" ? e.sub.status === "rejected" : e.sub.status === "new" || e.sub.status === "invited")));
+  // Applications to choose from: those matching city / program / round, newest first.
+  // Two rounds with the same title (e.g. two AIM Connect Munich rounds in one semester)
+  // are told apart by their opening date.
+  const appOptions = s.applications
+    .filter(a => (!city || a.tags.location === city) && (!program || a.tags.program === program) && (!round || a.tags.semester === round))
+    .filter(a => all.some(e => e.app.id === a.id))
+    .sort((a, b) => b.dates.opensAt.localeCompare(a.dates.opensAt));
+  const appTitleCount = new Map<string, number>();
+  for (const a of appOptions) appTitleCount.set(appTitle(a), (appTitleCount.get(appTitle(a)) ?? 0) + 1);
+  // A chosen application that no longer fits the other filters is dropped
+  const appStillFits = !appId || appOptions.some(a => a.id === appId);
+  useEffect(() => { if (!appStillFits) setAppId(""); }, [appStillFits]);
+
   const people = [...new Map(entries.map(e => [e.person.id, e.person])).values()];
 
   // Link to the network list with the current filters + one dimension
   const netLink = (extra: Record<string, string>) => {
-    const q = new URLSearchParams({ ...(city && { city }), ...(program && { program }), ...(round && { round }), ...(status && { status }), ...extra });
+    const q = new URLSearchParams({ ...(city && { city }), ...(program && { program }), ...(round && { round }), ...(status && { status }), ...(appId && { app: appId }), ...extra });
     return `/team/network?${q}`;
   };
 
@@ -93,7 +108,8 @@ function Insights() {
     a.click();
   };
 
-  const filterLabel = [city || "All cities", program || "all programs", round || "all rounds",
+  const chosenApp = s.applications.find(a => a.id === appId);
+  const filterLabel = [...(chosenApp ? [appTitle(chosenApp)] : []), city || "All cities", program || "all programs", round || "all rounds",
     status === "accepted" ? "accepted/confirmed" : status === "rejected" ? "rejected" : status === "pending" ? "in progress" : "all statuses"].join(" · ");
 
   const sel = (label: string, value: string, set: (v: string) => void, opts: [string, string][]) => (
@@ -115,8 +131,10 @@ function Insights() {
         {sel("City", city, setCity, [["", "All cities"], ...s.tagLists.locations.map(l => [l, l] as [string, string])])}
         {sel("Program", program, setProgram, [["", "All programs"], ...s.tagLists.programs.map(l => [l, l] as [string, string])])}
         {sel("Round", round, setRound, [["", "All rounds"], ...s.tagLists.semesters.map(l => [l, l] as [string, string])])}
+        {sel("Application", appId, setAppId, [["", appOptions.length ? `All applications (${appOptions.length})` : "No applications"],
+          ...appOptions.map(a => [a.id, `${appTitle(a)}${appTitleCount.get(appTitle(a))! > 1 ? ` · opens ${fmtDate(a.dates.opensAt)}` : ""}`] as [string, string])])}
         {sel("Status", status, v => setStatus(v as Status), [["", "All applicants"], ["accepted", "Accepted / confirmed"], ["pending", "In progress"], ["rejected", "Rejected"]])}
-        {(city || program || round || status) && <button class="btn btn--ghost btn--sm" onClick={() => { setCity(""); setProgram(""); setRound(""); setStatus(""); }}>Reset filters</button>}
+        {(city || program || round || status || appId) && <button class="btn btn--ghost btn--sm" onClick={() => { setCity(""); setProgram(""); setRound(""); setStatus(""); setAppId(""); }}>Reset filters</button>}
       </div>
       <p class="print-only muted">{filterLabel}</p>
 

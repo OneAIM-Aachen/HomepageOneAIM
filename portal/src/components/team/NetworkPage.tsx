@@ -29,6 +29,7 @@ function Network({ initial }: { initial: string | null }) {
   const [field, setField] = useState(param("field"));
   const [termSem, setTermSem] = useState(param("sem"));
   const [degree, setDegree] = useState(param("degree"));
+  const [appId, setAppId] = useState(param("app"));
   const [open, setOpen] = useState<string | null>(initial);
 
   const rows = useMemo(() => s.people.map(p => {
@@ -52,10 +53,10 @@ function Network({ initial }: { initial: string | null }) {
     if (termSem && p.semester !== termSem) return false;
     if (degree && p.degree !== degree) return false;
     // Tag filters and outcome apply to the same submission, e.g. "accepted in AIM Connect Aachen"
-    const match = subs.filter(({ app }) =>
+    const match = subs.filter(({ app }) => (!appId || app!.id === appId) &&
       (!program || app!.tags.program === program) && (!location || app!.tags.location === location) && (!semester || app!.tags.semester === semester));
-    if ((program || location || semester) && match.length === 0) return false;
-    const pool = program || location || semester ? match : subs;
+    if ((program || location || semester || appId) && match.length === 0) return false;
+    const pool = program || location || semester || appId ? match : subs;
     if (outcome === "accepted" && !pool.some(x => isAccepted(x.sub.status))) return false;
     if (outcome === "rejected" && !pool.some(x => x.sub.status === "rejected")) return false;
     if (outcome === "pending" && !pool.some(x => x.sub.status === "new" || x.sub.status === "invited")) return false;
@@ -86,6 +87,12 @@ function Network({ initial }: { initial: string | null }) {
         sub="Everyone who ever applied, one profile per email address, with their full application history."
         actions={<button class="btn btn--secondary" onClick={exportCsv}><IconDownload width={16} />Export CSV</button>} />
 
+      {appId && (
+        <div class="row" style="margin-bottom:-6px">
+          <span class="chip chip--blue">Application: {(() => { const x = s.applications.find(y => y.id === appId); return x ? appTitle(x) : "unknown"; })()}</span>
+          <button class="btn btn--ghost btn--sm" onClick={() => setAppId("")}>Show all applications</button>
+        </div>
+      )}
       <div class="stats">
         <div class="card stat"><span class="stat__num">{s.people.length}</span><span class="stat__label">People</span></div>
         <div class="card stat"><span class="stat__num">{rows.filter(r => r.subs.some(x => isAccepted(x.sub.status))).length}</span><span class="stat__label">Participants</span><span class="muted small">accepted at least once</span></div>

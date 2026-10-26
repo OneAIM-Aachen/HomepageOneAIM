@@ -80,8 +80,10 @@ const PROGRAMS: Record<string, W<string>> = {
 const DEGREES: W<string> = [["Bachelor", 34], ["Master", 30], ["State exam (Staatsexamen)", 26], ["PhD / Doctorate", 7], ["Graduated / working", 3]];
 
 // Which programs run where, with pipeline, profile mix and size per round
-const OFFER: { city: string; program: string; pipeline: Application["pipeline"]; mix: string; size: number }[] = [
+const OFFER: { city: string; program: string; pipeline: Application["pipeline"]; mix: string; size: number; only?: string; day?: string }[] = [
   { city: "Munich", program: "AIM Connect", pipeline: "interview", mix: "mixed", size: 34 },
+  // Second, later intake in the same semester (same program, same city)
+  { city: "Munich", program: "AIM Connect", pipeline: "interview", mix: "mixed", size: 18, only: "SS 27", day: "15" },
   { city: "Munich", program: "AIM Code", pipeline: "screening", mix: "tech", size: 24 },
   { city: "Munich", program: "AIM Innovate", pipeline: "interview", mix: "founders", size: 12 },
   { city: "Munich", program: "AIM Science", pipeline: "interview", mix: "tech", size: 10 },
@@ -143,12 +145,14 @@ export function withDemo(s: State): State {
   for (const [round, month] of ROUNDS) {
     for (const o of OFFER) {
       if (!s.tagLists.locations.includes(o.city) || !s.tagLists.programs.includes(o.program)) continue;
+      if (o.only && o.only !== round) continue;
+      const opens = `${month}-${o.day ?? "01"}`;
       const app: Application = {
-        id: `demo-${o.city}-${o.program}-${round}`.replace(/\W+/g, "-").toLowerCase(), slug: `demo-${o.city}-${round}`.toLowerCase(),
+        id: `demo-${o.city}-${o.program}-${round}-${o.day ?? "01"}`.replace(/\W+/g, "-").toLowerCase(), slug: `demo-${o.city}-${round}`.toLowerCase(),
         title: o.pipeline === "instant" ? `${o.program.replace("AIM ", "")} Summit ${o.city} – ${round}` : undefined,
         blueprintName: "Demo", fields: [], tags: { semester: round, program: o.program, location: o.city }, pipeline: o.pipeline,
-        published: true, dates: { opensAt: `${month}-01`, deadline: `${month}-20` }, intro: "", image: undefined,
-        templates: defaultTemplates(o.pipeline), slots: [], createdAt: `${month}-01`, createdBy: o.city,
+        published: true, dates: { opensAt: opens, deadline: `${month}-28` }, intro: "", image: undefined,
+        templates: defaultTemplates(o.pipeline), slots: [], createdAt: opens, createdBy: o.city,
       };
       apps.push(app);
       const size = Math.round(o.size * (0.8 + r() * 0.5) * (round === CURRENT ? 1.1 : 1));
