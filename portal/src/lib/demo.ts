@@ -11,20 +11,23 @@ const KEY = "oneaim-demo";
 export const demoAvailable = (): boolean =>
   import.meta.env.DEV || import.meta.env.PUBLIC_DEMO_MODE === "true";
 
+/** Shown by default (where available) until someone switches it off. */
+const DEFAULT_ON = true;
+
 export function isDemo(): boolean {
   if (!demoAvailable() || typeof window === "undefined") return false;
   const p = new URLSearchParams(location.search).get("demo");
   try {
-    if (p === "1") localStorage.setItem(KEY, "1");
-    if (p === "0") localStorage.removeItem(KEY);
-    return localStorage.getItem(KEY) === "1";
+    if (p === "1" || p === "0") localStorage.setItem(KEY, p);
+    const stored = localStorage.getItem(KEY);
+    return stored === null ? DEFAULT_ON : stored === "1";
   } catch {
-    return p === "1";
+    return p ? p === "1" : DEFAULT_ON;
   }
 }
 
 export function setDemo(on: boolean) {
-  try { on ? localStorage.setItem(KEY, "1") : localStorage.removeItem(KEY); } catch { /* ignore */ }
+  try { localStorage.setItem(KEY, on ? "1" : "0"); } catch { /* ignore */ }
   const u = new URL(location.href);
   u.searchParams.delete("demo");
   location.href = u.toString();
