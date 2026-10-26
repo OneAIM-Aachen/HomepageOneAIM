@@ -93,8 +93,6 @@ export interface Application {
     /** Free text instead of from/to, e.g. "Oct" */
     interviewsLabel?: string;
   };
-  /** Round still running on an external form (e.g. Tally) */
-  externalUrl?: string;
   spots?: number;
   fee?: string;
   intro: string;

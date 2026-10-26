@@ -48,7 +48,7 @@ function Facts({ app }: { app: PublicApplication }) {
   );
 }
 
-const applyHref = (a: PublicApplication) => a.externalUrl ?? `/apply/form?a=${a.slug}`;
+const applyHref = (a: PublicApplication) => `/apply/form?a=${a.slug}`;
 
 /** Filter value from the URL (?location=Aachen&program=AIM%20Connect), case-insensitive. */
 function initialFilter(name: string): string {
@@ -113,7 +113,7 @@ export function ApplyHome() {
           : <div class="empty">No applications are open right now. Follow us on Instagram to hear about the next round.</div>)}
         <div class="app-grid">
           {open.map(a => (
-            <a class="app-card" href={applyHref(a)} {...(a.externalUrl ? { target: "_blank", rel: "noopener" } : {})}>
+            <a class="app-card" href={applyHref(a)}>
               <div class="app-card__img" style={a.image ? `background-image:url(${a.image})` : ""}><span class="chip chip--green chip--dot">Open</span></div>
               <div class="app-card__body">
                 <span class="app-card__title">{appTitle(a)}</span>
@@ -174,12 +174,7 @@ export function ApplyForm() {
           <div style="height:30px" />
         </div>
         <div class="form-card">
-          {app.externalUrl ? (
-            <div class="stack" style="align-items:flex-start">
-              <p>Applications for this round run on an external form.</p>
-              <a class="btn btn--gradient btn--lg" href={app.externalUrl} target="_blank" rel="noopener">Open application form →</a>
-            </div>
-          ) : app.phase === "open" ? (
+          {app.phase === "open" ? (
             <>
               <div class="stack-s">
                 <h2>{app.pipeline === "instant" ? "Register" : "Your application"}</h2>

@@ -80,7 +80,6 @@ function mapApplication(r: any, slots: Slot[]): Application {
       deadlineTime: r.deadline_time ? String(r.deadline_time).slice(0, 5) : undefined,
       interviewsLabel: r.interviews_label ?? undefined,
     },
-    externalUrl: r.external_url ?? undefined,
     spots: r.spots ?? undefined,
     fee: r.fee ?? undefined,
     intro: r.intro ?? "",
@@ -112,7 +111,6 @@ function applicationRow(a: Application) {
     interviews_label: a.dates.interviewsLabel?.trim() || null,
     decision_by: a.dates.decisionBy || null,
     starts_at: a.dates.startsAt || null,
-    external_url: a.externalUrl?.trim() || null,
     spots: a.spots ?? null,
     fee: a.fee?.trim() || null,
     intro: a.intro,
@@ -354,10 +352,13 @@ export async function updateSlot(slotId: string, patch: Partial<Pick<Slot, "loca
 
 export const slotComplete = (s: Slot) => (s.mode === "online" ? !!s.meetingLink : s.location.trim().length > 0);
 
+export const slotIsPast = (s: Slot) => s.start <= toLocal(new Date().toISOString());
+
 /** Why this application can't invite yet (same rule as the database), or null. */
 export function inviteBlocker(app: Application): string | null {
   const now = toLocal(new Date().toISOString());
   const future = app.slots.filter(s => s.start > now);
+  if (app.slots.length && !future.length) return friendlyError({ message: "slots_in_past" });
   if (!future.some(s => slotTaken(app, s.id) < s.capacity)) return friendlyError({ message: "no_free_slots" });
   if (future.some(s => !slotComplete(s))) return friendlyError({ message: "slots_incomplete" });
   return null;
@@ -488,7 +489,7 @@ export async function fetchPublishedApplications(): Promise<PublicApplication[]>
       interviewsTo: r.interviews_to ?? undefined, decisionBy: r.decision_by ?? undefined, startsAt: r.starts_at ?? undefined,
       deadlineTime: r.deadline_time ? String(r.deadline_time).slice(0, 5) : undefined, interviewsLabel: r.interviews_label ?? undefined,
     },
-    externalUrl: r.external_url ?? undefined, spots: r.spots ?? undefined, fee: r.fee ?? undefined,
+    spots: r.spots ?? undefined, fee: r.fee ?? undefined,
     intro: r.intro ?? "", image: r.image_path ?? undefined,
     templates: defaultTemplates(r.pipeline), slots: [], createdAt: "", createdBy: "",
   }));

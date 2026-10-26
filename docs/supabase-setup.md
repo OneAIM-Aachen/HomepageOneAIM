@@ -7,12 +7,14 @@ The database lives in `supabase/migrations/`:
 | `…180000_core_schema.sql` | Tables: team accounts, tags, blueprints, applications, interview slots, people (network), submissions, comments, status history, email log |
 | `…180100_security.sql` | Access rules (RLS) and the functions the public apply site may call |
 | `…180200_storage.sql` | File buckets: `application-files` (private: CVs, uploads), `public-images` (header images) |
-| `…180300_reference_data.sql` | Programs, locations, semesters, 4 starter blueprints, the current WS 26/27 rounds (still on Tally) |
+| `…180300_reference_data.sql` | Programs, locations, semesters, 4 starter blueprints (the imported Tally rounds are removed again later) |
 | `…200000_revoke_anon_functions.sql` | Removes Supabase's automatic public access to team-only functions |
 | `…210000_email_settings.sql` | Email settings (sender, test mode, limit) |
 | `…210100_email_trigger.sql` | Starts the email sender automatically (trigger + every 2 min) |
 | `…090000/090100_…interview…` | Interview confirmation email, meeting links, invite guard |
 | `…120000/120100_…mailbox.sql` | Incoming emails (mailbox sync), team replies, threading |
+| `…180000_email_name_and_slot_rules.sql` | Same email + different name is refused; no interview slots in the past |
+| `…190000_remove_external_forms.sql` | Removes external forms (Tally): every application uses our own form |
 
 ## Who can do what
 

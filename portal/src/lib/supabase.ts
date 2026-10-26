@@ -30,6 +30,8 @@ const MESSAGES: Record<string, string> = {
   slot_full: "This slot was just taken. Please pick another one.",
   not_allowed: "Your account is not allowed to do this.",
   no_slot_booked: "This applicant hasn't booked an interview slot yet.",
+  email_name_mismatch: "This email address is already registered under a different name. Please apply with your own email address. If your name has changed, write to contact@one-aim.org.",
+  slots_in_past: "All interview slots of this application are in the past. Add new slots with a future date (tab “Interview slots”).",
   no_free_slots: "Add interview slots with free places first (tab “Interview slots”). Invitations need bookable slots.",
   slots_incomplete: "Some interview slots are incomplete: online slots need a meeting link, in-person slots a place (tab “Interview slots”).",
   slot_incomplete: "This slot can't be booked right now. Please pick another one.",

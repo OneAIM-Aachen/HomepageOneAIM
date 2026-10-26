@@ -2,7 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import type { Account, Application, Slot, Submission, SubmissionStatus, TemplateKey } from "../../lib/types";
 import {
   addComment, addSlots, decide, deleteApplication, inviteBlocker, removeSlot, renderTemplate, saveApplication,
-  sendInterviewDetails, setScore, slotComplete, slotTaken, updateSlot, uploadImage, useStore, type Decision,
+  sendInterviewDetails, setScore, slotComplete, slotIsPast, slotTaken, updateSlot, uploadImage, useStore, type Decision,
 } from "../../lib/store";
 import {
   appPhase, appTitle, fmtDate, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL,
@@ -56,7 +56,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
         actions={<>
           <button class="btn btn--secondary" onClick={() => setPreview(true)}>Preview form</button>
           <button class="btn btn--secondary" onClick={() => { navigator.clipboard?.writeText(`https://apply.one-aim.org/${app.slug}`); toast("Public link copied"); }}>Copy link</button>
-          {app.published && phase !== "closed" && !app.externalUrl &&
+          {app.published && phase !== "closed" &&
             <a class="btn btn--secondary" href={publicUrl} target="_blank" rel="noopener"><IconExternal width={16} />Open public form</a>}
         </>} />
 
@@ -445,16 +445,6 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
       </section>
 
       <section class="card stack">
-        <div class="stack-s">
-          <h3>External form (optional)</h3>
-          <p class="muted small">Only for rounds still running on another tool, e.g. Tally. If set, “Apply” buttons link there and our own form is not used.</p>
-        </div>
-        <Field label="External form link">
-          <input class="input" type="url" placeholder="https://tally.so/r/…" value={d.externalUrl ?? ""} onInput={e => setD({ ...d, externalUrl: e.currentTarget.value || undefined })} />
-        </Field>
-      </section>
-
-      <section class="card stack">
         <h3>Spots & fee</h3>
         <div class="grid-3">
           <Field label="Spots"><input class="input" type="number" min={0} value={d.spots ?? ""} onInput={e => setD({ ...d, spots: Number(e.currentTarget.value) || undefined })} /></Field>
@@ -595,6 +585,8 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
   const add = () => {
     const list = times.split(/[,\s]+/).filter(x => /^\d{1,2}:\d{2}$/.test(x));
     if (!day || list.length === 0) { toast("Pick a date and at least one time like 17:00"); return; }
+    const past = list.filter(tm => new Date(`${day}T${tm.padStart(5, "0")}`) <= new Date());
+    if (past.length) { toast(`These times are in the past: ${past.join(", ")}. Please pick a future date or time.`); return; }
     act(() => addSlots(app.id, list.map(tm => ({
       start: `${day}T${tm.padStart(5, "0")}`, durationMin: 15, mode, capacity,
       location: mode === "online" ? (location.trim() || "Online") : location.trim(),
@@ -629,7 +621,7 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
           ))}
         </div>
         <div class="grid-2">
-          <Field label="Date"><input class="input" type="date" value={day} onInput={e => setDay(e.currentTarget.value)} /></Field>
+          <Field label="Date"><input class="input" type="date" min={new Date().toISOString().slice(0, 10)} value={day} onInput={e => setDay(e.currentTarget.value)} /></Field>
           <Field label="Start times" help="Comma separated, e.g. 17:00, 17:20, 17:40"><input class="input" value={times} onInput={e => setTimes(e.currentTarget.value)} /></Field>
           {mode === "online" ? (
             <Field label="Meeting link" required help="Zoom, Teams or Meet. Only sent by email after booking." error={meetingLink && !linkOk ? "Paste the full link starting with https://" : undefined}>
@@ -655,25 +647,27 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
                 {app.slots.map(sl => {
                   const booked = subs.filter(x => x.slotId === sl.id);
                   const complete = slotComplete(sl);
+                  const past = slotIsPast(sl);
                   return (
-                    <tr>
-                      <td><span class="row" style="gap:8px"><IconCalendar width={17} /><strong>{fmtSlot(sl.start)}</strong></span></td>
+                    <tr style={past ? "opacity:.55" : ""}>
+                      <td><span class="row" style="gap:8px"><IconCalendar width={17} /><strong>{fmtSlot(sl.start)}</strong>{past && <span class="chip chip--gray">Past</span>}</span></td>
                       <td class="small">
                         {editing === sl.id ? (
                           <SlotEdit slot={sl} onDone={() => setEditing(null)} />
                         ) : (
                           <div class="stack-s" style="gap:2px">
                             <span>{sl.mode === "online" ? "Online" : "In person"}{sl.location && sl.location !== "Online" ? ` · ${sl.location}` : ""}</span>
-                            {sl.mode === "online" && (sl.meetingLink
+                            {!past && sl.mode === "online" && (sl.meetingLink
                               ? <a href={sl.meetingLink} target="_blank" rel="noopener" style="word-break:break-all">{sl.meetingLink}</a>
                               : <span class="chip chip--red">Meeting link missing</span>)}
-                            {sl.mode === "in_person" && !complete && <span class="chip chip--red">Place missing</span>}
-                            <button class="btn btn--ghost btn--sm" style="align-self:flex-start;padding:2px 8px" onClick={() => setEditing(sl.id)}>Edit</button>
+                            {past && sl.meetingLink && <span class="muted small" style="word-break:break-all">{sl.meetingLink}</span>}
+                            {!past && sl.mode === "in_person" && !complete && <span class="chip chip--red">Place missing</span>}
+                            {!past && <button class="btn btn--ghost btn--sm" style="align-self:flex-start;padding:2px 8px" onClick={() => setEditing(sl.id)}>Edit</button>}
                           </div>
                         )}
                       </td>
                       <td>
-                        {booked.length === 0 ? <span class="muted small">Free ({sl.capacity})</span>
+                        {booked.length === 0 ? <span class="muted small">{past ? "Not booked" : `Free (${sl.capacity})`}</span>
                           : booked.map(b => <span class="chip chip--purple" style="margin:2px">{people.find(p => p.id === b.personId)?.name}</span>)}
                         {booked.length > 0 && booked.length < sl.capacity && <span class="muted small"> +{sl.capacity - slotTaken(app, sl.id)} free</span>}
                       </td>
