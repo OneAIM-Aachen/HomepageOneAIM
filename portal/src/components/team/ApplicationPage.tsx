@@ -3,6 +3,7 @@ import type { Account, Application, Slot, Submission, SubmissionStatus, Template
 import {
   addComment, addSlots, decide, deleteApplication, inviteBlocker, removeSlot, renderTemplate, saveApplication,
   sendInterviewDetails, setScore, slotComplete, slotIsPast, slotTaken, updateSlot, uploadImage, useStore, type Decision,
+  formOptionsFromState, getState,
 } from "../../lib/store";
 import {
   appPhase, appTitle, fmtDate, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL,
@@ -13,6 +14,7 @@ import { FormBuilder } from "./FormBuilder";
 import { Answers } from "./Answers";
 import { act, Avatar, confirmDialog, Drawer, Field, Modal, PhaseChip, Stars, StatusChip, toast, useParam } from "../ui/Ui";
 import { FormRenderer } from "../apply/FormRenderer";
+import { isDemoId } from "../../lib/demo";
 import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash } from "../ui/Icons";
 
 type Tab = "applicants" | "setup" | "form" | "emails" | "slots";
@@ -93,7 +95,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
 
       {preview && (
         <Modal title="Form preview" onClose={() => setPreview(false)} wide>
-          <FormRenderer fields={app.fields} preview />
+          <FormRenderer fields={app.fields} preview options={formOptionsFromState(getState())} />
         </Modal>
       )}
     </div>
@@ -134,7 +136,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
     const ql = q.toLowerCase();
     return subs
       .filter(x => status === "all" || x.status === status)
-      .filter(x => { const p = person(x); return !ql || `${p.name} ${p.email} ${p.university ?? ""} ${p.studyProgram ?? ""}`.toLowerCase().includes(ql); })
+      .filter(x => { const p = person(x); return !ql || `${p.name} ${p.email} ${p.universities.join(" ")} ${p.studyPrograms.join(" ")}`.toLowerCase().includes(ql); })
       .sort((a, b) =>
         sort === "score" ? (b.score ?? 0) - (a.score ?? 0)
         : sort === "name" ? person(a).name.localeCompare(person(b).name)
@@ -193,11 +195,11 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
                     const slot = app.slots.find(s => s.id === x.slotId);
                     return (
                       <tr class={`is-clickable ${selected.has(x.id) ? "is-selected" : ""}`} onClick={() => setOpen(x.id)}>
-                        <td onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.name}`} checked={selected.has(x.id)} onChange={() => toggle(x.id)} /></td>
+                        <td onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.name}`} disabled={isDemoId(x.id)} checked={selected.has(x.id)} onChange={() => toggle(x.id)} /></td>
                         <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.email}</span></div></div></td>
-                        <td><span style="color:var(--color-text-heading)">{p.studyProgram ?? "–"}</span><br /><span class="muted small">{p.university ?? ""}{p.semester ? ` · ${p.semester}. sem.` : ""}</span></td>
+                        <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}{p.semester && /^\d/.test(p.semester) ? ` · ${p.semester}. sem.` : ""}{p.degree ? ` · ${p.degree}` : ""}</span></td>
                         <td><StatusChip status={x.status} /></td>
-                        <td onClick={e => e.stopPropagation()}><Stars value={x.score} onChange={v => act(() => setScore(x.id, v))} /></td>
+                        <td onClick={e => e.stopPropagation()}><Stars value={x.score} onChange={isDemoId(x.id) ? undefined : v => act(() => setScore(x.id, v))} /></td>
                         {app.pipeline === "interview" && (
                           <td class="small">{slot ? fmtSlot(slot.start) : x.status === "invited" ? <span class="chip chip--amber">No slot yet</span> : <span class="muted">–</span>}</td>
                         )}
@@ -308,8 +310,10 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
         </div>
       </div>}
       foot={<>
+        {isDemoId(sub.id) ? <span class="muted small">Demo applicant: view only.</span> : <>
         {decisions.map(d => <button class={`btn btn--sm ${DECISION_TEXT[d].btn}`} onClick={() => onDecide(d)}>{DECISION_TEXT[d].verb}</button>)}
         {decisions.length === 0 && <span class="muted small">Confirmed automatically (instant pipeline).</span>}
+        </>}
         {sub.status === "invited" && sub.slotId && (
           <button class="btn btn--secondary btn--sm" title="Emails time, place and meeting link again"
             onClick={() => act(() => sendInterviewDetails(sub.id), r => r.skipped ? `Not sent yet: ${r.skipped}` : "Interview details sent")}>
@@ -324,7 +328,7 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
       <div class="grid-2">
         <div class="card stack-s" style="padding:14px 16px">
           <span class="overline">Score</span>
-          <Stars value={sub.score} onChange={v => act(() => setScore(sub.id, v))} />
+          <Stars value={sub.score} onChange={isDemoId(sub.id) ? undefined : v => act(() => setScore(sub.id, v))} />
         </div>
         {app.pipeline === "interview" && (
           <div class="card stack-s" style="padding:14px 16px">
@@ -350,7 +354,7 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
             <p style="margin-top:4px;white-space:pre-wrap">{c.text}</p>
           </div>
         ))}
-        <textarea class="input" style="min-height:70px" placeholder="Add a note, e.g. interview impressions…" value={comment} onInput={e => setComment(e.currentTarget.value)} />
+        <textarea class="input" style="min-height:70px" placeholder="Add a note, e.g. interview impressions…" value={comment} disabled={isDemoId(sub.id)} onInput={e => setComment(e.currentTarget.value)} />
         <button class="btn btn--secondary btn--sm" style="align-self:flex-start" disabled={!comment.trim()}
           onClick={async () => { await act(() => addComment(sub.id, acc.city, comment)); setComment(""); }}>Add comment</button>
       </section>

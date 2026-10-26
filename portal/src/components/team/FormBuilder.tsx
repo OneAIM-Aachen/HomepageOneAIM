@@ -46,7 +46,8 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
                   <strong>{f.label}{f.required && <span style="color:var(--color-accent-pink)"> *</span>}</strong>
                   <span class="muted small">
                     {KINDS[f.kind].label}
-                    {locked ? " · always included" : profile ? " · fills the network profile" : ""}
+                    {locked ? " · always included, mandatory" : profile ? " · fills the network profile" : ""}
+                    {f.kind === "university" || f.kind === "studyProgram" ? " · list, several allowed" : f.kind === "semester" || f.kind === "degree" ? " · fixed options" : ""}
                     {f.options ? ` · ${f.options.length} options` : ""}
                     {f.maxWords ? ` · max ${f.maxWords} words` : ""}
                   </span>
@@ -54,17 +55,17 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
                 {!readOnly && <>
                   <button class="icon-btn" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up"><IconUp /></button>
                   <button class="icon-btn" disabled={i === fields.length - 1} onClick={() => move(i, 1)} aria-label="Move down"><IconDown /></button>
-                  <button class="icon-btn" disabled={locked} onClick={() => onChange(fields.filter(x => x.id !== f.id))} aria-label="Remove field" title={locked ? "Name and email are part of every form" : "Remove"}><IconTrash /></button>
+                  <button class="icon-btn" disabled={locked} onClick={() => onChange(fields.filter(x => x.id !== f.id))} aria-label="Remove field" title={locked ? "Part of every form (needed for the network statistics)" : "Remove"}><IconTrash /></button>
                 </>}
               </div>
               {isOpen && (
                 <div class="stack" style="gap:12px">
                   <div class="grid-2">
-                    <Field label="Question / label">
-                      <input class="input input--sm" value={f.label} onInput={e => update(f.id, { label: e.currentTarget.value })} />
+                    <Field label="Question / label" help={f.kind === "university" ? "Fixed for all forms." : undefined}>
+                      <input class="input input--sm" value={f.label} disabled={f.kind === "university"} onInput={e => update(f.id, { label: e.currentTarget.value })} />
                     </Field>
-                    <Field label="Help text (optional)">
-                      <input class="input input--sm" value={f.help ?? ""} onInput={e => update(f.id, { help: e.currentTarget.value || undefined })} />
+                    <Field label="Help text (optional)" help={f.kind === "university" ? "Fixed: tells applicants to list every affiliation." : undefined}>
+                      <input class="input input--sm" value={f.help ?? ""} disabled={f.kind === "university"} onInput={e => update(f.id, { help: e.currentTarget.value || undefined })} />
                     </Field>
                   </div>
                   {f.kind === "longText" && (
@@ -90,7 +91,7 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
                   )}
                   <label class="check">
                     <input type="checkbox" checked={f.required} disabled={locked} onChange={e => update(f.id, { required: e.currentTarget.checked })} />
-                    <span><strong>Mandatory</strong> <span class="muted small">{locked ? "(name and email are always mandatory)" : "applicants must answer this"}</span></span>
+                    <span><strong>Mandatory</strong> <span class="muted small">{locked ? "(core profile fields are always mandatory)" : "applicants must answer this"}</span></span>
                   </label>
                 </div>
               )}
@@ -111,8 +112,8 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
       {!readOnly && (
         <aside class="palette">
           <div class="card stack-s">
-            <h3>Profile fields</h3>
-            <p class="muted small">Saved to the person's network profile. Each can be added once.</p>
+            <h3>Optional profile fields</h3>
+            <p class="muted small">Saved to the person's network profile. University, study program, semester and degree level are always included.</p>
             <div class="palette__grid">
               {PROFILE_KINDS.map(k => (
                 <button class="palette__btn" disabled={has(k)} onClick={() => add(k)}>+ {KINDS[k].label}</button>

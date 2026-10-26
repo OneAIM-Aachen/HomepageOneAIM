@@ -12,17 +12,19 @@
 
 import { useEffect, useState } from "preact/hooks";
 import type {
-  Account, Answer, Application, Blueprint, FileRef, InboxMessage, Person, SentEmail, Slot, State, Submission,
+  Account, Answer, Application, Blueprint, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
   SubmissionStatus, Tags, TemplateKey, Pipeline,
 } from "./types";
-import { appTitle, defaultTemplates, firstName, fmtDate, today } from "./fields";
+import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
+import { isDemo, withDemo } from "./demo";
 
 // ── State ────────────────────────────────────────────────────────────────
 
 const EMPTY: State = {
   teamCities: [], tagLists: { semesters: [], programs: [], locations: [] },
   blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
+  universities: [], studyPrograms: [],
 };
 
 let state: State = EMPTY;
@@ -119,23 +121,40 @@ function applicationRow(a: Application) {
   };
 }
 
+const PAGE = 1000;
+
+/** Loads every row of a query in pages (Supabase returns at most 1,000 rows per request). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const out: any[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await make().range(from, from + PAGE - 1);
+    if (error) return { data: out, error };
+    out.push(...(data ?? []));
+    if (!data || data.length < PAGE) return { data: out, error: null };
+  }
+}
+
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, accounts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox] =
+  const [programs, locations, semesters, accounts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
       supabase.from("semesters").select("id, label, term, start_year").order("start_year").order("term", { ascending: false }),
       supabase.from("team_accounts").select("city").order("city"),
       supabase.from("blueprints").select("*").order("updated_at", { ascending: false }),
-      supabase.from("applications").select("*").order("created_at", { ascending: false }),
-      supabase.from("interview_slots").select("*").order("starts_at"),
-      supabase.from("people").select("*").order("name"),
-      supabase.from("submissions").select("*").order("submitted_at", { ascending: false }),
-      supabase.from("submission_comments").select("*").order("created_at"),
-      supabase.from("status_history").select("*").order("changed_at"),
-      supabase.from("email_log").select("*").order("created_at", { ascending: false }).limit(1000),
-      supabase.from("mailbox_messages").select("*").order("received_at", { ascending: false }).limit(1000),
+      all(() => supabase.from("applications").select("*").order("created_at", { ascending: false }).order("id")),
+      all(() => supabase.from("interview_slots").select("*").order("starts_at").order("id")),
+      all(() => supabase.from("people").select("*").order("name").order("id")),
+      all(() => supabase.from("submissions").select("*").order("submitted_at", { ascending: false }).order("id")),
+      all(() => supabase.from("submission_comments").select("*").order("created_at").order("id")),
+      all(() => supabase.from("status_history").select("*").order("changed_at").order("id")),
+      all(() => supabase.from("email_log").select("*").order("created_at", { ascending: false }).order("id")),
+      all(() => supabase.from("mailbox_messages").select("*").order("received_at", { ascending: false }).order("id")),
       supabase.from("mailbox_state").select("last_sync_at, last_error, sync_since").maybeSingle(),
+      all(() => supabase.from("universities").select("id, name, city, country, aliases").order("name").order("id")),
+      all(() => supabase.from("study_programs").select("id, name, category").order("category").order("name")),
     ]);
 
   const P = check(programs) as any[], L = check(locations) as any[], S = check(semesters) as any[];
@@ -170,7 +189,7 @@ export async function loadAll(): Promise<void> {
     applications: (check(apps) as any[]).map(r => mapApplication(r, slotsByApp.get(r.id) ?? [])),
     people: (check(people) as any[]).map(p => ({
       id: p.id, email: p.email, name: p.name, phone: p.phone ?? undefined, linkedin: p.linkedin ?? undefined,
-      university: p.university ?? undefined, studyProgram: p.study_program ?? undefined, semester: p.semester ?? undefined,
+      universities: p.universities ?? [], studyPrograms: p.study_programs ?? [], semester: p.semester ?? undefined,
       degree: p.degree ?? undefined, cv: p.cv ?? undefined, firstSeen: p.first_seen_at,
     }) as Person),
     submissions: (check(subs) as any[]).map(x => ({
@@ -193,11 +212,14 @@ export async function loadAll(): Promise<void> {
       personId: m.person_id ?? undefined, submissionId: m.submission_id ?? undefined,
       matchedBy: m.matched_by ?? undefined, readAt: m.read_at ?? undefined,
     }) as InboxMessage),
+    universities: (check(unis) as any[]).map(u => ({ id: u.id, name: u.name, city: u.city ?? undefined, country: u.country ?? undefined, aliases: u.aliases ?? [] })),
+    studyPrograms: check(studyProgs) as any[],
     mailbox: (() => {
       const m = check(mailbox) as any;
       return m ? { lastSyncAt: m.last_sync_at ?? undefined, lastError: m.last_error ?? undefined, syncSince: m.sync_since } : null;
     })(),
   };
+  if (isDemo()) state = withDemo(state);   // local development only, nothing is saved
   notify();
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -270,12 +292,10 @@ export async function removeTag(list: TagListKey, value: string) {
 const newId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
 export async function createBlueprint(name: string, from?: Blueprint): Promise<string> {
+  // Core fields keep their ids; the database adds any that are missing
   const fields = from
-    ? structuredClone(from.fields).map(f => ({ ...f, id: f.kind === "name" || f.kind === "email" ? f.id : `f_${newId()}` }))
-    : [
-        { id: "name", kind: "name", label: "Full name", required: true },
-        { id: "email", kind: "email", label: "Email address", required: true },
-      ];
+    ? structuredClone(from.fields).map(f => ({ ...f, id: LOCKED_KINDS.includes(f.kind) ? f.id : `f_${newId()}` }))
+    : baseFields();
   const row = check(await supabase.from("blueprints")
     .insert({ name: name.trim() || "Untitled blueprint", description: from?.description ?? "", fields })
     .select("id").single()) as { id: string };
@@ -640,4 +660,44 @@ export async function sendReply(r: ReplyInput, city: string): Promise<{ sent?: n
   const { data } = await supabase.functions.invoke("send-emails", { body: {} });
   await loadAll();
   return data ?? {};
+}
+
+// ── Lists: universities & study programs (Settings) ──────────────────────
+
+export function formOptionsFromState(s: State): FormOptions {
+  return {
+    universities: s.universities.map(u => ({ name: u.name, country: u.country, aliases: u.aliases })),
+    studyPrograms: s.studyPrograms.map(p => ({ name: p.name, category: p.category })),
+  };
+}
+
+/** Options for the apply form (public, read-only). */
+export async function fetchFormOptions(): Promise<FormOptions> {
+  const { data, error } = await supabase.rpc("public_form_options");
+  if (error || !data) return { universities: [], studyPrograms: [] };
+  return data as FormOptions;
+}
+
+export async function addUniversity(name: string, city?: string) {
+  if (!name.trim()) return;
+  check(await supabase.from("universities").insert({ name: name.trim(), city: city?.trim() || null }));
+  await loadAll();
+}
+
+export async function addStudyProgram(name: string, category: string) {
+  if (!name.trim()) return;
+  check(await supabase.from("study_programs").insert({ name: name.trim(), category: category.trim() || "Other" }));
+  await loadAll();
+}
+
+export async function removeListEntry(kind: "university" | "studyProgram", id: string) {
+  check(await supabase.from(kind === "university" ? "universities" : "study_programs").delete().eq("id", id));
+  await loadAll();
+}
+
+/** Replaces a free-text value ("Other") with a list entry for everyone who entered it. */
+export async function mergeProfileValue(kind: "university" | "studyProgram", from: string, to: string): Promise<number> {
+  const n = check(await supabase.rpc("merge_profile_value", { p_kind: kind, p_from: from, p_to: to })) as number;
+  await loadAll();
+  return n;
 }

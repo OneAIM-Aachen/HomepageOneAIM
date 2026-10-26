@@ -133,8 +133,9 @@ export interface Person {
   name: string;
   phone?: string;
   linkedin?: string;
-  university?: string;
-  studyProgram?: string;
+  /** University affiliations (degree, exchange, research stays, theses …) */
+  universities: string[];
+  studyPrograms: string[];
   semester?: string;
   degree?: string;
   /** Latest CV upload (older CVs stay with their submission) */
@@ -194,6 +195,15 @@ export interface MailboxStatus {
   syncSince: string;
 }
 
+export interface ListUniversity { id: string; name: string; city?: string; country?: string; aliases: string[] }
+export interface ListStudyProgram { id: string; name: string; category: string }
+
+/** Options for the profile fields of every form */
+export interface FormOptions {
+  universities: { name: string; country?: string; aliases?: string[] }[];
+  studyPrograms: { name: string; category: string }[];
+}
+
 export interface TagLists {
   semesters: string[];
   programs: string[];
@@ -210,5 +220,7 @@ export interface State {
   people: Person[];
   outbox: SentEmail[];
   inbox: InboxMessage[];
+  universities: ListUniversity[];
+  studyPrograms: ListStudyProgram[];
   mailbox: MailboxStatus | null;
 }

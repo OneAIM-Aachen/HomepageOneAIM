@@ -1,9 +1,10 @@
 // apply.one-aim.org: open applications, the form, interview booking.
 // Uses only the public database functions (no table access).
 import type { ComponentChildren } from "preact";
+import type { FormOptions } from "../../lib/types";
 import { useEffect, useState } from "preact/hooks";
 import {
-  bookSlot, fetchPublicTagLists, fetchPublishedApplications, getBooking, submitApplication, type Booking, type PublicApplication,
+  bookSlot, fetchFormOptions, fetchPublicTagLists, fetchPublishedApplications, getBooking, submitApplication, type Booking, type PublicApplication,
 } from "../../lib/store";
 import { appTitle, fmtDate, fmtSlot, firstName, PIPELINES } from "../../lib/fields";
 import { FormRenderer } from "./FormRenderer";
@@ -138,6 +139,8 @@ export function ApplyForm() {
   const slug = useParam("a");
   const { apps, error } = usePublished();
   const [done, setDone] = useState<string | null>(null);
+  const [options, setOptions] = useState<FormOptions>({ universities: [], studyPrograms: [] });
+  useEffect(() => { fetchFormOptions().then(setOptions); }, []);
 
   if (error) return <Frame><div class="empty">Could not load this application. Please try again later.</div></Frame>;
   if (!apps) return <Frame><Loading /></Frame>;
@@ -182,7 +185,7 @@ export function ApplyForm() {
                   {PIPELINES[app.pipeline].steps.join(" → ")}. Fields marked <span style="color:var(--color-accent-pink)">*</span> are required.
                 </p>
               </div>
-              <FormRenderer fields={app.fields} submitLabel={app.pipeline === "instant" ? "Register" : "Submit application"}
+              <FormRenderer fields={app.fields} options={options} submitLabel={app.pipeline === "instant" ? "Register" : "Submit application"}
                 onSubmit={async (answers, files) => {
                   const err = await submitApplication(app, answers, files, true);
                   if (err) return err;

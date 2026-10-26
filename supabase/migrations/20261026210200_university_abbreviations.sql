@@ -1,0 +1,47 @@
+-- Common abbreviations of well-known universities as search terms
+-- (where they can't be derived from the English name's initials).
+update public.universities u
+   set aliases = (select array_agg(distinct x) from unnest(u.aliases || v.extra) x)
+from (values
+  ('University College London, University of London', array['UCL']),
+  ('University of Zurich', array['UZH', 'Universität Zürich']),
+  ('King''s College London, University of London', array['KCL', 'King''s College London']),
+  ('London School of Economics and Political Science, University of London', array['LSE', 'London School of Economics']),
+  ('Imperial College London', array['Imperial', 'Imperial College London', 'ICL']),
+  ('California Institute of Technology', array['Caltech']),
+  ('Carnegie Mellon University', array['CMU']),
+  ('University of California, Berkeley', array['UC Berkeley', 'Berkeley', 'UCB']),
+  ('University of California, Los Angeles', array['UCLA']),
+  ('University of California, San Diego', array['UCSD']),
+  ('University of California, San Francisco', array['UCSF']),
+  ('Georgia Institute of Technology', array['Georgia Tech', 'GT']),
+  ('National University of Singapore', array['NUS']),
+  ('Nanyang Technological University', array['NTU', 'NTU Singapore']),
+  ('The University of Hong Kong', array['HKU', 'University of Hong Kong']),
+  ('The Hong Kong University of Science and Technology', array['HKUST']),
+  ('The Chinese University of Hong Kong', array['CUHK']),
+  ('The Hong Kong Polytechnic University', array['PolyU']),
+  ('University of British Columbia', array['UBC']),
+  ('University of Toronto', array['UofT', 'U of T']),
+  ('McGill University', array['McGill']),
+  ('Delft University of Technology', array['TU Delft']),
+  ('Eindhoven University of Technology', array['TU/e', 'TU Eindhoven']),
+  ('University of Amsterdam', array['UvA']),
+  ('Vrije Universiteit Amsterdam', array['VU Amsterdam', 'VU']),
+  ('KU Leuven', array['Katholieke Universiteit Leuven', 'Catholic University of Leuven']),
+  ('EPFL - EPF Lausanne', array['EPFL']),
+  ('KTH Royal Institute of Technology', array['KTH']),
+  ('Norwegian University of Science and Technology', array['NTNU']),
+  ('Technical University of Denmark', array['DTU']),
+  ('Massachusetts Institute of Technology', array['MIT']),
+  ('Indian Institute of Science', array['IISc']),
+  ('Tsinghua University', array['THU']),
+  ('Peking University', array['PKU']),
+  ('University of Tokyo', array['Todai', 'UTokyo']),
+  ('National Autonomous University of Mexico', array['UNAM']),
+  ('Free University of Berlin', array['FU Berlin', 'Freie Universität Berlin']),
+  ('Humboldt University of Berlin', array['HU Berlin', 'Humboldt-Universität zu Berlin']),
+  ('Technical University of Berlin', array['TU Berlin']),
+  ('TU Dresden', array['Technische Universität Dresden', 'Dresden University of Technology'])
+) as v(name, extra)
+where u.name = v.name;

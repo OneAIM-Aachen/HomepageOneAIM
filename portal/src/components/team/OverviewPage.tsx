@@ -93,7 +93,7 @@ export default function OverviewPage() {
                     const app = s.applications.find(a => a.id === x.applicationId)!;
                     return (
                       <tr class="is-clickable" onClick={() => (location.href = `/team/application?id=${app.id}&s=${x.id}`)}>
-                        <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.university ?? p.email}</span></div></div></td>
+                        <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.universities[0] ?? p.email}</span></div></div></td>
                         <td>{appTitle(app)} <PhaseChip phase={appPhase(app)} /></td>
                         <td><StatusChip status={x.status} /></td>
                         <td class="muted">{fmtShort(x.submittedAt)}</td>

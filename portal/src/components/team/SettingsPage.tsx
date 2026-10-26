@@ -1,11 +1,11 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import {
-  addTag, changePassword, loadEmailSettings, removeTag, saveEmailSettings, sendQueuedNow, useStore,
-  type EmailSettings, type TagListKey,
+  addStudyProgram, addTag, addUniversity, changePassword, loadEmailSettings, mergeProfileValue, removeListEntry, removeTag,
+  saveEmailSettings, sendQueuedNow, useStore, type EmailSettings, type TagListKey,
 } from "../../lib/store";
 import { TeamShell, PageHead } from "./TeamShell";
-import { act, Field } from "../ui/Ui";
+import { act, confirmDialog, Field } from "../ui/Ui";
 import { IconX } from "../ui/Icons";
 
 export default function SettingsPage() {
@@ -29,7 +29,9 @@ function Settings({ acc }: { acc: Account }) {
 
   return (
     <div class="stack" style="gap:22px">
-      <PageHead overline="Settings" title="Settings" sub="Tag lists, emails and city accounts." />
+      <PageHead overline="Settings" title="Settings" sub="Tag lists, university and study program lists, emails and city accounts." />
+
+      <ProfileLists />
 
       <EmailSection />
 
@@ -142,6 +144,140 @@ function EmailSection() {
       <div class="row">
         <button class="btn btn--primary" disabled={!dirty} onClick={save}>{dirty ? "Save email settings" : "Saved"}</button>
         <button class="btn btn--secondary" onClick={() => act(sendQueuedNow, r => r.skipped ? `Not sent: ${r.skipped}` : `${r.sent ?? 0} sent, ${r.failed ?? 0} failed`)}>Send queued emails now</button>
+      </div>
+    </section>
+  );
+}
+
+// ── University & study program lists ─────────────────────────────────────
+
+function ProfileLists() {
+  const s = useStore(x => x);
+  const [uniName, setUniName] = useState("");
+  const [uniCity, setUniCity] = useState("");
+  const [progName, setProgName] = useState("");
+  const [progCat, setProgCat] = useState("");
+  const [qU, setQU] = useState("");
+  const [qP, setQP] = useState("");
+  const categories = [...new Set(s.studyPrograms.map(p => p.category))].sort();
+
+  // Values entered via "Other" that aren't in the lists yet, with how many people use them
+  const unlisted = (kind: "university" | "studyProgram") => {
+    const list = new Set((kind === "university" ? s.universities : s.studyPrograms).map(x => x.name));
+    const counts = new Map<string, number>();
+    for (const p of s.people) for (const v of kind === "university" ? p.universities : p.studyPrograms) {
+      if (!list.has(v)) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    return [...counts].sort((a, b) => b[1] - a[1]);
+  };
+  // How many people use each entry (computed once per data load)
+  const usage = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of s.people) for (const v of [...p.universities.map(u => `u:${u}`), ...p.studyPrograms.map(x => `p:${x}`)]) m.set(v, (m.get(v) ?? 0) + 1);
+    return m;
+  }, [s.people]);
+  const used = (kind: "university" | "studyProgram", name: string) => usage.get(`${kind === "university" ? "u" : "p"}:${name}`) ?? 0;
+  const uniMatches = useMemo(() => {
+    const ql = qU.trim().toLowerCase();
+    const list = ql
+      ? s.universities.filter(u => u.name.toLowerCase().includes(ql) || u.aliases.some(a => a.toLowerCase().includes(ql)) || (u.country ?? "").toLowerCase().includes(ql))
+      : s.universities.filter(u => used("university", u.name) > 0);
+    return list.slice(0, 200);
+  }, [qU, s.universities, usage]);
+
+  const remove = async (kind: "university" | "studyProgram", id: string, name: string) => {
+    const n = used(kind, name);
+    if (await confirmDialog({
+      title: "Remove from list?", danger: true, confirmLabel: "Remove",
+      message: `Remove “${name}” from the list?` + (n ? `\n\n${n} ${n === 1 ? "person keeps" : "people keep"} it in their profile; it then shows up under “Entered via Other”.` : ""),
+    })) act(() => removeListEntry(kind, id), `Removed ${name}`);
+  };
+
+  const Unlisted = ({ kind }: { kind: "university" | "studyProgram" }) => {
+    const rows = unlisted(kind);
+    const options = (kind === "university" ? s.universities : s.studyPrograms).map(x => x.name).sort();
+    if (!rows.length) return <p class="muted small">Nothing entered via “Other” yet.</p>;
+    return (
+      <div class="stack-s">
+        {rows.map(([value, n]) => (
+          <div class="row" style="justify-content:space-between;gap:8px;padding:8px 10px;border-radius:12px;background:#FAFBFE">
+            <span><strong style="color:var(--color-text-heading)">{value}</strong> <span class="muted small">· {n} {n === 1 ? "person" : "people"}</span></span>
+            <span class="row" style="gap:6px">
+              <button class="btn btn--secondary btn--sm" onClick={() => act(() => kind === "university" ? addUniversity(value) : addStudyProgram(value, "Other"), `Added ${value} to the list`)}>Add to list</button>
+              <select class="input input--sm" style="width:auto;max-width:220px" aria-label={`Merge ${value} into`} value=""
+                onChange={async e => {
+                  const to = e.currentTarget.value;
+                  if (to && await confirmDialog({ title: "Merge entry?", confirmLabel: "Merge",
+                    message: `Replace “${value}” with “${to}” for ${n} ${n === 1 ? "person" : "people"}?` }))
+                    act(() => mergeProfileValue(kind, value, to), k => `Merged for ${k} ${k === 1 ? "person" : "people"}`);
+                }}>
+                <option value="">Merge into…</option>
+                {options.map(o => <option>{o}</option>)}
+              </select>
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <section class="stack">
+      <div class="stack-s">
+        <h2>Universities & study programs</h2>
+        <p class="muted small">The choices for “University affiliations” and “Study program(s)” in every form. Applicants can pick several, or “Other (please specify)”; those entries appear below and can be added or merged.</p>
+      </div>
+      <div class="grid-2" style="align-items:start">
+        <div class="card stack-s">
+          <div class="row row--between"><h3>Universities</h3><span class="chip">{s.universities.length}</span></div>
+          <input class="input input--sm" placeholder="Search name, local name, abbreviation or country…" value={qU} onInput={e => setQU(e.currentTarget.value)} aria-label="Search universities" />
+          <div class="list-box">
+            {!qU.trim() && <p class="muted small" style="padding:6px 8px">{uniMatches.length ? "Universities people chose so far. Search to see all." : "Search to see the list."}</p>}
+            {uniMatches.map(u => (
+              <div class="list-row">
+                <span>{u.name}{(u.country || u.city) && <span class="muted small"> · {u.country ?? u.city}</span>}<span class="muted small"> · {used("university", u.name)} people</span></span>
+                <button class="icon-btn" aria-label={`Remove ${u.name}`} onClick={() => remove("university", u.id, u.name)}><IconX /></button>
+              </div>
+            ))}
+          </div>
+          <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addUniversity(uniName, uniCity), `Added ${uniName}`).then(() => { setUniName(""); setUniCity(""); }); }}>
+            <input class="input input--sm" placeholder="New university" value={uniName} onInput={e => setUniName(e.currentTarget.value)} aria-label="New university" />
+            <input class="input input--sm" style="max-width:120px" placeholder="City (optional)" value={uniCity} onInput={e => setUniCity(e.currentTarget.value)} aria-label="City" />
+            <button class="btn btn--secondary btn--sm" disabled={!uniName.trim()}>Add</button>
+          </form>
+          <h3 style="margin-top:10px">Entered via “Other”</h3>
+          <Unlisted kind="university" />
+        </div>
+
+        <div class="card stack-s">
+          <div class="row row--between"><h3>Study programs</h3><span class="chip">{s.studyPrograms.length}</span></div>
+          <input class="input input--sm" placeholder="Search…" value={qP} onInput={e => setQP(e.currentTarget.value)} aria-label="Search study programs" />
+          <div class="list-box">
+            {categories.map(cat => {
+              const items = s.studyPrograms.filter(p => p.category === cat && (!qP || p.name.toLowerCase().includes(qP.toLowerCase())));
+              if (!items.length) return null;
+              return (
+                <>
+                  <div class="picker__group">{cat}</div>
+                  {items.map(p => (
+                    <div class="list-row">
+                      <span>{p.name}<span class="muted small"> · {used("studyProgram", p.name)}</span></span>
+                      <button class="icon-btn" aria-label={`Remove ${p.name}`} onClick={() => remove("studyProgram", p.id, p.name)}><IconX /></button>
+                    </div>
+                  ))}
+                </>
+              );
+            })}
+          </div>
+          <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addStudyProgram(progName, progCat), `Added ${progName}`).then(() => setProgName("")); }}>
+            <input class="input input--sm" placeholder="New study program" value={progName} onInput={e => setProgName(e.currentTarget.value)} aria-label="New study program" />
+            <input class="input input--sm" style="max-width:170px" list="prog-cats" placeholder="Field" value={progCat} onInput={e => setProgCat(e.currentTarget.value)} aria-label="Field" />
+            <datalist id="prog-cats">{categories.map(c => <option value={c} />)}</datalist>
+            <button class="btn btn--secondary btn--sm" disabled={!progName.trim()}>Add</button>
+          </form>
+          <h3 style="margin-top:10px">Entered via “Other”</h3>
+          <Unlisted kind="studyProgram" />
+        </div>
       </div>
     </section>
   );

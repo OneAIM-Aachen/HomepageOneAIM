@@ -21,8 +21,8 @@ export const KINDS: Record<FieldKind, KindInfo> = {
   cv:           { label: "CV upload",        profile: true,  defaultLabel: "CV (PDF)" },
   phone:        { label: "Phone",            profile: true,  defaultLabel: "Phone number" },
   linkedin:     { label: "LinkedIn",         profile: true,  defaultLabel: "LinkedIn profile" },
-  university:   { label: "University",       profile: true,  defaultLabel: "University" },
-  studyProgram: { label: "Study program",    profile: true,  defaultLabel: "Study program" },
+  university:   { label: "University affiliations", profile: true, defaultLabel: "University affiliations" },
+  studyProgram: { label: "Study programs",   profile: true,  defaultLabel: "Study program(s)" },
   semester:     { label: "Semester",         profile: true,  defaultLabel: "Current semester" },
   degree:       { label: "Degree level",     profile: true,  defaultLabel: "Degree level", hasOptions: true },
   shortText:    { label: "Short text",       profile: false, defaultLabel: "Short answer" },
@@ -37,12 +37,17 @@ export const KINDS: Record<FieldKind, KindInfo> = {
   yesno:        { label: "Yes / no",         profile: false, defaultLabel: "Yes or no?" },
 };
 
-export const PROFILE_KINDS: FieldKind[] =
-  ["cv", "phone", "linkedin", "university", "studyProgram", "semester", "degree"];
+/** Optional profile fields (the core ones are in every form anyway) */
+export const PROFILE_KINDS: FieldKind[] = ["cv", "phone", "linkedin"];
 export const CUSTOM_KINDS: FieldKind[] =
   ["shortText", "longText", "single", "multi", "dropdown", "file", "url", "number", "date", "yesno"];
 
-export const DEGREE_OPTIONS = ["Bachelor", "Master", "State exam (Staatsexamen)", "PhD", "Other"];
+// Same lists as the database (degree_options() / semester_options())
+export const DEGREE_OPTIONS = ["Bachelor", "Master", "State exam (Staatsexamen)", "Diploma", "PhD / Doctorate", "Graduated / working", "Not studying"];
+export const SEMESTER_OPTIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "12+", "Not applicable"];
+export const UNIVERSITY_HELP = "List every university you are or were affiliated with: your degree program(s), exchange semesters, research internships, theses abroad, etc.";
+/** Prefix for free-text answers from "Other (please specify)" */
+export const OTHER_LABEL = "Other (please specify)";
 
 export function uid(prefix = ""): string {
   return prefix + Math.random().toString(36).slice(2, 10);
@@ -55,21 +60,24 @@ export function newField(kind: FieldKind): Field {
     kind,
     label: info.defaultLabel,
     required: kind === "name" || kind === "email",
-    ...(kind === "degree" ? { options: [...DEGREE_OPTIONS] } : {}),
     ...(info.hasOptions && kind !== "degree" ? { options: ["Option 1", "Option 2"] } : {}),
     ...(kind === "longText" ? { maxWords: 200 } : {}),
   };
 }
 
-/** Name and email are part of every form and can't be removed. */
+/** Core fields: part of every form, always mandatory (enforced by the database too). */
+export const LOCKED_KINDS: FieldKind[] = ["name", "email", "university", "studyProgram", "semester", "degree"];
+
 export function baseFields(): Field[] {
   return [
-    { ...newField("name"), required: true },
-    { ...newField("email"), required: true },
+    { id: "name", kind: "name", label: "Full name", required: true },
+    { id: "email", kind: "email", label: "Email address", required: true },
+    { id: "university", kind: "university", label: "University affiliations", help: UNIVERSITY_HELP, required: true },
+    { id: "studyProgram", kind: "studyProgram", label: "Study program(s)", required: true },
+    { id: "semester", kind: "semester", label: "Current semester", required: true },
+    { id: "degree", kind: "degree", label: "Degree level", required: true },
   ];
 }
-
-export const LOCKED_KINDS: FieldKind[] = ["name", "email"];
 
 // ── Pipelines ────────────────────────────────────────────────────────────
 

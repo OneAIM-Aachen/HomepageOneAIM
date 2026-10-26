@@ -3,15 +3,20 @@
 import { useState } from "preact/hooks";
 import type { Answer, Field as FieldT, FileRef } from "../../lib/types";
 import { Field } from "../ui/Ui";
+import { ListPicker } from "./ListPicker";
+import { DEGREE_OPTIONS, SEMESTER_OPTIONS } from "../../lib/fields";
+import type { FormOptions } from "../../lib/types";
 import { IconFile } from "../ui/Icons";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function words(s: string) { return s.trim() ? s.trim().split(/\s+/).length : 0; }
 
-export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit application" }: {
+export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit application", options }: {
   fields: FieldT[];
   preview?: boolean;
+  /** Lists for university affiliations / study programs */
+  options?: FormOptions;
   /** Returns an error text to show, or nothing on success. Gets the chosen files for upload. */
   onSubmit?: (answers: Record<string, Answer>, files: Record<string, File>) => Promise<string | null | void> | string | null | void;
   submitLabel?: string;
@@ -68,8 +73,29 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
             {f.maxWords && <span class="field__help" style="text-align:right">{words(String(v ?? ""))} / {f.maxWords} words</span>}
           </>
         );
+      case "university":
+        return (
+          <ListPicker label={f.label} placeholder="Start typing your university…" invalid={!!errors[f.id]} minChars={2}
+            options={(options?.universities ?? []).map(u => ({ name: u.name, hint: u.country, terms: u.aliases }))}
+            value={(v as string[]) ?? []} onChange={x => set(f.id, x)} />
+        );
+      case "studyProgram":
+        return (
+          <ListPicker label={f.label} placeholder="Search your study program…" invalid={!!errors[f.id]}
+            options={(options?.studyPrograms ?? []).map(o => ({ name: o.name, group: o.category }))}
+            value={(v as string[]) ?? []} onChange={x => set(f.id, x)} />
+        );
+      case "semester":
+      case "degree": {
+        const opts = f.kind === "semester" ? SEMESTER_OPTIONS : DEGREE_OPTIONS;
+        return (
+          <select class={`input ${invalid}`} value={(v as string) ?? ""} onChange={e => set(f.id, e.currentTarget.value)}>
+            <option value="">Please choose…</option>
+            {opts.map(o => <option value={o}>{f.kind === "semester" && /^\d/.test(o) ? `${o}. semester` : o}</option>)}
+          </select>
+        );
+      }
       case "single":
-      case "degree":
         return (
           <div class="stack-s" role="radiogroup">
             {f.options?.map(o => (
@@ -127,7 +153,7 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
         );
       }
       default: {
-        const type = f.kind === "email" ? "email" : f.kind === "phone" ? "tel" : f.kind === "number" || f.kind === "semester" ? "number"
+        const type = f.kind === "email" ? "email" : f.kind === "phone" ? "tel" : f.kind === "number" ? "number"
           : f.kind === "date" ? "date" : f.kind === "url" || f.kind === "linkedin" ? "url" : "text";
         const ph = f.kind === "linkedin" ? "https://linkedin.com/in/…" : f.kind === "url" ? "https://…" : "";
         return <input class={`input ${invalid}`} type={type as "text"} placeholder={ph} min={type === "number" ? 0 : undefined}
@@ -137,7 +163,7 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
   };
 
   // Fieldsets (radio/checkbox groups) must not be wrapped in <label>.
-  const grouped = (f: FieldT) => ["single", "multi", "yesno", "degree", "cv", "file"].includes(f.kind);
+  const grouped = (f: FieldT) => ["single", "multi", "yesno", "cv", "file", "university", "studyProgram"].includes(f.kind);
 
   return (
     <form class="stack" style="gap:22px" onSubmit={submit} noValidate>

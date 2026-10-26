@@ -9,6 +9,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Test site only: shows the "Demo data" switch in the team area
+  # (made-up applications, only in the viewer's browser). Remove for the real portal.
+  PUBLIC_DEMO_MODE = "true"
 
 # Test/preview: keep search engines out
 [[headers]]

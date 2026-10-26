@@ -1,7 +1,7 @@
 import { useMemo, useState } from "preact/hooks";
 import type { Application, FileRef, Person, Submission, SubmissionStatus } from "../../lib/types";
 import { useStore } from "../../lib/store";
-import { appTitle, fmtDate, STATUS_LABEL } from "../../lib/fields";
+import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS, STATUS_LABEL } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { Avatar, Drawer, StatusChip, useParam } from "../ui/Ui";
 import { IconDownload, IconFile, IconSearch } from "../ui/Icons";
@@ -14,14 +14,21 @@ export default function NetworkPage() {
 
 type Outcome = "" | "accepted" | "rejected" | "pending";
 
+// Filters can come from the URL (links from the Insights page)
+const param = (k: string) => (typeof window === "undefined" ? "" : new URLSearchParams(location.search).get(k) ?? "");
+
 function Network({ initial }: { initial: string | null }) {
   const s = useStore(x => x);
   const [q, setQ] = useState("");
-  const [program, setProgram] = useState("");
-  const [location, setLocation] = useState("");
-  const [semester, setSemester] = useState("");
-  const [outcome, setOutcome] = useState<Outcome>("");
-  const [uni, setUni] = useState("");
+  const [program, setProgram] = useState(param("program"));
+  const [location, setLocation] = useState(param("city"));
+  const [semester, setSemester] = useState(param("round"));
+  const [outcome, setOutcome] = useState<Outcome>(param("status") as Outcome);
+  const [uni, setUni] = useState(param("uni"));
+  const [studyProg, setStudyProg] = useState(param("study"));
+  const [field, setField] = useState(param("field"));
+  const [termSem, setTermSem] = useState(param("sem"));
+  const [degree, setDegree] = useState(param("degree"));
   const [open, setOpen] = useState<string | null>(initial);
 
   const rows = useMemo(() => s.people.map(p => {
@@ -30,13 +37,20 @@ function Network({ initial }: { initial: string | null }) {
     return { p, subs };
   }), [s]);
 
-  const unis = [...new Set(s.people.map(p => p.university).filter(Boolean))].sort() as string[];
+  const unis = [...new Set(s.people.flatMap(p => p.universities))].sort();
+  const studies = [...new Set(s.people.flatMap(p => p.studyPrograms))].sort();
+  const fields = [...new Set(s.studyPrograms.map(p => p.category))].sort();
+  const categoryOf = (name: string) => s.studyPrograms.find(p => p.name === name)?.category ?? "Other";
   const isAccepted = (st: SubmissionStatus) => st === "accepted" || st === "confirmed";
 
   const filtered = rows.filter(({ p, subs }) => {
     const ql = q.toLowerCase();
-    if (ql && !`${p.name} ${p.email} ${p.studyProgram ?? ""} ${p.university ?? ""}`.toLowerCase().includes(ql)) return false;
-    if (uni && p.university !== uni) return false;
+    if (ql && !`${p.name} ${p.email} ${p.studyPrograms.join(" ")} ${p.universities.join(" ")}`.toLowerCase().includes(ql)) return false;
+    if (uni && !p.universities.includes(uni)) return false;
+    if (studyProg && !p.studyPrograms.includes(studyProg)) return false;
+    if (field && !p.studyPrograms.some(x => categoryOf(x) === field)) return false;
+    if (termSem && p.semester !== termSem) return false;
+    if (degree && p.degree !== degree) return false;
     // Tag filters and outcome apply to the same submission, e.g. "accepted in AIM Connect Aachen"
     const match = subs.filter(({ app }) =>
       (!program || app!.tags.program === program) && (!location || app!.tags.location === location) && (!semester || app!.tags.semester === semester));
@@ -49,8 +63,8 @@ function Network({ initial }: { initial: string | null }) {
   }).sort((a, b) => a.p.name.localeCompare(b.p.name));
 
   const exportCsv = () => {
-    const head = ["Name", "Email", "Phone", "LinkedIn", "University", "Study program", "Semester", "Degree", "Applications"];
-    const lines = filtered.map(({ p, subs }) => [p.name, p.email, p.phone ?? "", p.linkedin ?? "", p.university ?? "", p.studyProgram ?? "",
+    const head = ["Name", "Email", "Phone", "LinkedIn", "University affiliations", "Study programs", "Semester", "Degree", "Applications"];
+    const lines = filtered.map(({ p, subs }) => [p.name, p.email, p.phone ?? "", p.linkedin ?? "", p.universities.join("; "), p.studyPrograms.join("; "),
       p.semester ?? "", p.degree ?? "", subs.map(x => `${appTitle(x.app!)} (${STATUS_LABEL[x.sub.status]})`).join("; ")]);
     const csv = [head, ...lines].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -88,6 +102,10 @@ function Network({ initial }: { initial: string | null }) {
         {sel("All locations", location, setLocation, s.tagLists.locations)}
         {sel("All semesters", semester, setSemester, s.tagLists.semesters)}
         {sel("All universities", uni, setUni, unis)}
+        {sel("All study programs", studyProg, setStudyProg, studies)}
+        {sel("All fields", field, setField, fields)}
+        {sel("Any semester", termSem, setTermSem, SEMESTER_OPTIONS)}
+        {sel("Any degree", degree, setDegree, DEGREE_OPTIONS)}
         <select class="input input--sm" style="width:auto" value={outcome} onChange={e => setOutcome(e.currentTarget.value as Outcome)} aria-label="Outcome">
           <option value="">Any outcome</option><option value="accepted">Accepted / confirmed</option><option value="pending">In progress</option><option value="rejected">Rejected</option>
         </select>
@@ -101,7 +119,7 @@ function Network({ initial }: { initial: string | null }) {
               {filtered.map(({ p, subs }) => (
                 <tr class="is-clickable" onClick={() => setOpen(p.id)}>
                   <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.email}</span></div></div></td>
-                  <td><span style="color:var(--color-text-heading)">{p.studyProgram ?? "–"}</span><br /><span class="muted small">{p.university ?? ""}</span></td>
+                  <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}</span></td>
                   <td>{cvsOf(subs as Entry[]).length
                     ? <span class="chip chip--blue" title={cvsOf(subs as Entry[])[0]!.file.fileName}><IconFile width={14} />CV</span>
                     : <span class="muted small">–</span>}</td>
@@ -142,7 +160,7 @@ export function cvsOf(entries: Entry[]): { file: FileRef; entry: Entry }[] {
 function PersonDrawer({ person: p, subs, onClose }: { person: Person; subs: Entry[]; onClose: () => void }) {
   const info: [string, string | undefined, "link" | "mail" | undefined][] = [
     ["Email", p.email, "mail"], ["Phone", p.phone, undefined], ["LinkedIn", p.linkedin, "link"],
-    ["University", p.university, undefined], ["Study program", p.studyProgram, undefined],
+    ["University affiliations", p.universities.join(", ") || undefined, undefined], ["Study programs", p.studyPrograms.join(", ") || undefined, undefined],
     ["Semester", p.semester, undefined], ["Degree level", p.degree, undefined],
   ];
   const sorted = [...subs].sort((a, b) => b.sub.submittedAt.localeCompare(a.sub.submittedAt));

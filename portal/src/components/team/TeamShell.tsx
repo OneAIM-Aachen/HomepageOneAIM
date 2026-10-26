@@ -4,18 +4,20 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import { currentAccount, loadAll, logout, useStore } from "../../lib/store";
+import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
 import { Avatar, ConfirmHost, Toaster } from "../ui/Ui";
 import {
-  IconApps, IconBlueprint, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings,
+  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings,
 } from "../ui/Icons";
 
-export type NavKey = "overview" | "applications" | "blueprints" | "network" | "outbox" | "settings";
+export type NavKey = "overview" | "applications" | "blueprints" | "network" | "insights" | "outbox" | "settings";
 
 const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[] = [
   { key: "overview", label: "Overview", href: "/team", Icon: IconHome },
   { key: "applications", label: "Applications", href: "/team/applications", Icon: IconApps },
   { key: "blueprints", label: "Blueprints", href: "/team/blueprints", Icon: IconBlueprint },
   { key: "network", label: "Network", href: "/team/network", Icon: IconNetwork },
+  { key: "insights", label: "Insights", href: "/team/insights", Icon: IconChart },
   { key: "outbox", label: "Emails", href: "/team/outbox", Icon: IconMail },
 ];
 const NAV2: typeof NAV = [
@@ -78,6 +80,13 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           {NAV2.map(item)}
           <a class="nav__item" href="/apply" target="_blank" rel="noopener"><IconExternal />Applicant site</a>
         </nav>
+        {demoAvailable() && (
+          <label class="demo-switch" title="Adds ~100 made-up Aachen applications, only in this browser">
+            <input type="checkbox" role="switch" checked={isDemo()} onChange={e => setDemo(e.currentTarget.checked)} />
+            <span class="demo-switch__track" aria-hidden="true"><span /></span>
+            <span>Demo data</span>
+          </label>
+        )}
         <div class="sidebar__foot">
           <Avatar name={`OneAIM ${acc.city}`} />
           <div style="flex:1;min-width:0">
@@ -88,7 +97,15 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
             onClick={async () => { await logout(); window.location.href = "/team/login"; }}><IconLogout /></button>
         </div>
       </aside>
-      <main class="main">{children(acc)}</main>
+      <main class="main">
+        {isDemo() && (
+          <div class="demo-banner" role="status">
+            <strong>Demo data is on:</strong> ~100 made-up Aachen applications are shown in addition to the real ones, only in this browser. Nothing is saved.
+            <button class="btn btn--secondary btn--sm" onClick={() => setDemo(false)}>Show real data only</button>
+          </div>
+        )}
+        {children(acc)}
+      </main>
       <Toaster />
       <ConfirmHost />
     </div>

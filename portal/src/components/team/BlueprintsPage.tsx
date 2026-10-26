@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 import type { Blueprint } from "../../lib/types";
-import { createBlueprint, deleteBlueprint, saveBlueprint, useStore } from "../../lib/store";
+import { createBlueprint, deleteBlueprint, formOptionsFromState, getState, saveBlueprint, useStore } from "../../lib/store";
 import { fmtDate } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { FormBuilder } from "./FormBuilder";
@@ -124,7 +124,7 @@ function Editor({ id }: { id: string }) {
 
       {preview && (
         <Modal title="Form preview" onClose={() => setPreview(false)} wide>
-          <FormRenderer fields={draft.fields} preview />
+          <FormRenderer fields={draft.fields} preview options={formOptionsFromState(getState())} />
         </Modal>
       )}
     </div>
