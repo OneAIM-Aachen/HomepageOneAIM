@@ -148,8 +148,8 @@ function Insights() {
           </div>
 
           <section class="card stack">
-            <ChartHead title="Selection funnel" sub="Applications that reached each stage. Instant registrations (events) are left out." />
-            <Funnel entries={entries.filter(e => e.app.pipeline !== "instant")} />
+            <ChartHead title="Selection funnel" sub="Applications that reached each stage. Events with direct registration have no interview stage; a confirmed registration counts as accepted." />
+            <Funnel entries={entries} />
           </section>
 
           <div class="grid-2" style="align-items:start">
@@ -236,7 +236,7 @@ function BarList({ rows, total, limit, href }: {
 
 function Funnel({ entries }: { entries: Entry[] }) {
   const [by, setBy] = useState<"program" | "location" | "application">("program");
-  if (!entries.length) return <p class="muted small">No applications with a selection process in this filter.</p>;
+  if (!entries.length) return <p class="muted small">No applications in this filter.</p>;
   const groups = new Map<string, Entry[]>();
   for (const e of entries) {
     const k = by === "program" ? e.app.tags.program : by === "location" ? e.app.tags.location : appTitle(e.app);
@@ -263,14 +263,16 @@ function Funnel({ entries }: { entries: Entry[] }) {
               const withInterview = list.filter(e => e.app.pipeline === "interview");
               const interview = withInterview.filter(e => reachedInterview(e.sub)).length;
               const allInterview = withInterview.length === applied;
+              const hasInterview = withInterview.length > 0;
               const acc = list.filter(e => isAccepted(e.sub)).length;
+              // Decided = accepted, confirmed (events) or rejected
               const decidedN = list.filter(e => isAccepted(e.sub) || e.sub.status === "rejected").length;
               return (
                 <tr style={name === "All" ? "font-weight:800" : ""}>
                   <td>{name}</td>
                   <td style="min-width:200px">
-                    <div class="stages" title={`Applied ${applied} · interview ${withInterview.length ? interview : "–"} · accepted ${acc}`}>
-                      {[applied, allInterview ? interview : null, acc].map((v, i) => v === null ? null :
+                    <div class="stages" title={`Applied ${applied} · interview ${hasInterview ? interview : "–"} · accepted ${acc}`}>
+                      {[applied, hasInterview ? interview : null, acc].map((v, i) => v === null ? null :
                         <span style={`width:${pct(v, applied)}%;background:${STAGE_COLORS[i]}`} />)}
                     </div>
                   </td>
@@ -288,7 +290,7 @@ function Funnel({ entries }: { entries: Entry[] }) {
           </tbody>
         </table>
       </div>
-      <p class="muted small">Rate = accepted of all decided applications (accepted + rejected). Interview = invited at some point; only rounds with interviews count (e.g. AIM Code accepts directly after screening).</p>
+      <p class="muted small">Bars are shares of all applications in the row. Rate = accepted (or confirmed) of all decided applications. Interview = invited at some point; “x of y” means x of the y applications in rounds that have interviews (screening rounds like AIM Code and events have none).</p>
     </div>
   );
 }
