@@ -4,6 +4,9 @@
 // have the same rights.
 // • invite  {name, email, location_id, role, department_id?}  (team only)
 //   creates the login + team profile and emails a "set your password" link
+// • activate {member_id, email}                              (team only)
+//   gives an existing profile without login (e.g. imported from the
+//   website) its email + login and sends the invitation
 // • resend  {member_id}                                       (team only)
 // • remove  {member_id}                                       (team only, not yourself)
 // • reset   {email}                                           (public: "Forgot password?")
@@ -136,7 +139,30 @@ Deno.serve(async req => {
     const { data: m } = await db.from("team_members").select("id, user_id, email, name").eq("id", input.member_id ?? "").maybeSingle();
     if (!m) return json({ error: "not_found" }, 404);
 
+    if (action === "activate") {
+      const email = String(input.email ?? "").trim().toLowerCase();
+      if (!validEmail(email)) return json({ error: "invalid_email" }, 400);
+      if (m.user_id) return json({ error: "member_exists" }, 409);
+      const { data: taken } = await db.from("team_members").select("id").eq("email", email).neq("id", m.id).maybeSingle();
+      if (taken) return json({ error: "member_exists" }, 409);
+      const { data: person } = await db.from("people").select("name").eq("email", email).maybeSingle();
+      const norm = (n: string) => n.trim().replace(/\s+/g, " ").toLowerCase();
+      if (person && norm(person.name) !== norm(m.name)) return json({ error: `member_name_mismatch:${person.name}` }, 409);
+
+      const link = await linkFor(db, email);
+      const { error } = await db.from("team_members")
+        .update({ email, user_id: link.userId, invited_at: new Date().toISOString() }).eq("id", m.id);
+      if (error) throw new Error(error.message);
+      try {
+        await sendMail(db, { email, name: m.name }, link.kind, link.token);
+      } catch (e) {
+        return json({ ok: true, mailError: String(e instanceof Error ? e.message : e) });
+      }
+      return json({ ok: true });
+    }
+
     if (action === "resend") {
+      if (!m.email) return json({ error: "missing_field" }, 400);
       const link = await linkFor(db, m.email);
       if (!m.user_id) await db.from("team_members").update({ user_id: link.userId }).eq("id", m.id);
       await db.from("team_members").update({ invited_at: new Date().toISOString() }).eq("id", m.id);

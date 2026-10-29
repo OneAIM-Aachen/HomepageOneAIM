@@ -186,7 +186,7 @@ export async function loadAll(): Promise<void> {
     team: (() => {
       const st = new Map((check(memberStatus) as any[]).map(r => [r.member_id, r]));
       return (check(members) as any[]).map(m => ({
-        id: m.id, personId: m.person_id ?? undefined, email: m.email, name: m.name, city: label(maps.location, m.location_id),
+        id: m.id, personId: m.person_id ?? undefined, email: m.email ?? undefined, linkedin: m.linkedin ?? undefined, name: m.name, city: label(maps.location, m.location_id),
         role: m.role, departmentId: m.department_id ?? undefined, position: m.position ?? undefined, photo: m.photo_url ?? undefined,
         memberSince: m.member_since ?? undefined, about: m.about ?? undefined, invitedAt: m.invited_at ?? undefined,
         active: !!st.get(m.id)?.has_password, lastSignInAt: st.get(m.id)?.last_sign_in_at ?? undefined,
@@ -783,6 +783,13 @@ export async function inviteMember(i: InviteInput): Promise<{ id: string; mailEr
   return r;
 }
 
+/** Gives a profile without login (e.g. imported from the website) its email and sends the invitation. */
+export async function activateMember(memberId: string, email: string): Promise<{ mailError?: string }> {
+  const r = await teamCall<{ mailError?: string }>({ action: "activate", member_id: memberId, email: email.trim().toLowerCase() });
+  await loadAll();
+  return r;
+}
+
 export async function resendInvite(memberId: string) {
   await teamCall({ action: "resend", member_id: memberId });
   await loadAll();
@@ -794,7 +801,7 @@ export async function removeMember(memberId: string) {
   await loadAll();
 }
 
-export type MemberPatch = Partial<Pick<TeamMember, "name" | "city" | "role" | "departmentId" | "position" | "photo" | "memberSince" | "about">>;
+export type MemberPatch = Partial<Pick<TeamMember, "name" | "city" | "role" | "departmentId" | "position" | "photo" | "memberSince" | "about" | "linkedin">>;
 
 export async function updateMember(id: string, p: MemberPatch) {
   const row: Record<string, unknown> = {};
@@ -806,6 +813,7 @@ export async function updateMember(id: string, p: MemberPatch) {
   if ("photo" in p) row.photo_url = p.photo || null;
   if ("memberSince" in p) row.member_since = p.memberSince || null;
   if ("about" in p) row.about = p.about?.trim() || null;
+  if ("linkedin" in p) row.linkedin = p.linkedin?.trim() || null;
   check(await supabase.from("team_members").update(row).eq("id", id));
   await loadAll();
 }

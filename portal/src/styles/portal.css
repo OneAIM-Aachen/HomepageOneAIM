@@ -703,7 +703,6 @@ img.avatar { object-fit: cover; background: var(--p-chip); }
 .person-card__text span { font-size: 12.5px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .person-card .avatar { width: 30px; height: 30px; font-size: 11.5px; }
 .person-card--top .avatar, .person-card--lead .avatar { width: 38px; height: 38px; font-size: 13px; }
-.is-invited { opacity: .62; }
 .team-note { display: flex; align-items: center; gap: 12px; background: #F3E9FE; border-radius: var(--radius-md, 12px); padding: 12px 14px; }
 @media (max-width: 720px) {
   /* stack departments; connectors only make sense side by side */
@@ -720,3 +719,4 @@ img.avatar { object-fit: cover; background: var(--p-chip); }
 }
 .sidebar__me:hover { background: var(--p-blue-tint); }
 .sidebar__me:focus-visible { outline: 2px solid var(--color-brand-blue); outline-offset: 2px; }
+.person-card--lead .person-card__text span, .person-card--top .person-card__text span { white-space: normal; }

@@ -31,11 +31,12 @@ function Team({ acc }: { acc: Account }) {
   const cities = s.tagLists.locations;
   const shown = city ? [city] : cities.filter(c => s.team.some(m => m.city === c) || s.departments.some(d => d.city === c));
   const member = s.team.find(m => m.id === open);
-  const pending = s.team.filter(m => !m.active).length;
+  const pending = s.team.filter(m => m.email && !m.active).length;
+  const noLogin = s.team.filter(m => !m.email).length;
 
   const ql = q.trim().toLowerCase();
   const listed = s.team.filter(m => (!city || m.city === city) &&
-    (!ql || `${m.name} ${m.email} ${m.position ?? ""} ${s.departments.find(d => d.id === m.departmentId)?.name ?? ""}`.toLowerCase().includes(ql)));
+    (!ql || `${m.name} ${m.email ?? ""} ${m.position ?? ""} ${s.departments.find(d => d.id === m.departmentId)?.name ?? ""}`.toLowerCase().includes(ql)));
 
   return (
     <div class="stack">
@@ -54,8 +55,8 @@ function Team({ acc }: { acc: Account }) {
 
       <div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
         <div class="card stat"><span class="stat__num">{s.team.length}</span><span class="stat__label">Team members</span></div>
-        <div class="card stat"><span class="stat__num">{new Set(s.team.map(m => m.city)).size}</span><span class="stat__label">Cities</span></div>
         <div class="card stat"><span class="stat__num">{s.departments.length}</span><span class="stat__label">Departments</span></div>
+        <div class="card stat"><span class="stat__num">{noLogin}</span><span class="stat__label">Without login</span><span class="muted small">no email added yet</span></div>
         <div class="card stat"><span class="stat__num">{pending}</span><span class="stat__label">Invitations open</span><span class="muted small">no password set yet</span></div>
       </div>
 
@@ -88,12 +89,12 @@ function Team({ acc }: { acc: Account }) {
                   <tbody>
                     {[...listed].sort((a, b) => a.city.localeCompare(b.city) || byRole(a, b)).map(m => (
                       <tr class="is-clickable" onClick={() => setOpen(m.id)}>
-                        <td><div class="cell-person"><Avatar name={m.name} src={m.photo} /><div><strong>{m.name}</strong><span class="muted small">{m.email}</span></div></div></td>
+                        <td><div class="cell-person"><Avatar name={m.name} src={m.photo} /><div><strong>{m.name}</strong><span class="muted small">{m.email ?? "No email yet"}</span></div></div></td>
                         <td>{m.city}</td>
                         <td>{subtitle(m, s.departments)}</td>
                         <td>{s.departments.find(d => d.id === m.departmentId)?.name ?? "–"}</td>
                         <td class="muted small">{m.memberSince ?? "–"}</td>
-                        <td>{m.active ? <span class="chip chip--green">Active</span> : <span class="chip chip--amber" title={m.invitedAt ? `Invited ${fmtDate(m.invitedAt)}` : undefined}>Invited</span>}</td>
+                        <td>{!m.email ? <span class="chip chip--gray">No login</span> : m.active ? <span class="chip chip--green">Active</span> : <span class="chip chip--amber" title={m.invitedAt ? `Invited ${fmtDate(m.invitedAt)}` : undefined}>Invited</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -114,8 +115,8 @@ function Team({ acc }: { acc: Account }) {
 function PersonCard({ m, kind, onOpen }: { m: TeamMember; kind: "top" | "lead" | "row"; onOpen: (id: string) => void }) {
   const departments = useStore(x => x.departments);
   return (
-    <button class={`person-card person-card--${kind} ${m.active ? "" : "is-invited"}`} onClick={() => onOpen(m.id)}
-      title={m.active ? undefined : "Invitation sent, no password set yet"}>
+    <button class={`person-card person-card--${kind}`} onClick={() => onOpen(m.id)}
+      title={!m.email ? "No login yet" : m.active ? undefined : "Invitation sent, no password set yet"}>
       <Avatar name={m.name} src={m.photo} />
       <span class="person-card__text"><strong>{m.name}</strong><span>{subtitle(m, departments)}</span></span>
     </button>
@@ -169,6 +170,9 @@ function InviteModal({ acc, city: preset, onClose, onDone }: { acc: Account; cit
   const cities = useStore(x => x.tagLists.locations);
   const [d, setD] = useState({ name: "", email: "", city: preset || acc.city || cities[0] || "", role: "member" as TeamRole, departmentId: undefined as string | undefined, position: "" });
   const [busy, setBusy] = useState(false);
+  // Imported profiles without login: invite them from their profile instead of creating a second one
+  const same = (a: string, b: string) => a.trim().replace(/\s+/g, " ").toLowerCase() === b.trim().replace(/\s+/g, " ").toLowerCase();
+  const existing = useStore(x => x.team.find(m => !m.email && d.name.trim() && same(m.name, d.name)));
   const valid = d.name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim()) && d.city;
 
   const submit = async (e: Event) => {
@@ -196,6 +200,12 @@ function InviteModal({ acc, city: preset, onClose, onDone }: { acc: Account; cit
           <Field label="Position" help="Optional, replaces the role label. Leads show as “Team Lead | Department”."><input class="input" value={d.position} onInput={e => setD({ ...d, position: e.currentTarget.value })} /></Field>
         </div>
         <RoleFields city={d.city} role={d.role} departmentId={d.departmentId} onChange={p => setD({ ...d, ...p })} />
+        {existing && (
+          <div class="demo-banner" role="status">
+            <span><strong>{existing.name}</strong> already has a profile in {existing.city} without a login. Add the email there instead, so there's no second profile.</span>
+            <button type="button" class="btn btn--secondary btn--sm" onClick={() => onDone(existing.id)}>Open profile</button>
+          </div>
+        )}
         <div class="row" style="justify-content:flex-end">
           <button type="button" class="btn btn--ghost" onClick={onClose}>Cancel</button>
           <button class="btn btn--primary" disabled={!valid || busy}>{busy ? "Sending…" : "Send invitation"}</button>

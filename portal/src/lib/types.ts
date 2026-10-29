@@ -166,9 +166,12 @@ export interface Department {
 
 export interface TeamMember {
   id: string;
-  /** Network profile (universities, study programs, phone, LinkedIn, applications) */
+  /** Network profile (universities, study programs, phone, LinkedIn, applications); set once there's an email */
   personId?: string;
-  email: string;
+  /** Missing for profiles without a login yet (e.g. imported from the website) */
+  email?: string;
+  /** Only used while there's no network profile (then LinkedIn lives there) */
+  linkedin?: string;
   name: string;
   city: string;
   role: TeamRole;

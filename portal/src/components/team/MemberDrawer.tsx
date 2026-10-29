@@ -3,7 +3,7 @@
 // Opened from the Team overview and from "my profile" in the sidebar.
 import { useState } from "preact/hooks";
 import type { Account, Department, TeamMember, TeamRole } from "../../lib/types";
-import { removeMember, resendInvite, ROLE_LABEL, updateMember, updatePersonDetails, uploadImage, useStore } from "../../lib/store";
+import { activateMember, removeMember, resendInvite, ROLE_LABEL, updateMember, updatePersonDetails, uploadImage, useStore } from "../../lib/store";
 import { isDemoId } from "../../lib/demo";
 import { DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS } from "../../lib/fields";
 import { act, Avatar, confirmDialog, Drawer, Field } from "../ui/Ui";
@@ -45,14 +45,15 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
   const demo = isDemoId(m.id);
   const [d, setD] = useState({
     name: m.name, city: m.city, role: m.role, departmentId: m.departmentId, position: m.position ?? "",
-    memberSince: m.memberSince ?? "", about: m.about ?? "",
+    memberSince: m.memberSince ?? "", about: m.about ?? "", linkedin: m.linkedin ?? "",
   });
+  const [email, setEmail] = useState("");
   const [p, setP] = useState({
     universities: person?.universities ?? [], studyPrograms: person?.studyPrograms ?? [], semester: person?.semester ?? "",
     degree: person?.degree ?? "", phone: person?.phone ?? "", linkedin: person?.linkedin ?? "",
   });
   const dirty = JSON.stringify(d) !== JSON.stringify({
-    name: m.name, city: m.city, role: m.role, departmentId: m.departmentId, position: m.position ?? "", memberSince: m.memberSince ?? "", about: m.about ?? "",
+    name: m.name, city: m.city, role: m.role, departmentId: m.departmentId, position: m.position ?? "", memberSince: m.memberSince ?? "", about: m.about ?? "", linkedin: m.linkedin ?? "",
   }) || (!!person && JSON.stringify(p) !== JSON.stringify({
     universities: person.universities, studyPrograms: person.studyPrograms, semester: person.semester ?? "",
     degree: person.degree ?? "", phone: person.phone ?? "", linkedin: person.linkedin ?? "",
@@ -101,13 +102,28 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
 
       <section class="stack-s">
         <h3>Account</h3>
-        <div class="row small">
+        {!m.email && (
+          <form class="stack-s" onSubmit={e => {
+            e.preventDefault();
+            act(() => activateMember(m.id, email), r => (r.mailError ? `Email saved, but sending failed: ${r.mailError}. Use “Send invitation again”.` : `Invitation sent to ${email.trim()}`))
+              .then(r => { if (r) setEmail(""); });
+          }}>
+            <span class="chip chip--gray" style="align-self:flex-start">No login yet</span>
+            <p class="muted small">Add {m.name.split(" ")[0]}'s email to send the invitation. If they applied before, use the same email, so their applications are linked.</p>
+            <div class="row" style="flex-wrap:nowrap">
+              <input class="input input--sm" type="email" placeholder="name@example.com" value={email} disabled={demo}
+                onInput={e => setEmail(e.currentTarget.value)} aria-label={`Email of ${m.name}`} />
+              <button class="btn btn--primary btn--sm" style="white-space:nowrap" disabled={demo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}>Add email & invite</button>
+            </div>
+          </form>
+        )}
+        {m.email && <div class="row small">
           <a href={`mailto:${m.email}`}>{m.email}</a>
           {m.active
             ? <span class="chip chip--green">Active{m.lastSignInAt ? ` · last login ${fmtDate(m.lastSignInAt)}` : ""}</span>
             : <span class="chip chip--amber">Invited{m.invitedAt ? ` ${fmtDate(m.invitedAt)}` : ""} · no password yet</span>}
           {!demo && !m.active && <button class="btn btn--secondary btn--sm" onClick={() => act(() => resendInvite(m.id), `Invitation sent again to ${m.email}`)}>Send invitation again</button>}
-        </div>
+        </div>}
       </section>
 
       <fieldset class="stack" disabled={demo} style="border:none;padding:0;margin:0">
@@ -138,6 +154,11 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
               </select>
             </Field>
           </div>
+          {!person && (
+            <Field label="LinkedIn" help="Moves to their network profile once an email is added.">
+              <input class="input" type="url" placeholder="https://linkedin.com/in/…" value={d.linkedin} onInput={e => setD({ ...d, linkedin: e.currentTarget.value })} />
+            </Field>
+          )}
           <Field label="About" help="A few words for the team (max. 600 characters)">
             <textarea class="input" maxLength={600} value={d.about} onInput={e => setD({ ...d, about: e.currentTarget.value })} />
           </Field>
