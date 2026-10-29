@@ -139,7 +139,7 @@ export function ApplyForm() {
   const slug = useParam("a");
   const { apps, error } = usePublished();
   const [done, setDone] = useState<string | null>(null);
-  const [options, setOptions] = useState<FormOptions>({ universities: [], studyPrograms: [] });
+  const [options, setOptions] = useState<FormOptions>({ universities: [], studyPrograms: [], companies: [] });
   useEffect(() => { fetchFormOptions().then(setOptions); }, []);
 
   if (error) return <Frame><div class="empty">Could not load this application. Please try again later.</div></Frame>;

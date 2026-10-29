@@ -770,3 +770,9 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .members__me.is-active span { color: var(--color-brand-blue); }
 .chip-btn__count { margin-left: 4px; opacity: .65; font-weight: 700; }
 .chip-btn.is-active .chip-btn__count { opacity: .85; }
+
+/* Company affiliations input */
+.company-entry { display: flex; gap: 8px; align-items: flex-start; padding: 12px; border: 1px solid var(--p-line); border-radius: var(--radius-md); background: #FAFBFE; }
+.company-entry__grid { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.company-input--invalid .company-entry { border-color: var(--p-red); }
+@media (max-width: 600px) { .company-entry__grid { grid-template-columns: 1fr; } }

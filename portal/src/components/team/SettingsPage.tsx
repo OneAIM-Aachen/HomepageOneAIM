@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import {
-  addStudyProgram, addTag, addUniversity, changePassword, loadEmailSettings, mergeProfileValue, removeListEntry, removeTag,
-  saveEmailSettings, sendQueuedNow, useStore, type EmailSettings, type TagListKey,
+  addCompany, addStudyProgram, addTag, addUniversity, changePassword, loadEmailSettings, mergeProfileValue, removeListEntry, removeTag,
+  saveEmailSettings, sendQueuedNow, useStore, type EmailSettings, type ListKind, type TagListKey,
 } from "../../lib/store";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, confirmDialog, Field } from "../ui/Ui";
@@ -160,13 +160,20 @@ function ProfileLists() {
   const [progCat, setProgCat] = useState("");
   const [qU, setQU] = useState("");
   const [qP, setQP] = useState("");
+  const [qC, setQC] = useState("");
+  const [coName, setCoName] = useState("");
+  const [coCat, setCoCat] = useState("");
+  const coCategories = [...new Set(s.companies.map(c => c.category))].sort();
   const categories = [...new Set(s.studyPrograms.map(p => p.category))].sort();
 
   // Values entered via "Other" that aren't in the lists yet, with how many people use them
-  const unlisted = (kind: "university" | "studyProgram") => {
-    const list = new Set((kind === "university" ? s.universities : s.studyPrograms).map(x => x.name));
+  const listOf = (kind: ListKind) => (kind === "university" ? s.universities : kind === "company" ? s.companies : s.studyPrograms);
+  const valuesOf = (p: (typeof s.people)[number], kind: ListKind) =>
+    kind === "university" ? p.universities : kind === "company" ? [...new Set(p.companies.map(c => c.company))] : p.studyPrograms;
+  const unlisted = (kind: ListKind) => {
+    const list = new Set(listOf(kind).map(x => x.name));
     const counts = new Map<string, number>();
-    for (const p of s.people) for (const v of kind === "university" ? p.universities : p.studyPrograms) {
+    for (const p of s.people) for (const v of valuesOf(p, kind)) {
       if (!list.has(v)) counts.set(v, (counts.get(v) ?? 0) + 1);
     }
     return [...counts].sort((a, b) => b[1] - a[1]);
@@ -174,10 +181,10 @@ function ProfileLists() {
   // How many people use each entry (computed once per data load)
   const usage = useMemo(() => {
     const m = new Map<string, number>();
-    for (const p of s.people) for (const v of [...p.universities.map(u => `u:${u}`), ...p.studyPrograms.map(x => `p:${x}`)]) m.set(v, (m.get(v) ?? 0) + 1);
+    for (const p of s.people) for (const k of ["university", "studyProgram", "company"] as ListKind[]) for (const v of valuesOf(p, k)) m.set(`${k}:${v}`, (m.get(`${k}:${v}`) ?? 0) + 1);
     return m;
   }, [s.people]);
-  const used = (kind: "university" | "studyProgram", name: string) => usage.get(`${kind === "university" ? "u" : "p"}:${name}`) ?? 0;
+  const used = (kind: ListKind, name: string) => usage.get(`${kind}:${name}`) ?? 0;
   const uniMatches = useMemo(() => {
     const ql = qU.trim().toLowerCase();
     const list = ql
@@ -186,7 +193,7 @@ function ProfileLists() {
     return list.slice(0, 200);
   }, [qU, s.universities, usage]);
 
-  const remove = async (kind: "university" | "studyProgram", id: string, name: string) => {
+  const remove = async (kind: ListKind, id: string, name: string) => {
     const n = used(kind, name);
     if (await confirmDialog({
       title: "Remove from list?", danger: true, confirmLabel: "Remove",
@@ -194,9 +201,9 @@ function ProfileLists() {
     })) act(() => removeListEntry(kind, id), `Removed ${name}`);
   };
 
-  const Unlisted = ({ kind }: { kind: "university" | "studyProgram" }) => {
+  const Unlisted = ({ kind }: { kind: ListKind }) => {
     const rows = unlisted(kind);
-    const options = (kind === "university" ? s.universities : s.studyPrograms).map(x => x.name).sort();
+    const options = listOf(kind).map(x => x.name).sort();
     if (!rows.length) return <p class="muted small">Nothing entered via “Other” yet.</p>;
     return (
       <div class="stack-s">
@@ -204,7 +211,7 @@ function ProfileLists() {
           <div class="row" style="justify-content:space-between;gap:8px;padding:8px 10px;border-radius:12px;background:#FAFBFE">
             <span><strong style="color:var(--color-text-heading)">{value}</strong> <span class="muted small">· {n} {n === 1 ? "person" : "people"}</span></span>
             <span class="row" style="gap:6px">
-              <button class="btn btn--secondary btn--sm" onClick={() => act(() => kind === "university" ? addUniversity(value) : addStudyProgram(value, "Other"), `Added ${value} to the list`)}>Add to list</button>
+              <button class="btn btn--secondary btn--sm" onClick={() => act(() => kind === "university" ? addUniversity(value) : kind === "company" ? addCompany(value, "Other") : addStudyProgram(value, "Other"), `Added ${value} to the list`)}>Add to list</button>
               <select class="input input--sm" style="width:auto;max-width:220px" aria-label={`Merge ${value} into`} value=""
                 onChange={async e => {
                   const to = e.currentTarget.value;
@@ -225,8 +232,8 @@ function ProfileLists() {
   return (
     <section class="stack">
       <div class="stack-s">
-        <h2>Universities & study programs</h2>
-        <p class="muted small">The choices for “University affiliations” and “Study program(s)” in every form. Applicants can pick several, or “Other (please specify)”; those entries appear below and can be added or merged.</p>
+        <h2>Universities, study programs & companies</h2>
+        <p class="muted small">The choices for “University affiliations”, “Study program(s)” and “Company affiliations” in every form. Applicants can pick several, or “Other (please specify)”; those entries appear below and can be added or merged.</p>
       </div>
       <div class="grid-2" style="align-items:start">
         <div class="card stack-s">
@@ -279,6 +286,37 @@ function ProfileLists() {
           <h3 style="margin-top:10px">Entered via “Other”</h3>
           <Unlisted kind="studyProgram" />
         </div>
+      </div>
+
+      <div class="card stack-s">
+        <div class="row row--between"><h3>Companies</h3><span class="chip">{s.companies.length}</span></div>
+        <input class="input input--sm" placeholder="Search name, abbreviation or sector…" value={qC} onInput={e => setQC(e.currentTarget.value)} aria-label="Search companies" />
+        <div class="list-box">
+          {coCategories.map(cat => {
+            const ql = qC.trim().toLowerCase();
+            const items = s.companies.filter(c => c.category === cat && (!ql || c.name.toLowerCase().includes(ql) || c.aliases.some(a => a.toLowerCase().includes(ql)) || cat.toLowerCase().includes(ql)));
+            if (!items.length) return null;
+            return (
+              <>
+                <div class="picker__group">{cat}</div>
+                {items.map(c => (
+                  <div class="list-row">
+                    <span>{c.name}{c.aliases.length > 0 && <span class="muted small"> · {c.aliases.join(", ")}</span>}<span class="muted small"> · {used("company", c.name)} people</span></span>
+                    <button class="icon-btn" aria-label={`Remove ${c.name}`} onClick={() => remove("company", c.id, c.name)}><IconX /></button>
+                  </div>
+                ))}
+              </>
+            );
+          })}
+        </div>
+        <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addCompany(coName, coCat), `Added ${coName}`).then(() => setCoName("")); }}>
+          <input class="input input--sm" placeholder="New company" value={coName} onInput={e => setCoName(e.currentTarget.value)} aria-label="New company" />
+          <input class="input input--sm" style="max-width:190px" list="co-cats" placeholder="Sector" value={coCat} onInput={e => setCoCat(e.currentTarget.value)} aria-label="Sector" />
+          <datalist id="co-cats">{coCategories.map(c => <option value={c} />)}</datalist>
+          <button class="btn btn--secondary btn--sm" disabled={!coName.trim()}>Add</button>
+        </form>
+        <h3 style="margin-top:10px">Entered via “Other”</h3>
+        <Unlisted kind="company" />
       </div>
     </section>
   );

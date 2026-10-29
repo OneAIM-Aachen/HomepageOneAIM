@@ -50,7 +50,7 @@ function score(x: Indexed, q: string): number | null {
   return null;
 }
 
-export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 0, maxResults = 60 }: {
+export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 0, maxResults = 60, single, hint }: {
   options: PickerOption[];
   value: string[];
   onChange: (v: string[]) => void;
@@ -60,6 +60,10 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   /** Show suggestions only after this many typed characters (long lists) */
   minChars?: number;
   maxResults?: number;
+  /** Exactly one value (choosing again replaces it) */
+  single?: boolean;
+  /** Example shown while fewer than minChars letters are typed */
+  hint?: string;
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -83,7 +87,8 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
 
   const add = (v: string) => {
     const t = v.trim();
-    if (t && !value.some(x => x.toLowerCase() === t.toLowerCase())) onChange([...value, t]);
+    if (t && single) { onChange([t]); setOpen(false); }
+    else if (t && !value.some(x => x.toLowerCase() === t.toLowerCase())) onChange([...value, t]);
     setQ("");
     setActive(0);
   };
@@ -111,14 +116,16 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
             <button type="button" class="picker__remove" aria-label={`Remove ${v}`} onClick={e => { e.stopPropagation(); remove(v); }}><IconX /></button>
           </span>
         ))}
-        <input class="picker__input" value={q} placeholder={value.length ? "Add more…" : placeholder}
-          role="combobox" aria-expanded={open} aria-label={label} aria-autocomplete="list"
-          onInput={e => { setQ(e.currentTarget.value); setOpen(true); setActive(0); }}
-          onFocus={() => setOpen(true)} onKeyDown={onKey} />
+        {!(single && value.length > 0) && (
+          <input class="picker__input" value={q} placeholder={value.length ? "Add more…" : placeholder}
+            role="combobox" aria-expanded={open} aria-label={label} aria-autocomplete="list"
+            onInput={e => { setQ(e.currentTarget.value); setOpen(true); setActive(0); }}
+            onFocus={() => setOpen(true)} onKeyDown={onKey} />
+        )}
       </div>
 
       {open && !typed && (
-        <div class="picker__menu"><div class="picker__empty">Type at least {minChars} letters, e.g. “rwth”, “oxford” or “munich”.</div></div>
+        <div class="picker__menu"><div class="picker__empty">Type at least {minChars} letters{hint ? `, e.g. ${hint}` : ", e.g. “rwth”, “oxford” or “munich”"}.</div></div>
       )}
       {open && typed && (
         <div class="picker__menu" role="listbox">

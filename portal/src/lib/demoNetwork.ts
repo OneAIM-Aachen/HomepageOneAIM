@@ -26,7 +26,7 @@ export function profilesFromState(s: State): NetworkProfile[] {
     if (!taken.some(a => a.pipeline !== "instant") && !member) continue;
     out.push({
       key: p.id, name: p.name, photo: member?.photo, email: p.email, phone: p.phone, linkedin: p.linkedin ?? member?.linkedin,
-      universities: p.universities, studyPrograms: p.studyPrograms, semester: p.semester, degree: p.degree,
+      universities: p.universities, studyPrograms: p.studyPrograms, companies: p.companies, semester: p.semester, degree: p.degree,
       participations: taken.map(a => ({
         title: appTitle(a), program: a.tags.program, city: a.tags.location, semester: a.tags.semester, event: a.pipeline === "instant",
       })),
@@ -45,7 +45,7 @@ export function demoProfiles(tags: { locations: string[]; programs: string[] }, 
   const empty: State = {
     team: [], posts: [], networkAccounts: {}, departments: [], tagLists: { ...tags, semesters: [] },
     blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
-    universities: [], studyPrograms: [],
+    universities: [], studyPrograms: [], companies: [],
   };
   return profilesFromState(withDemo(empty)).flatMap(p => {
     if (!hasRealTeam || p.team?.status !== "active") return [p];

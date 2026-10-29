@@ -17,7 +17,7 @@ export type SubmissionStatus =
 export type FieldKind =
   // Profile fields: map onto the person in the network database
   | "name" | "email" | "phone" | "linkedin" | "university"
-  | "studyProgram" | "semester" | "degree" | "cv"
+  | "studyProgram" | "company" | "semester" | "degree" | "cv"
   // Custom questions
   | "shortText" | "longText" | "single" | "multi" | "dropdown"
   | "file" | "url" | "number" | "date" | "yesno";
@@ -109,7 +109,7 @@ export interface FileRef {
   /** Storage path in bucket "application-files" */
   path?: string;
 }
-export type Answer = string | string[] | boolean | FileRef | undefined;
+export type Answer = string | string[] | boolean | FileRef | CompanyEntry[] | undefined;
 
 export interface Comment { author: string; text: string; at: string }
 
@@ -136,6 +136,8 @@ export interface Person {
   /** University affiliations (degree, exchange, research stays, theses …) */
   universities: string[];
   studyPrograms: string[];
+  /** Internships, working student jobs, work experience */
+  companies: CompanyEntry[];
   semester?: string;
   degree?: string;
   /** Latest CV upload (older CVs stay with their submission) */
@@ -255,11 +257,16 @@ export interface MailboxStatus {
 
 export interface ListUniversity { id: string; name: string; city?: string; country?: string; aliases: string[] }
 export interface ListStudyProgram { id: string; name: string; category: string }
+export interface ListCompany { id: string; name: string; category: string; aliases: string[] }
+
+/** One company affiliation: company (from the list), position, start / end month ("YYYY-MM"; no end = until today) */
+export interface CompanyEntry { company: string; position: string; from: string; to?: string }
 
 /** Options for the profile fields of every form */
 export interface FormOptions {
   universities: { name: string; country?: string; aliases?: string[] }[];
   studyPrograms: { name: string; category: string }[];
+  companies: { name: string; category: string; aliases?: string[] }[];
 }
 
 export interface TagLists {
@@ -284,5 +291,6 @@ export interface State {
   inbox: InboxMessage[];
   universities: ListUniversity[];
   studyPrograms: ListStudyProgram[];
+  companies: ListCompany[];
   mailbox: MailboxStatus | null;
 }

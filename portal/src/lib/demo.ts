@@ -3,7 +3,7 @@
 // Supabase; it only changes what this browser displays.
 // Available locally and where PUBLIC_DEMO_MODE=true (the Netlify test site),
 // switched with the toggle in the sidebar (or ?demo=1 / ?demo=0).
-import type { Application, Department, Person, State, Submission, SubmissionStatus, TeamMember, TeamRole } from "./types";
+import type { Application, CompanyEntry, Department, Person, State, Submission, SubmissionStatus, TeamMember, TeamRole } from "./types";
 import { defaultTemplates } from "./fields";
 
 const KEY = "oneaim-demo";
@@ -77,6 +77,26 @@ const PROGRAMS: Record<string, W<string>> = {
   founders: [["Business Administration", 18], ["Medicine", 20], ["Computer Science", 16], ["Management & Technology", 14],
     ["Biomedical Engineering / Medical Technology", 14], ["Mechanical Engineering", 8], ["Economics", 6], ["Law", 4]],
 };
+// [company, typical positions] for made-up company affiliations
+const COMPANIES: [string, string[]][] = [
+  ["Siemens Healthineers", ["Working student AI imaging", "Intern R&D", "Werkstudent Software"]],
+  ["Roche", ["Intern Clinical Operations", "Working student Data Science"]],
+  ["Bayer", ["Intern Market Access", "Working student Digital Health"]],
+  ["BioNTech", ["Intern Bioinformatics", "Working student Lab Automation"]],
+  ["Boehringer Ingelheim", ["Intern Medical Affairs"]],
+  ["McKinsey & Company", ["Summer Business Analyst", "Intern Healthcare Practice"]],
+  ["Boston Consulting Group", ["Visiting Associate"]],
+  ["Google", ["Software Engineering Intern", "Student Researcher"]],
+  ["Brainlab", ["Working student Software", "Intern Product Management"]],
+  ["Doctolib", ["Working student Operations", "Intern Product"]],
+  ["Fresenius", ["Intern Strategy", "Working student Controlling"]],
+  ["Zeiss", ["Intern Optics R&D"]],
+  ["Helios Kliniken", ["Student assistant (Famulatur)", "Nursing assistant"]],
+  ["Fraunhofer", ["Student research assistant (HiWi)", "Master thesis"]],
+  ["Max Planck Society", ["Research intern", "Student research assistant (HiWi)"]],
+  ["Deloitte", ["Intern Life Sciences & Health Care"]],
+];
+
 const DEGREES: W<string> = [["Bachelor", 34], ["Master", 30], ["State exam (Staatsexamen)", 26], ["PhD / Doctorate", 7], ["Graduated / working", 3]];
 
 // Which programs run where, with pipeline, profile mix and size per round
@@ -135,10 +155,20 @@ export function withDemo(s: State): State {
     const degree = pick(r, DEGREES);
     const semester = degree === "PhD / Doctorate" || degree === "Graduated / working" ? "Not applicable"
       : String(1 + Math.floor(r() * (degree === "State exam (Staatsexamen)" ? 12 : 7)));
+    // 0–2 company affiliations (more often for students further along)
+    const companies: CompanyEntry[] = [];
+    const nCompanies = r() < 0.45 ? 0 : r() < 0.75 ? 1 : 2;
+    for (let i = 0; i < nCompanies; i++) {
+      const [company, positions] = COMPANIES[Math.floor(r() * COMPANIES.length)]!;
+      const y = 2022 + Math.floor(r() * 4), m = 1 + Math.floor(r() * 12), len = 2 + Math.floor(r() * 10);
+      const end = new Date(Date.UTC(y, m - 1 + len, 1));
+      const to = end > new Date() ? undefined : `${end.getUTCFullYear()}-${String(end.getUTCMonth() + 1).padStart(2, "0")}`;
+      companies.push({ company, position: positions[Math.floor(r() * positions.length)]!, from: `${y}-${String(m).padStart(2, "0")}`, to });
+    }
     const p: Person = {
       id: `demo-p${pid}`, email: `demo${pid}@example.com`,
       name: `${FIRST[Math.floor(r() * FIRST.length)]} ${LAST[Math.floor(r() * LAST.length)]}`,
-      universities: [...new Set(universities)], studyPrograms: [...new Set(studyPrograms)], semester, degree, firstSeen: "2026-03-01",
+      universities: [...new Set(universities)], studyPrograms: [...new Set(studyPrograms)], companies, semester, degree, firstSeen: "2026-03-01",
     };
     pid++;
     people.push(p);

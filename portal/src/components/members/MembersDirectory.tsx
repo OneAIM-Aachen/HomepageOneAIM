@@ -25,6 +25,7 @@ function Directory() {
   const [city, setCity] = useState("");
   const [program, setProgram] = useState("");
   const [uni, setUni] = useState("");
+  const [company, setCompany] = useState("");
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ function Directory() {
       cities: [...new Set(list.flatMap(r => [r.team?.city, ...r.participations.map(x => x.city)].filter(Boolean) as string[]))].sort(),
       programs: [...new Set(list.flatMap(r => r.participations.map(x => x.program)))].sort(),
       unis: [...new Set(list.flatMap(r => r.universities))].sort(),
+      companies: [...new Set(list.flatMap(r => r.companies.map(c => c.company)))].sort(),
     };
   }, [all]);
 
@@ -51,7 +53,8 @@ function Directory() {
   const isParticipant = (r: NetworkProfile) => r.participations.some(x => !x.event);
   const filtered = all.filter(r => {
     const ql = q.trim().toLowerCase();
-    if (ql && !`${r.name} ${r.studyPrograms.join(" ")} ${r.universities.join(" ")} ${r.team?.label ?? ""}`.toLowerCase().includes(ql)) return false;
+    if (ql && !`${r.name} ${r.studyPrograms.join(" ")} ${r.universities.join(" ")} ${r.companies.map(c => `${c.company} ${c.position}`).join(" ")} ${r.team?.label ?? ""}`.toLowerCase().includes(ql)) return false;
+    if (company && !r.companies.some(c => c.company === company)) return false;
     if (who === "participants" && !isParticipant(r)) return false;
     if (who === "team" && r.team?.status !== "active") return false;
     if (who === "alumni" && r.team?.status !== "alumni") return false;
@@ -81,11 +84,12 @@ function Directory() {
       <div class="row">
         <div style="position:relative;flex:1;min-width:220px">
           <IconSearch width={17} style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted)" />
-          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, study program, university…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search members" />
+          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, study program, university, company…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search members" />
         </div>
         {sel("All cities", city, setCity, opts.cities)}
         {sel("All programs", program, setProgram, opts.programs)}
         {sel("All universities", uni, setUni, opts.unis)}
+        {sel("All companies", company, setCompany, opts.companies)}
       </div>
       <div class="row" style="gap:6px" role="group" aria-label="Who">
         {whoBtn("", "Everyone", all.length)}

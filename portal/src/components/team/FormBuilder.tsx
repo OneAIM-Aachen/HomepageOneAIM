@@ -6,7 +6,7 @@ import { Field } from "../ui/Ui";
 import { IconDown, IconTrash, IconUp } from "../ui/Icons";
 
 const SHORT: Record<FieldKind, string> = {
-  name: "Aa", email: "@", cv: "CV", phone: "☎", linkedin: "in", university: "Uni", studyProgram: "Sp",
+  name: "Aa", email: "@", cv: "CV", phone: "☎", linkedin: "in", university: "Uni", studyProgram: "Sp", company: "Co",
   semester: "#", degree: "Dg", shortText: "T", longText: "¶", single: "◉", multi: "☑", dropdown: "▾",
   file: "⇪", url: "↗", number: "12", date: "📅", yesno: "Y/N",
 };

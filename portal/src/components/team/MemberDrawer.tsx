@@ -9,6 +9,7 @@ import { DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS } from "../../lib/fields";
 import { act, Avatar, confirmDialog, Drawer, Field } from "../ui/Ui";
 import { IconPlus, IconTrash } from "../ui/Icons";
 import { ListPicker } from "../apply/ListPicker";
+import { CompanyInput, companyProblem } from "../apply/CompanyInput";
 
 const monthFmt = new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric" });
 export const fmtMonth = (iso: string) => monthFmt.format(new Date(`${iso.slice(0, 10)}T12:00:00`)).replace("Sept", "Sep");
@@ -58,19 +59,21 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
   });
   const [email, setEmail] = useState("");
   const [p, setP] = useState({
-    universities: person?.universities ?? [], studyPrograms: person?.studyPrograms ?? [], semester: person?.semester ?? "",
+    universities: person?.universities ?? [], studyPrograms: person?.studyPrograms ?? [], companies: person?.companies ?? [], semester: person?.semester ?? "",
     degree: person?.degree ?? "", phone: person?.phone ?? "", linkedin: person?.linkedin ?? "",
   });
   const dirty = JSON.stringify(d) !== JSON.stringify({
     name: m.name, city: m.city, role: m.role, departmentId: m.departmentId, position: m.position ?? "", memberSince: m.memberSince ?? "", about: m.about ?? "", linkedin: m.linkedin ?? "",
   }) || (!!person && JSON.stringify(p) !== JSON.stringify({
-    universities: person.universities, studyPrograms: person.studyPrograms, semester: person.semester ?? "",
+    universities: person.universities, studyPrograms: person.studyPrograms, companies: person.companies, semester: person.semester ?? "",
     degree: person.degree ?? "", phone: person.phone ?? "", linkedin: person.linkedin ?? "",
   }));
   const isMe = acc.memberId === m.id;
   const apps = s.submissions.filter(x => x.personId === m.personId).length;
 
   const save = () => act(async () => {
+    const problem = companyProblem(p.companies, false);
+    if (problem) throw new Error(problem);
     await updateMember(m.id, d);
     if (person) await updatePersonDetails(person.id, p);
   }, "Profile saved");
@@ -189,6 +192,10 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
             <ListPicker label="Study programs" placeholder="Search study programs…"
               options={s.studyPrograms.map(o => ({ name: o.name, group: o.category }))}
               value={p.studyPrograms} onChange={v => setP({ ...p, studyPrograms: v })} />
+            <div class="stack-s">
+              <span class="field__label">Company affiliations</span>
+              <CompanyInput options={s.companies} value={p.companies} onChange={v => setP({ ...p, companies: Array.isArray(v) ? v : [] })} />
+            </div>
             <div class="grid-2">
               <Field label="Semester">
                 <select class="input" value={p.semester} onChange={e => setP({ ...p, semester: e.currentTarget.value })}>

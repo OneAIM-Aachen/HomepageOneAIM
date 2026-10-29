@@ -1,9 +1,10 @@
 // Renders an application form from its field list. Used on apply.one-aim.org
 // and as a preview in the team area.
 import { useState } from "preact/hooks";
-import type { Answer, Field as FieldT, FileRef } from "../../lib/types";
+import type { Answer, CompanyEntry, Field as FieldT, FileRef } from "../../lib/types";
 import { Field } from "../ui/Ui";
 import { ListPicker } from "./ListPicker";
+import { CompanyInput, companyProblem } from "./CompanyInput";
 import { DEGREE_OPTIONS, SEMESTER_OPTIONS } from "../../lib/fields";
 import type { FormOptions } from "../../lib/types";
 import { IconFile } from "../ui/Icons";
@@ -38,6 +39,11 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
     for (const f of fields) {
       const v = answers[f.id];
       const empty = v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+      if (f.kind === "company") {
+        const problem = companyProblem(v as CompanyEntry[] | string | undefined, !!f.required);
+        if (problem) e[f.id] = problem;
+        continue;
+      }
       if (f.required && empty && f.kind !== "yesno") e[f.id] = "This field is required.";
       if (f.required && f.kind === "yesno" && v === undefined) e[f.id] = "Please answer yes or no.";
       if (!empty && f.kind === "email" && !EMAIL_RE.test(String(v))) e[f.id] = "Please enter a valid email address.";
@@ -84,6 +90,11 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
           <ListPicker label={f.label} placeholder="Search your study program…" invalid={!!errors[f.id]}
             options={(options?.studyPrograms ?? []).map(o => ({ name: o.name, group: o.category }))}
             value={(v as string[]) ?? []} onChange={x => set(f.id, x)} />
+        );
+      case "company":
+        return (
+          <CompanyInput allowNone options={options?.companies ?? []} invalid={!!errors[f.id]}
+            value={v as CompanyEntry[] | string | undefined} onChange={x => set(f.id, x)} />
         );
       case "semester":
       case "degree": {

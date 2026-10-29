@@ -10,6 +10,7 @@ import { ProfileDrawer } from "../network/Profile";
 import { MembersShell } from "./MembersShell";
 import { act, Avatar, Field } from "../ui/Ui";
 import { ListPicker } from "../apply/ListPicker";
+import { CompanyInput, companyProblem } from "../apply/CompanyInput";
 
 export default function MembersMe() {
   return <MembersShell active="me">{(me, reload) => <Me me={me} reload={reload} />}</MembersShell>;
@@ -18,10 +19,10 @@ export default function MembersMe() {
 function Me({ me, reload }: { me: Member; reload: () => void }) {
   const initial = {
     phone: me.phone ?? "", linkedin: me.linkedin ?? "", universities: me.universities, studyPrograms: me.studyPrograms,
-    semester: me.semester ?? "", degree: me.degree ?? "",
+    companies: me.companies, semester: me.semester ?? "", degree: me.degree ?? "",
   };
   const [d, setD] = useState(initial);
-  const [options, setOptions] = useState<FormOptions>({ universities: [], studyPrograms: [] });
+  const [options, setOptions] = useState<FormOptions>({ universities: [], studyPrograms: [], companies: [] });
   const [preview, setPreview] = useState(false);
   const welcome = new URLSearchParams(location.search).get("welcome") === "1";
   useEffect(() => { fetchFormOptions().then(setOptions); }, []);
@@ -70,6 +71,11 @@ function Me({ me, reload }: { me: Member; reload: () => void }) {
         <ListPicker label="Study programs" placeholder="Search your study program…"
           options={options.studyPrograms.map(o => ({ name: o.name, group: o.category }))}
           value={d.studyPrograms} onChange={v => setD({ ...d, studyPrograms: v })} />
+        <div class="stack-s">
+          <span class="field__label">Company affiliations</span>
+          <span class="field__help">Internships, working student jobs, work experience: one entry per company, with your position.</span>
+          <CompanyInput options={options.companies} value={d.companies} onChange={v => setD({ ...d, companies: Array.isArray(v) ? v : [] })} />
+        </div>
         <div class="grid-2">
           <Field label="Semester">
             <select class="input" value={d.semester} onChange={e => setD({ ...d, semester: e.currentTarget.value })}>
@@ -84,7 +90,7 @@ function Me({ me, reload }: { me: Member; reload: () => void }) {
         </div>
         <p class="muted small">Your profile, including email, phone and LinkedIn, is visible to all members of the OneAIM network.</p>
         <div class="row" style="justify-content:flex-end">
-          <button class="btn btn--primary" disabled={!dirty} onClick={() => act(async () => { await updateMe(d); reload(); }, "Profile saved")}>Save profile</button>
+          <button class="btn btn--primary" disabled={!dirty} onClick={() => act(async () => { const problem = companyProblem(d.companies, false); if (problem) throw new Error(problem); await updateMe(d); reload(); }, "Profile saved")}>Save profile</button>
         </div>
       </section>
 

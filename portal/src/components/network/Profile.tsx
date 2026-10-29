@@ -4,7 +4,8 @@
 // Used by the team portal (Network page) and the members site (/members),
 // where the data comes from the database function network_directory().
 import type { ComponentChildren } from "preact";
-import type { RoleEntry, TeamMember } from "../../lib/types";
+import type { CompanyEntry, RoleEntry, TeamMember } from "../../lib/types";
+import { companyPeriod } from "../apply/CompanyInput";
 import { Avatar, Drawer } from "../ui/Ui";
 import { fmtMonth, roleLabel } from "../team/MemberDrawer";
 
@@ -26,6 +27,7 @@ export interface NetworkProfile {
   linkedin?: string;
   universities: string[];
   studyPrograms: string[];
+  companies: CompanyEntry[];
   semester?: string;
   degree?: string;
   /** Accepted / confirmed only, newest first */
@@ -84,6 +86,23 @@ export function ProfileDrawer({ r, onClose, foot }: { r: NetworkProfile; onClose
         <dl class="qa" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px">
           {studies.map(([k, v]) => <div><dt>{k}</dt><dd>{v ?? "–"}</dd></div>)}
         </dl>
+      </section>
+
+      <section class="stack-s">
+        <h3>Companies</h3>
+        {r.companies.length
+          ? <ol class="history">
+              {[...r.companies].sort((a, b) => (b.to ?? "9999").localeCompare(a.to ?? "9999") || b.from.localeCompare(a.from)).map(c => (
+                <li class="history__item">
+                  <span class="history__dot" />
+                  <div style="flex:1;min-width:0">
+                    <strong style="color:var(--color-text-heading)">{c.company}</strong><span class="muted"> · {c.position}</span>
+                    <div class="muted small">{companyPeriod(c)}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          : <p class="muted small">No company affiliations yet.</p>}
       </section>
 
       <section class="stack-s">

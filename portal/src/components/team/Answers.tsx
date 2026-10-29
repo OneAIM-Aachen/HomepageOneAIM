@@ -1,7 +1,8 @@
 // Everything an applicant submitted, rendered field by field.
 // Used in the applicant drawer and in the network profile.
-import type { Answer, Application, FileRef, Submission } from "../../lib/types";
-import { fmtDate } from "../../lib/fields";
+import type { Answer, Application, CompanyEntry, FileRef, Submission } from "../../lib/types";
+import { companyPeriod } from "../apply/CompanyInput";
+import { fmtDate, NO_COMPANY } from "../../lib/fields";
 import { act } from "../ui/Ui";
 import { openFile as openStored } from "../../lib/store";
 import { IconDownload, IconFile } from "../ui/Icons";
@@ -13,7 +14,13 @@ export function isFile(v: Answer): v is FileRef {
 function answerText(v: Answer): string {
   if (v === undefined || v === null || v === "") return "–";
   if (typeof v === "boolean") return v ? "Yes" : "No";
-  if (Array.isArray(v)) return v.length ? v.join(", ") : "–";
+  if (v === NO_COMPANY) return "No company yet";
+  if (Array.isArray(v)) {
+    if (!v.length) return "–";
+    // Company affiliations: [{company, position, from, to}]
+    if (typeof v[0] === "object") return (v as CompanyEntry[]).map(e => `${e.company}: ${e.position} (${companyPeriod(e)})`).join("\n");
+    return (v as string[]).join(", ");
+  }
   return String(v);
 }
 

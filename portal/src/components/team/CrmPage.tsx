@@ -6,6 +6,7 @@ import { TeamShell, PageHead } from "./TeamShell";
 import { act, Avatar, confirmDialog, Drawer, Field, Modal, StatusChip, useParam } from "../ui/Ui";
 import { IconDownload, IconFile, IconMail, IconSearch } from "../ui/Icons";
 import { Answers, FileCard, isFile, openFile } from "./Answers";
+import { companyPeriod } from "../apply/CompanyInput";
 
 // CRM: everyone who ever applied, one profile per email address.
 // (The curated network is its own site: /members.)
@@ -29,6 +30,7 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
   const [outcome, setOutcome] = useState<Outcome>(param("status") as Outcome);
   const [uni, setUni] = useState(param("uni"));
   const [studyProg, setStudyProg] = useState(param("study"));
+  const [company, setCompany] = useState(param("company"));
   const [field, setField] = useState(param("field"));
   const [termSem, setTermSem] = useState(param("sem"));
   const [degree, setDegree] = useState(param("degree"));
@@ -44,13 +46,15 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
 
   const unis = [...new Set(s.people.flatMap(p => p.universities))].sort();
   const studies = [...new Set(s.people.flatMap(p => p.studyPrograms))].sort();
+  const companies = [...new Set(s.people.flatMap(p => p.companies.map(c => c.company)))].sort();
   const fields = [...new Set(s.studyPrograms.map(p => p.category))].sort();
   const categoryOf = (name: string) => s.studyPrograms.find(p => p.name === name)?.category ?? "Other";
   const isAccepted = (st: SubmissionStatus) => st === "accepted" || st === "confirmed";
 
   const filtered = rows.filter(({ p, subs }) => {
     const ql = q.toLowerCase();
-    if (ql && !`${p.name} ${p.email} ${p.studyPrograms.join(" ")} ${p.universities.join(" ")}`.toLowerCase().includes(ql)) return false;
+    if (ql && !`${p.name} ${p.email} ${p.studyPrograms.join(" ")} ${p.universities.join(" ")} ${p.companies.map(c => `${c.company} ${c.position}`).join(" ")}`.toLowerCase().includes(ql)) return false;
+    if (company && !p.companies.some(c => c.company === company)) return false;
     if (uni && !p.universities.includes(uni)) return false;
     if (studyProg && !p.studyPrograms.includes(studyProg)) return false;
     if (field && !p.studyPrograms.some(x => categoryOf(x) === field)) return false;
@@ -69,8 +73,9 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
   }).sort((a, b) => a.p.name.localeCompare(b.p.name));
 
   const exportCsv = () => {
-    const head = ["Name", "Email", "Phone", "LinkedIn", "University affiliations", "Study programs", "Semester", "Degree", "Applications"];
+    const head = ["Name", "Email", "Phone", "LinkedIn", "University affiliations", "Study programs", "Company affiliations", "Semester", "Degree", "Applications"];
     const lines = filtered.map(({ p, subs }) => [p.name, p.email, p.phone ?? "", p.linkedin ?? "", p.universities.join("; "), p.studyPrograms.join("; "),
+      p.companies.map(c => `${c.company} (${c.position}, ${companyPeriod(c)})`).join("; "),
       p.semester ?? "", p.degree ?? "", subs.map(x => `${appTitle(x.app!)} (${STATUS_LABEL[x.sub.status]})`).join("; ")]);
     const csv = [head, ...lines].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -113,9 +118,10 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
       <div class="row">
         <div style="position:relative;flex:1;min-width:220px">
           <IconSearch width={17} style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted)" />
-          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, email, study program…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search people" />
+          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, email, study program, company…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search people" />
         </div>
         {sel("All programs", program, setProgram, s.tagLists.programs)}
+        {sel("All companies", company, setCompany, companies)}
         {sel("All locations", location, setLocation, s.tagLists.locations)}
         {sel("All semesters", semester, setSemester, s.tagLists.semesters)}
         {sel("All universities", uni, setUni, unis)}
@@ -180,6 +186,7 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
     ["Email", p.email, "mail"], ["Phone", p.phone, undefined], ["LinkedIn", p.linkedin, "link"],
     ["University affiliations", p.universities.join(", ") || undefined, undefined], ["Study programs", p.studyPrograms.join(", ") || undefined, undefined],
     ["Semester", p.semester, undefined], ["Degree level", p.degree, undefined],
+    ["Company affiliations", p.companies.map(c => `${c.company}: ${c.position} (${companyPeriod(c)})`).join("\n") || undefined, undefined],
   ];
   const sorted = [...subs].sort((a, b) => b.sub.submittedAt.localeCompare(a.sub.submittedAt));
   const cvs = cvsOf(sorted);

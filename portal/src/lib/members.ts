@@ -22,7 +22,7 @@ function mapProfile(j: any): NetworkProfile {
   const t = j.team;
   return {
     key: j.key, name: j.name, photo: j.photo ?? undefined, email: j.email ?? undefined, phone: j.phone ?? undefined,
-    linkedin: j.linkedin ?? undefined, universities: j.universities ?? [], studyPrograms: j.studyPrograms ?? [],
+    linkedin: j.linkedin ?? undefined, universities: j.universities ?? [], studyPrograms: j.studyPrograms ?? [], companies: j.companies ?? [],
     semester: j.semester ?? undefined, degree: j.degree ?? undefined, participations: j.participations ?? [],
     team: t ? {
       status: t.status, city: t.city, alumniSince: t.alumniSince ?? undefined,
@@ -71,7 +71,7 @@ export async function fetchDirectory(): Promise<NetworkProfile[]> {
   return (check(await supabase.rpc("network_directory")) as unknown[]).map(mapProfile);
 }
 
-export type MemberPatch = Partial<Pick<NetworkProfile, "phone" | "linkedin" | "universities" | "studyPrograms" | "semester" | "degree" | "photo">>;
+export type MemberPatch = Partial<Pick<NetworkProfile, "phone" | "linkedin" | "universities" | "studyPrograms" | "companies" | "semester" | "degree" | "photo">>;
 
 export async function updateMe(p: MemberPatch) {
   check(await supabase.rpc("network_update_me", { p }));

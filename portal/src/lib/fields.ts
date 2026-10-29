@@ -23,6 +23,7 @@ export const KINDS: Record<FieldKind, KindInfo> = {
   linkedin:     { label: "LinkedIn",         profile: true,  defaultLabel: "LinkedIn profile" },
   university:   { label: "University affiliations", profile: true, defaultLabel: "University affiliations" },
   studyProgram: { label: "Study programs",   profile: true,  defaultLabel: "Study program(s)" },
+  company:      { label: "Company affiliations", profile: true, defaultLabel: "Company affiliations" },
   semester:     { label: "Semester",         profile: true,  defaultLabel: "Current semester" },
   degree:       { label: "Degree level",     profile: true,  defaultLabel: "Degree level", hasOptions: true },
   shortText:    { label: "Short text",       profile: false, defaultLabel: "Short answer" },
@@ -46,6 +47,9 @@ export const CUSTOM_KINDS: FieldKind[] =
 export const DEGREE_OPTIONS = ["Bachelor", "Master", "State exam (Staatsexamen)", "Diploma", "PhD / Doctorate", "Graduated / working", "Not studying"];
 export const SEMESTER_OPTIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "12+", "Not applicable"];
 export const UNIVERSITY_HELP = "List every university you are or were affiliated with: your degree program(s), exchange semesters, research internships, theses abroad, etc.";
+export const COMPANY_HELP = "Add every company you work or worked at, with your position and when: internships, working student jobs, work experience, etc.";
+/** Answer of the company field when someone hasn't worked at a company yet */
+export const NO_COMPANY = "none";
 /** Prefix for free-text answers from "Other (please specify)" */
 export const OTHER_LABEL = "Other (please specify)";
 
@@ -66,7 +70,7 @@ export function newField(kind: FieldKind): Field {
 }
 
 /** Core fields: part of every form, always mandatory (enforced by the database too). */
-export const LOCKED_KINDS: FieldKind[] = ["name", "email", "university", "studyProgram", "semester", "degree"];
+export const LOCKED_KINDS: FieldKind[] = ["name", "email", "university", "studyProgram", "company", "semester", "degree"];
 
 export function baseFields(): Field[] {
   return [
@@ -74,6 +78,7 @@ export function baseFields(): Field[] {
     { id: "email", kind: "email", label: "Email address", required: true },
     { id: "university", kind: "university", label: "University affiliations", help: UNIVERSITY_HELP, required: true },
     { id: "studyProgram", kind: "studyProgram", label: "Study program(s)", required: true },
+    { id: "company", kind: "company", label: "Company affiliations", help: COMPANY_HELP, required: true },
     { id: "semester", kind: "semester", label: "Current semester", required: true },
     { id: "degree", kind: "degree", label: "Degree level", required: true },
   ];
