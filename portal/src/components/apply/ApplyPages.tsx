@@ -6,7 +6,7 @@ import { useEffect, useState } from "preact/hooks";
 import {
   bookSlot, fetchFormOptions, fetchPublicTagLists, fetchPublishedApplications, getBooking, submitApplication, type Booking, type PublicApplication,
 } from "../../lib/store";
-import { appTitle, fmtDate, fmtSlot, firstName, PIPELINES } from "../../lib/fields";
+import { appTitle, fmtDate, fmtSlot, firstName, formatFee } from "../../lib/fields";
 import { FormRenderer } from "./FormRenderer";
 import { useParam } from "../ui/Ui";
 import { IconCalendar } from "../ui/Icons";
@@ -44,7 +44,7 @@ function Facts({ app }: { app: PublicApplication }) {
       <div class="fact">Deadline<strong>{fmtDate(app.dates.deadline)}{app.dates.deadlineTime ? `, ${app.dates.deadlineTime}` : ""}</strong></div>
       {app.dates.startsAt && <div class="fact">{app.pipeline === "instant" ? "Date" : "Program start"}<strong>{fmtDate(app.dates.startsAt)}</strong></div>}
       {app.spots && <div class="fact">Spots<strong>{app.spots}</strong></div>}
-      {app.fee && <div class="fact">Participation fee<strong>{app.fee}</strong></div>}
+      {app.fee && <div class="fact">Participation fee<strong>{formatFee(app.fee)}</strong></div>}
     </div>
   );
 }
@@ -182,7 +182,7 @@ export function ApplyForm() {
               <div class="stack-s">
                 <h2>{app.pipeline === "instant" ? "Register" : "Your application"}</h2>
                 <p class="muted small">
-                  {PIPELINES[app.pipeline].steps.join(" → ")}. Fields marked <span style="color:var(--color-accent-pink)">*</span> are required.
+                  Fields marked <span style="color:var(--color-accent-pink)">*</span> are required.
                 </p>
               </div>
               <FormRenderer fields={app.fields} options={options} submitLabel={app.pipeline === "instant" ? "Register" : "Submit application"}

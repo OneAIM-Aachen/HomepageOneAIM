@@ -8,7 +8,7 @@ import {
 } from "../../lib/store";
 import { AddMember, fmtScore, MemberChips, ScorecardEditor, scorecardValid, ScoreSheetForm, STAGE_LABEL } from "./Review";
 import {
-  appPhase, appTitle, fmtDate, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL,
+  appPhase, appTitle, CURRENCIES, feeValue, fmtDate, parseFee, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL,
   templatesFor,
 } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
@@ -430,7 +430,9 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
   const date = (k: keyof Application["dates"]) => (
     <input class="input" type="date" value={d.dates[k] ?? ""} onInput={e => setD({ ...d, dates: { ...d.dates, [k]: e.currentTarget.value || undefined } })} />
   );
-  const bad = !d.dates.opensAt || !d.dates.deadline || d.dates.deadline < d.dates.opensAt;
+  const fee = parseFee(d.fee);
+  const feeBad = !!fee.amount && !fee.currency;
+  const bad = !d.dates.opensAt || !d.dates.deadline || d.dates.deadline < d.dates.opensAt || feeBad;
   const [busy, setBusy] = useState(false);
   const save = async () => { setBusy(true); await act(() => saveApplication(d), "Application saved"); setBusy(false); };
   const upload = (e: Event) => {
@@ -498,7 +500,17 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
         <h3>Spots & fee</h3>
         <div class="grid-3">
           <Field label="Spots"><input class="input" type="number" min={0} value={d.spots ?? ""} onInput={e => setD({ ...d, spots: Number(e.currentTarget.value) || undefined })} /></Field>
-          <Field label="Participation fee" help="Shown on the site while applications are open."><input class="input" value={d.fee ?? ""} placeholder="e.g. 50 €" onInput={e => setD({ ...d, fee: e.currentTarget.value || undefined })} /></Field>
+          <Field label="Participation fee" help="Shown on the form. Leave empty if there's no fee; 0 shows “Free”.">
+            <input class="input" type="number" min={0} step="0.01" placeholder="e.g. 50" value={fee.amount}
+              onInput={e => setD({ ...d, fee: feeValue(e.currentTarget.value, fee.currency) })} />
+          </Field>
+          <Field label="Currency" required={!!fee.amount} error={feeBad ? "Please select the currency." : undefined}>
+            <select class={`input ${feeBad ? "input--invalid" : ""}`} value={fee.currency} disabled={!fee.amount}
+              onChange={e => setD({ ...d, fee: feeValue(fee.amount, e.currentTarget.value) })}>
+              <option value="">Select currency…</option>
+              {CURRENCIES.map(([c, label]) => <option value={c}>{label}</option>)}
+            </select>
+          </Field>
         </div>
       </section>
 

@@ -53,6 +53,36 @@ export const NO_COMPANY = "none";
 /** Prefix for free-text answers from "Other (please specify)" */
 export const OTHER_LABEL = "Other (please specify)";
 
+// ── Participation fee: stored as "<amount> <currency code>", e.g. "50 EUR" ──
+
+export const CURRENCIES: [string, string][] = [
+  ["EUR", "Euro (€)"], ["CHF", "Swiss franc (CHF)"], ["GBP", "British pound (£)"], ["USD", "US dollar ($)"],
+  ["SEK", "Swedish krona (SEK)"], ["DKK", "Danish krone (DKK)"], ["NOK", "Norwegian krone (NOK)"],
+  ["PLN", "Polish złoty (PLN)"], ["CZK", "Czech koruna (CZK)"],
+];
+const SYMBOLS: [RegExp, string][] = [[/€|\beur\b|euro/i, "EUR"], [/£|\bgbp\b/i, "GBP"], [/\$|\busd\b/i, "USD"], [/\bchf\b|\bfr\./i, "CHF"]];
+
+/** Splits a stored fee into amount and currency (also understands older free text like "50 €") */
+export function parseFee(fee?: string): { amount: string; currency: string } {
+  if (!fee) return { amount: "", currency: "" };
+  const amount = fee.match(/\d+(?:[.,]\d{1,2})?/)?.[0]?.replace(",", ".") ?? "";
+  const code = fee.match(/\b[A-Z]{3}\b/)?.[0];
+  const currency = code && CURRENCIES.some(([c]) => c === code) ? code : SYMBOLS.find(([re]) => re.test(fee))?.[1] ?? "";
+  return { amount, currency };
+}
+
+export const feeValue = (amount: string, currency: string) => (amount.trim() ? `${amount.trim()} ${currency}`.trim() : undefined);
+
+/** "€50", "CHF 80", "£12.50" – or the stored text if it can't be read */
+export function formatFee(fee?: string): string | undefined {
+  if (!fee) return undefined;
+  const { amount, currency } = parseFee(fee);
+  const n = Number(amount);
+  if (!amount || !currency || Number.isNaN(n)) return fee;
+  if (n === 0) return "Free";
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(n);
+}
+
 export function uid(prefix = ""): string {
   return prefix + Math.random().toString(36).slice(2, 10);
 }
