@@ -675,7 +675,7 @@ img.avatar { object-fit: cover; background: var(--p-chip); }
 .org__top { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 .org__stem { width: 2px; height: 22px; background: #CBD3E4; }
 .org__depts { display: flex; gap: 16px; align-items: flex-start; }
-.org__dept { position: relative; width: 220px; padding-top: 22px; display: flex; flex-direction: column; gap: 8px; }
+.org__dept { position: relative; width: 236px; padding-top: 22px; display: flex; flex-direction: column; gap: 8px; }
 /* connectors: horizontal bar across the departments + a drop to each one */
 .org__dept::before { content: ""; position: absolute; top: 0; left: -8px; right: -8px; border-top: 2px solid #CBD3E4; }
 .org__dept:first-child::before { left: 50%; }

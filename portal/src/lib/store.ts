@@ -758,7 +758,7 @@ export async function mergeProfileValue(kind: "university" | "studyProgram", fro
 // ── Team ─────────────────────────────────────────────────────────────────
 
 export const ROLE_LABEL: Record<TeamMember["role"], string> = {
-  president: "President", co_president: "Co-President", lead: "Team lead", member: "Member",
+  president: "President", co_president: "Co-President", lead: "Team Lead", member: "Member",
 };
 
 async function teamCall<T>(body: Record<string, unknown>): Promise<T> {

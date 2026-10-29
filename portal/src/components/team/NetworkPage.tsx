@@ -189,7 +189,7 @@ function PersonDrawer({ person: p, subs, onClose }: { person: Person; subs: Entr
         <section class="team-note">
           <div style="flex:1;min-width:0">
             <span class="overline">OneAIM team</span>
-            <p><strong style="color:var(--color-text-heading)">{member.position || ROLE_LABEL[member.role]}</strong> · {member.city}{dept ? ` · ${dept.name}` : ""}{member.memberSince ? ` · since ${member.memberSince}` : ""}</p>
+            <p><strong style="color:var(--color-text-heading)">{member.position || (member.role === "lead" && dept ? `Team Lead | ${dept.name}` : ROLE_LABEL[member.role])}</strong> · {member.city}{dept && member.role !== "lead" ? ` · ${dept.name}` : ""}{member.memberSince ? ` · since ${member.memberSince}` : ""}</p>
           </div>
           <a class="btn btn--secondary btn--sm" href={`/team/team?member=${member.id}`}>Team profile</a>
         </section>

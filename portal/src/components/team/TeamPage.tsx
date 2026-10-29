@@ -20,7 +20,12 @@ export default function TeamPage() {
 
 const ROLE_ORDER: Record<TeamRole, number> = { president: 0, co_president: 1, lead: 2, member: 3 };
 const byRole = (a: TeamMember, b: TeamMember) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || a.name.localeCompare(b.name);
-const subtitle = (m: TeamMember) => m.position || ROLE_LABEL[m.role];
+// Leads are shown as "Team Lead | Events"; a custom position replaces the label.
+function subtitle(m: TeamMember, departments: Department[]): string {
+  if (m.position) return m.position;
+  const dept = departments.find(d => d.id === m.departmentId)?.name;
+  return m.role === "lead" && dept ? `Team Lead | ${dept}` : ROLE_LABEL[m.role];
+}
 
 function Team({ acc }: { acc: Account }) {
   const s = useStore(x => x);
@@ -94,7 +99,7 @@ function Team({ acc }: { acc: Account }) {
                       <tr class="is-clickable" onClick={() => setOpen(m.id)}>
                         <td><div class="cell-person"><Avatar name={m.name} src={m.photo} /><div><strong>{m.name}</strong><span class="muted small">{m.email}</span></div></div></td>
                         <td>{m.city}</td>
-                        <td>{subtitle(m)}</td>
+                        <td>{subtitle(m, s.departments)}</td>
                         <td>{s.departments.find(d => d.id === m.departmentId)?.name ?? "–"}</td>
                         <td class="muted small">{m.memberSince ?? "–"}</td>
                         <td>{m.active ? <span class="chip chip--green">Active</span> : <span class="chip chip--amber" title={m.invitedAt ? `Invited ${fmtDate(m.invitedAt)}` : undefined}>Invited</span>}</td>
@@ -116,11 +121,12 @@ function Team({ acc }: { acc: Account }) {
 }
 
 function PersonCard({ m, kind, onOpen }: { m: TeamMember; kind: "top" | "lead" | "row"; onOpen: (id: string) => void }) {
+  const departments = useStore(x => x.departments);
   return (
     <button class={`person-card person-card--${kind} ${m.active ? "" : "is-invited"}`} onClick={() => onOpen(m.id)}
       title={m.active ? undefined : "Invitation sent, no password set yet"}>
       <Avatar name={m.name} src={m.photo} />
-      <span class="person-card__text"><strong>{m.name}</strong><span>{kind === "row" ? (m.position || "Member") : subtitle(m)}</span></span>
+      <span class="person-card__text"><strong>{m.name}</strong><span>{subtitle(m, departments)}</span></span>
     </button>
   );
 }
@@ -132,7 +138,7 @@ function CityOrg({ city, members, departments, onOpen }: {
   const cols = [...departments].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
     .map(d => ({ key: d.id, name: d.name, people: members.filter(m => m.departmentId === d.id).sort(byRole) }));
   const loose = members.filter(m => !top.includes(m) && !m.departmentId).sort(byRole);
-  if (loose.length) cols.push({ key: "none", name: "No department", people: loose });
+  if (loose.length) cols.push({ key: "none", name: "Without department", people: loose });
 
   return (
     <section class="card org-city">
@@ -179,7 +185,7 @@ function RoleFields({ city, role, departmentId, onChange }: {
           {(Object.keys(ROLE_LABEL) as TeamRole[]).map(r => <option value={r}>{ROLE_LABEL[r]}</option>)}
         </select>
       </Field>
-      <Field label="Department" help={top ? "Presidents stand above the departments." : undefined}>
+      <Field label="Department" help={top ? "Presidents stand above the departments." : "Optional: members and leads can also be without a department."}>
         <select class="input" value={top ? "" : departmentId ?? ""} disabled={top} onChange={e => onChange({ departmentId: e.currentTarget.value || undefined })}>
           <option value="">No department</option>
           {depts.map(d => <option value={d.id}>{d.name}</option>)}
@@ -217,7 +223,7 @@ function InviteModal({ acc, city: preset, onClose, onDone }: { acc: Account; cit
               {cities.map(c => <option>{c}</option>)}
             </select>
           </Field>
-          <Field label="Position" help="Optional, e.g. “Head of Partnerships”"><input class="input" value={d.position} onInput={e => setD({ ...d, position: e.currentTarget.value })} /></Field>
+          <Field label="Position" help="Optional, replaces the role label. Leads show as “Team Lead | Department”."><input class="input" value={d.position} onInput={e => setD({ ...d, position: e.currentTarget.value })} /></Field>
         </div>
         <RoleFields city={d.city} role={d.role} departmentId={d.departmentId} onChange={p => setD({ ...d, ...p })} />
         <div class="row" style="justify-content:flex-end">
@@ -277,7 +283,7 @@ function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; acc: Ac
         <Avatar name={m.name} src={m.photo} large />
         <div style="min-width:0">
           <h2 style="font-size:1.25rem">{m.name}{isMe && <span class="chip chip--blue" style="margin-left:8px;vertical-align:middle">You</span>}</h2>
-          <span class="muted small">{subtitle(m)} · OneAIM {m.city}{m.departmentId ? ` · ${s.departments.find(x => x.id === m.departmentId)?.name}` : ""}</span>
+          <span class="muted small">{subtitle(m, s.departments)} · OneAIM {m.city}</span>
         </div>
       </div>}
       foot={demo
@@ -320,7 +326,7 @@ function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; acc: Ac
           </div>
           <RoleFields city={d.city} role={d.role} departmentId={d.departmentId} onChange={x => setD({ ...d, ...x })} />
           <div class="grid-2">
-            <Field label="Position" help="Shown instead of the role, e.g. “Head of Partnerships”"><input class="input" value={d.position} onInput={e => setD({ ...d, position: e.currentTarget.value })} /></Field>
+            <Field label="Position" help="Optional, replaces the role label (leads show as “Team Lead | Department”)"><input class="input" value={d.position} onInput={e => setD({ ...d, position: e.currentTarget.value })} /></Field>
             <Field label="Member since">
               <select class="input" value={d.memberSince} onChange={e => setD({ ...d, memberSince: e.currentTarget.value })}>
                 <option value="">–</option>
@@ -377,7 +383,7 @@ function DepartmentsModal({ city: preset, onClose }: { city: string; onClose: ()
     const n = s.team.filter(m => m.departmentId === d.id).length;
     if (await confirmDialog({
       title: `Remove “${d.name}”?`, danger: true, confirmLabel: "Remove department",
-      message: n ? `${n} member${n > 1 ? "s" : ""} stay in the team, shown under “No department”.` : "Nobody is in this department.",
+      message: n ? `${n} member${n > 1 ? "s" : ""} stay in the team, shown under “Without department”.` : "Nobody is in this department.",
     })) act(() => removeDepartment(d.id), `Removed ${d.name}`);
   };
 

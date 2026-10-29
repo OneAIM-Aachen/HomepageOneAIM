@@ -203,10 +203,12 @@ export function withDemo(s: State): State {
     add("president");
     for (let i = 0; i < coPresidents; i++) add("co_president");
     for (const d of useDepts) {
-      add("lead", d.id, `Head of ${d.name}`);
+      add("lead", d.id);
       const size = perDept - 1 + Math.floor(r() * 3);
       for (let i = 0; i < size; i++) add("member", d.id);
     }
+    // A few members without a department
+    for (let i = 0; i < 2; i++) add("member");
   }
 
   return {
