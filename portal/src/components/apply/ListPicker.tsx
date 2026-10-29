@@ -51,7 +51,7 @@ function score(x: Indexed, q: string): number | null {
   return null;
 }
 
-export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 1, maxResults = 12, single }: {
+export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 1, maxResults = 12, single, small }: {
   options: PickerOption[];
   value: string[];
   onChange: (v: string[]) => void;
@@ -63,6 +63,8 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   maxResults?: number;
   /** Exactly one value, shown in the field itself */
   single?: boolean;
+  /** Compact field (filter bars) */
+  small?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState(false);
@@ -133,7 +135,7 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   return (
     <div class="picker" ref={box}
       onFocusOut={e => { if (!box.current?.contains(e.relatedTarget as Node)) commit(); }}>
-      <input class={`input ${invalid ? "input--invalid" : ""}`} value={shown} placeholder={placeholder}
+      <input class={`input ${small ? "input--sm" : ""} ${invalid ? "input--invalid" : ""}`} value={shown} placeholder={placeholder}
         role="combobox" aria-expanded={showMenu} aria-label={label} aria-autocomplete="list" autoComplete="off"
         onFocus={e => {
           setEditing(true);
@@ -167,7 +169,7 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
         </div>
       )}
 
-      {single && !editing && value[0] && !inList(value[0]) && (
+      {single && !small && !editing && value[0] && !inList(value[0]) && (
         <span class="field__help">Not in our list yet; we'll add it.</span>
       )}
       {!single && value.length > 0 && (
@@ -182,4 +184,29 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
       )}
     </div>
   );
+}
+
+/**
+ * Filter field: type to search a list (e.g. universities), pick a suggestion.
+ * A picked list entry matches exactly; typed text that isn't picked filters by
+ * "contains" (so "Siemens" also finds "Siemens Healthineers"). Empty = no filter.
+ */
+export function FilterSearch({ label, value, onChange, options }: {
+  label: string; value: string; onChange: (v: string) => void; options: PickerOption[];
+}) {
+  return (
+    <div class="filter-search">
+      <ListPicker single small label={label} placeholder={label} options={options}
+        value={value ? [value] : []} onChange={v => onChange(v[0] ?? "")} />
+      {value && <button type="button" class="filter-search__clear" aria-label={`Clear ${label}`} onClick={() => onChange("")}><IconX /></button>}
+    </div>
+  );
+}
+
+/** Match for FilterSearch values: exact for list entries (`known`), otherwise "contains" */
+export function matchesFilter(values: string[], filter: string, known: { name: string }[]): boolean {
+  if (!filter) return true;
+  if (known.some(k => k.name === filter)) return values.includes(filter);
+  const f = norm(filter.trim());
+  return values.some(v => norm(v).includes(f));
 }

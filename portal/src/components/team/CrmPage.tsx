@@ -7,6 +7,7 @@ import { act, Avatar, confirmDialog, Drawer, Field, Modal, StatusChip, useParam 
 import { IconDownload, IconFile, IconMail, IconSearch } from "../ui/Icons";
 import { Answers, FileCard, isFile, openFile } from "./Answers";
 import { companyPeriod } from "../apply/CompanyInput";
+import { FilterSearch, matchesFilter } from "../apply/ListPicker";
 
 // CRM: everyone who ever applied, one profile per email address.
 // (The curated network is its own site: /members.)
@@ -53,10 +54,10 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
 
   const filtered = rows.filter(({ p, subs }) => {
     const ql = q.toLowerCase();
-    if (ql && !`${p.name} ${p.email} ${p.studyPrograms.join(" ")} ${p.universities.join(" ")} ${p.companies.map(c => `${c.company} ${c.position}`).join(" ")}`.toLowerCase().includes(ql)) return false;
-    if (company && !p.companies.some(c => c.company === company)) return false;
-    if (uni && !p.universities.includes(uni)) return false;
-    if (studyProg && !p.studyPrograms.includes(studyProg)) return false;
+    if (ql && !`${p.name} ${p.email}`.toLowerCase().includes(ql)) return false;
+    if (!matchesFilter(p.companies.map(c => c.company), company, s.companies)) return false;
+    if (!matchesFilter(p.universities, uni, s.universities)) return false;
+    if (!matchesFilter(p.studyPrograms, studyProg, s.studyPrograms)) return false;
     if (field && !p.studyPrograms.some(x => categoryOf(x) === field)) return false;
     if (termSem && p.semester !== termSem) return false;
     if (degree && p.degree !== degree) return false;
@@ -118,14 +119,11 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
       <div class="row">
         <div style="position:relative;flex:1;min-width:220px">
           <IconSearch width={17} style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted)" />
-          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, email, study program, company…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search people" />
+          <input class="input input--sm" style="padding-left:36px" placeholder="Search name or email…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search people" />
         </div>
         {sel("All programs", program, setProgram, s.tagLists.programs)}
-        {sel("All companies", company, setCompany, companies)}
         {sel("All locations", location, setLocation, s.tagLists.locations)}
         {sel("All semesters", semester, setSemester, s.tagLists.semesters)}
-        {sel("All universities", uni, setUni, unis)}
-        {sel("All study programs", studyProg, setStudyProg, studies)}
         {sel("All fields", field, setField, fields)}
         {sel("Any semester", termSem, setTermSem, SEMESTER_OPTIONS)}
         {sel("Any degree", degree, setDegree, DEGREE_OPTIONS)}
@@ -133,6 +131,14 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
         <select class="input input--sm" style="width:auto" value={outcome} onChange={e => setOutcome(e.currentTarget.value as Outcome)} aria-label="Outcome">
           <option value="">Any outcome</option><option value="accepted">Accepted / confirmed</option><option value="pending">In progress</option><option value="rejected">Rejected</option>
         </select>
+      </div>
+      <div class="row">
+        <FilterSearch label="Study program" value={studyProg} onChange={setStudyProg}
+          options={studies.map(name => ({ name, group: categoryOf(name) }))} />
+        <FilterSearch label="University" value={uni} onChange={setUni}
+          options={unis.map(name => ({ name, terms: s.universities.find(u => u.name === name)?.aliases }))} />
+        <FilterSearch label="Company" value={company} onChange={setCompany}
+          options={companies.map(name => ({ name, terms: s.companies.find(c => c.name === name)?.aliases }))} />
       </div>
 
       <div class="card card--flush">

@@ -2,7 +2,9 @@
 // network profile (contact, studies, OneAIM programs and team history).
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { fetchDirectory } from "../../lib/members";
-import { fetchPublicTagLists } from "../../lib/store";
+import { fetchFormOptions, fetchPublicTagLists } from "../../lib/store";
+import type { FormOptions } from "../../lib/types";
+import { FilterSearch, matchesFilter } from "../apply/ListPicker";
 import { isDemo } from "../../lib/demo";
 import { demoProfiles } from "../../lib/demoNetwork";
 import type { NetworkProfile } from "../network/Profile";
@@ -26,6 +28,9 @@ function Directory() {
   const [program, setProgram] = useState("");
   const [uni, setUni] = useState("");
   const [company, setCompany] = useState("");
+  const [study, setStudy] = useState("");
+  const [formOptions, setFormOptions] = useState<FormOptions | null>(null);
+  useEffect(() => { fetchFormOptions().then(setFormOptions); }, []);
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,10 +47,15 @@ function Directory() {
     return {
       cities: [...new Set(list.flatMap(r => [r.team?.city, ...r.participations.map(x => x.city)].filter(Boolean) as string[]))].sort(),
       programs: [...new Set(list.flatMap(r => r.participations.map(x => x.program)))].sort(),
-      unis: [...new Set(list.flatMap(r => r.universities))].sort(),
-      companies: [...new Set(list.flatMap(r => r.companies.map(c => c.company)))].sort(),
+      // Search options: names that occur in the network, with abbreviations from the lists
+      unis: [...new Set(list.flatMap(r => r.universities))].sort()
+        .map(name => ({ name, terms: formOptions?.universities.find(u => u.name === name)?.aliases })),
+      studies: [...new Set(list.flatMap(r => r.studyPrograms))].sort()
+        .map(name => ({ name, group: formOptions?.studyPrograms.find(p => p.name === name)?.category })),
+      companies: [...new Set(list.flatMap(r => r.companies.map(c => c.company)))].sort()
+        .map(name => ({ name, terms: formOptions?.companies.find(c => c.name === name)?.aliases })),
     };
-  }, [all]);
+  }, [all, formOptions]);
 
   if (error) return <div class="empty">{error}</div>;
   if (!all) return <div class="loading" role="status" aria-label="Loading"><span /></div>;
@@ -53,14 +63,15 @@ function Directory() {
   const isParticipant = (r: NetworkProfile) => r.participations.some(x => !x.event);
   const filtered = all.filter(r => {
     const ql = q.trim().toLowerCase();
-    if (ql && !`${r.name} ${r.studyPrograms.join(" ")} ${r.universities.join(" ")} ${r.companies.map(c => `${c.company} ${c.position}`).join(" ")} ${r.team?.label ?? ""}`.toLowerCase().includes(ql)) return false;
-    if (company && !r.companies.some(c => c.company === company)) return false;
+    if (ql && !r.name.toLowerCase().includes(ql)) return false;
+    if (!matchesFilter(r.companies.map(c => c.company), company, opts.companies)) return false;
+    if (!matchesFilter(r.studyPrograms, study, opts.studies)) return false;
     if (who === "participants" && !isParticipant(r)) return false;
     if (who === "team" && r.team?.status !== "active") return false;
     if (who === "alumni" && r.team?.status !== "alumni") return false;
     if (city && r.team?.city !== city && !r.participations.some(x => x.city === city)) return false;
     if (program && !r.participations.some(x => x.program === program)) return false;
-    if (uni && !r.universities.includes(uni)) return false;
+    if (!matchesFilter(r.universities, uni, opts.unis)) return false;
     return true;
   });
   const sel = (label: string, value: string, set: (v: string) => void, o: string[]) => (
@@ -84,12 +95,15 @@ function Directory() {
       <div class="row">
         <div style="position:relative;flex:1;min-width:220px">
           <IconSearch width={17} style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted)" />
-          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, study program, university, company…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search members" />
+          <input class="input input--sm" style="padding-left:36px" placeholder="Search name…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search members by name" />
         </div>
         {sel("All cities", city, setCity, opts.cities)}
         {sel("All programs", program, setProgram, opts.programs)}
-        {sel("All universities", uni, setUni, opts.unis)}
-        {sel("All companies", company, setCompany, opts.companies)}
+      </div>
+      <div class="row">
+        <FilterSearch label="Study program" value={study} onChange={setStudy} options={opts.studies} />
+        <FilterSearch label="University" value={uni} onChange={setUni} options={opts.unis} />
+        <FilterSearch label="Company" value={company} onChange={setCompany} options={opts.companies} />
       </div>
       <div class="row" style="gap:6px" role="group" aria-label="Who">
         {whoBtn("", "Everyone", all.length)}

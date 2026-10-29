@@ -778,3 +778,12 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 @media (max-width: 600px) { .company-entry__grid { grid-template-columns: 1fr; } }
 .picker__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .picker__chips .chip { padding-right: 4px; }
+.filter-search { position: relative; flex: 1 1 180px; min-width: 170px; max-width: 280px; }
+.filter-search .input { padding-right: 30px; }
+.filter-search__clear {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer;
+  width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--color-text-muted);
+}
+.filter-search__clear:hover { background: var(--p-chip); }
+.filter-search__clear svg { width: 13px; height: 13px; }
+.filter-search .picker__menu { min-width: 260px; }
