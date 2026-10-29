@@ -7,6 +7,7 @@ import { sheetScore, useStore } from "../../lib/store";
 import { uid } from "../../lib/fields";
 import { Avatar, Field } from "../ui/Ui";
 import { IconDown, IconPlus, IconTrash, IconUp, IconX } from "../ui/Icons";
+import { ListPicker } from "../apply/ListPicker";
 
 /** Stage of the process, from the applicant's status at that time */
 export const STAGE_LABEL: Record<SubmissionStatus, string> = {
@@ -39,20 +40,19 @@ export function MemberChips({ ids, onRemove, empty }: { ids: string[]; onRemove?
   );
 }
 
-/** Dropdown to add a team member (grouped by city, own city first) */
+/** Type a name, pick a team member (own city first in the suggestions) */
 export function AddMember({ exclude, onAdd, label, city }: { exclude: string[]; onAdd: (id: string) => void; label: string; city?: string }) {
   const members = useActiveMembers(city).filter(m => !exclude.includes(m.id));
-  const cities = [...new Set(members.map(m => m.city))];
+  // Names are the picker's keys; the city tells apart people with the same name
+  const options = members.map(m => ({ name: `${m.name} · ${m.city}`, hint: m.email ? undefined : "no login yet", terms: [m.name] }));
   return (
-    <select class="input input--sm" style="width:auto;max-width:240px" value="" aria-label={label}
-      onChange={e => { const v = e.currentTarget.value; if (v) onAdd(v); }}>
-      <option value="">{label}</option>
-      {cities.map(c => (
-        <optgroup label={c}>
-          {members.filter(m => m.city === c).map(m => <option value={m.id}>{m.name}{m.email ? "" : " (no login yet)"}</option>)}
-        </optgroup>
-      ))}
-    </select>
+    <div class="member-search">
+      <ListPicker small allowOther={false} label={label} placeholder={label} options={options} value={[]}
+        onChange={v => {
+          const m = members.find(x => `${x.name} · ${x.city}` === v[v.length - 1]);
+          if (m) onAdd(m.id);
+        }} />
+    </div>
   );
 }
 

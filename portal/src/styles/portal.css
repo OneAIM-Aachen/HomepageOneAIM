@@ -823,3 +823,6 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .breakdown__bar span { display: block; height: 100%; background: var(--color-brand-blue); border-radius: 999px; }
 .breakdown__num { text-align: right; font-weight: 700; color: var(--color-text-heading); }
 .link-btn.cell-person { display: flex; text-align: left; }
+.member-search { min-width: 200px; max-width: 260px; flex: 1 1 200px; }
+.member-search .picker__menu { min-width: 260px; }
+.bulkbar .member-search .input { background: #fff; color: var(--color-text-heading); }

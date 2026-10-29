@@ -51,7 +51,7 @@ function score(x: Indexed, q: string): number | null {
   return null;
 }
 
-export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 1, maxResults = 12, single, small }: {
+export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 1, maxResults = 12, single, small, allowOther = true }: {
   options: PickerOption[];
   value: string[];
   onChange: (v: string[]) => void;
@@ -65,6 +65,8 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   single?: boolean;
   /** Compact field (filter bars) */
   small?: boolean;
+  /** Offer "Use “typed text”" for names not in the list */
+  allowOther?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState(false);
@@ -92,7 +94,7 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
     const n = norm(t.trim());
     return options.find(o => norm(o.name) === n || (o.terms ?? []).some(x => norm(x) === n))?.name;
   };
-  const canUseTyped = query.length > 0 && !matches.some(o => norm(o.name) === norm(query));
+  const canUseTyped = allowOther && query.length > 0 && !matches.some(o => norm(o.name) === norm(query));
   const showMenu = open && (query.length >= Math.max(minChars, 1) || minChars === 0);
 
   const choose = (v: string) => {
@@ -125,7 +127,7 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
     else if (e.key === "Enter") {
       e.preventDefault();
       if (active < matches.length && matches[active]) choose(matches[active]!.name);
-      else if (query) choose(exact(query) ?? query);
+      else if (query && (allowOther || exact(query))) choose(exact(query) ?? query);
     } else if (e.key === "Escape") { setOpen(false); }
   };
 

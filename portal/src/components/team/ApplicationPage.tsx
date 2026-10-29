@@ -244,7 +244,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
           ))}
           {bulk.includes("reset") && <button class="btn btn--sm btn--ghost" onClick={() => setConfirm({ ids: [...selected], decision: "reset" })}>{DECISION_TEXT.reset.verb}</button>}
           {selSubs.every(x => !isDemoId(x.id)) && (
-            <AddMember label="Assign reviewer…" exclude={[]} city={app.tags.location}
+            <AddMember label="Add reviewer…" exclude={[]} city={app.tags.location}
               onAdd={id => act(() => assignReviewers([...selected], [id]), `Reviewer assigned to ${selected.size} applicant${selected.size > 1 ? "s" : ""}`)} />
           )}
           <button class="btn btn--ghost btn--sm" onClick={() => setSelected(new Set())}>Clear</button>
@@ -383,7 +383,7 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
         <div class="row">
           <MemberChips ids={sub.reviewerIds} empty="Nobody assigned yet."
             onRemove={isDemoId(sub.id) ? undefined : id => act(() => unassignReviewer(sub.id, id))} />
-          {!isDemoId(sub.id) && <AddMember label="Assign reviewer…" exclude={sub.reviewerIds} city={app.tags.location}
+          {!isDemoId(sub.id) && <AddMember label="Add reviewer…" exclude={sub.reviewerIds} city={app.tags.location}
             onAdd={id => act(() => assignReviewers([sub.id], [id]), "Reviewer assigned")} />}
         </div>
       </section>
@@ -745,7 +745,7 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
                       <td>
                         <div class="stack-s">
                           <MemberChips ids={sl.interviewerIds} onRemove={past ? undefined : id => act(() => setInterviewers(sl.id, sl.interviewerIds.filter(x => x !== id)))} />
-                          {!past && <AddMember label={sl.interviewerIds.length ? "Add interviewer…" : "Assign interviewer…"} exclude={sl.interviewerIds} city={app.tags.location}
+                          {!past && <AddMember label="Add interviewer…" exclude={sl.interviewerIds} city={app.tags.location}
                             onAdd={id => act(() => setInterviewers(sl.id, [...sl.interviewerIds, id]), "Interviewer assigned")} />}
                         </div>
                       </td>
