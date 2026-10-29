@@ -1,6 +1,6 @@
 import { useMemo, useState } from "preact/hooks";
 import type { Application, FileRef, Person, Submission, SubmissionStatus } from "../../lib/types";
-import { useStore } from "../../lib/store";
+import { ROLE_LABEL, useStore } from "../../lib/store";
 import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS, STATUS_LABEL } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { Avatar, Drawer, StatusChip, useParam } from "../ui/Ui";
@@ -30,6 +30,7 @@ function Network({ initial }: { initial: string | null }) {
   const [termSem, setTermSem] = useState(param("sem"));
   const [degree, setDegree] = useState(param("degree"));
   const [appId, setAppId] = useState(param("app"));
+  const [teamOnly, setTeamOnly] = useState(param("team") === "1");
   const [open, setOpen] = useState<string | null>(initial);
 
   const rows = useMemo(() => s.people.map(p => {
@@ -52,6 +53,7 @@ function Network({ initial }: { initial: string | null }) {
     if (field && !p.studyPrograms.some(x => categoryOf(x) === field)) return false;
     if (termSem && p.semester !== termSem) return false;
     if (degree && p.degree !== degree) return false;
+    if (teamOnly && !s.team.some(m => m.personId === p.id)) return false;
     // Tag filters and outcome apply to the same submission, e.g. "accepted in AIM Connect Aachen"
     const match = subs.filter(({ app }) => (!appId || app!.id === appId) &&
       (!program || app!.tags.program === program) && (!location || app!.tags.location === location) && (!semester || app!.tags.semester === semester));
@@ -113,6 +115,7 @@ function Network({ initial }: { initial: string | null }) {
         {sel("All fields", field, setField, fields)}
         {sel("Any semester", termSem, setTermSem, SEMESTER_OPTIONS)}
         {sel("Any degree", degree, setDegree, DEGREE_OPTIONS)}
+        <label class="row small" style="gap:6px;flex-wrap:nowrap"><input type="checkbox" checked={teamOnly} onChange={e => setTeamOnly(e.currentTarget.checked)} />Team members only</label>
         <select class="input input--sm" style="width:auto" value={outcome} onChange={e => setOutcome(e.currentTarget.value as Outcome)} aria-label="Outcome">
           <option value="">Any outcome</option><option value="accepted">Accepted / confirmed</option><option value="pending">In progress</option><option value="rejected">Rejected</option>
         </select>
@@ -125,7 +128,7 @@ function Network({ initial }: { initial: string | null }) {
             <tbody>
               {filtered.map(({ p, subs }) => (
                 <tr class="is-clickable" onClick={() => setOpen(p.id)}>
-                  <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.email}</span></div></div></td>
+                  <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong>{(() => { const m = s.team.find(t => t.personId === p.id); return m ? <span class="chip chip--purple" style="margin-left:6px" title={`${ROLE_LABEL[m.role]}, OneAIM ${m.city}`}>Team · {m.city}</span> : null; })()}<span class="muted small">{p.email}</span></div></div></td>
                   <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}</span></td>
                   <td>{cvsOf(subs as Entry[]).length
                     ? <span class="chip chip--blue" title={cvsOf(subs as Entry[])[0]!.file.fileName}><IconFile width={14} />CV</span>
@@ -173,12 +176,24 @@ function PersonDrawer({ person: p, subs, onClose }: { person: Person; subs: Entr
   const sorted = [...subs].sort((a, b) => b.sub.submittedAt.localeCompare(a.sub.submittedAt));
   const cvs = cvsOf(sorted);
   const [latest, ...older] = cvs;
+  const member = useStore(x => x.team.find(m => m.personId === p.id));
+  const dept = useStore(x => x.departments.find(d => d.id === member?.departmentId));
 
   return (
     <Drawer onClose={onClose}
       head={<div class="row" style="flex-wrap:nowrap"><Avatar name={p.name} large /><div><h2 style="font-size:1.25rem">{p.name}</h2><span class="muted small">In the network since {fmtDate(p.firstSeen)} · {subs.length} application{subs.length === 1 ? "" : "s"}</span></div></div>}
       foot={<><a class="btn btn--secondary btn--sm" href={`/team/outbox?p=${p.id}`}>Emails with {p.name.split(" ")[0]}</a><span class="spacer" />
         <span class="muted small">Profile = newest answers from their applications</span></>}>
+
+      {member && (
+        <section class="team-note">
+          <div style="flex:1;min-width:0">
+            <span class="overline">OneAIM team</span>
+            <p><strong style="color:var(--color-text-heading)">{member.position || ROLE_LABEL[member.role]}</strong> · {member.city}{dept ? ` · ${dept.name}` : ""}{member.memberSince ? ` · since ${member.memberSince}` : ""}</p>
+          </div>
+          <a class="btn btn--secondary btn--sm" href={`/team/team?member=${member.id}`}>Team profile</a>
+        </section>
+      )}
 
       <section class="stack-s">
         <h3>CV</h3>

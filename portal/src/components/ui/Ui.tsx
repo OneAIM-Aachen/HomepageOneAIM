@@ -21,7 +21,8 @@ export function PhaseChip({ phase }: { phase: AppPhase }) {
   return <span class={`chip chip--dot ${PHASE_CLASS[phase]}`}>{PHASE_LABEL[phase]}</span>;
 }
 
-export function Avatar({ name, large }: { name: string; large?: boolean }) {
+export function Avatar({ name, large, src }: { name: string; large?: boolean; src?: string }) {
+  if (src) return <img class={`avatar ${large ? "avatar--lg" : ""}`} src={src} alt="" />;
   return <span class={`avatar ${large ? "avatar--lg" : ""}`} aria-hidden="true">{initials(name)}</span>;
 }
 

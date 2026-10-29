@@ -143,11 +143,44 @@ export interface Person {
   firstSeen: string;
 }
 
-/** The signed-in city account */
+/** The signed-in team member (or, until personal accounts are set up, an old city login) */
 export interface Account {
   id: string;
+  /** team_members.id; missing for an old city login */
+  memberId?: string;
+  name: string;
   city: string;
   email: string;
+  /** Old shared city login, only used to invite the first members */
+  legacy?: boolean;
+}
+
+export type TeamRole = "president" | "co_president" | "lead" | "member";
+
+export interface Department {
+  id: string;
+  city: string;
+  name: string;
+  order: number;
+}
+
+export interface TeamMember {
+  id: string;
+  /** Network profile (universities, study programs, phone, LinkedIn, applications) */
+  personId?: string;
+  email: string;
+  name: string;
+  city: string;
+  role: TeamRole;
+  departmentId?: string;
+  position?: string;
+  photo?: string;
+  memberSince?: string;
+  about?: string;
+  invitedAt?: string;
+  /** Has set a password (invitation accepted) */
+  active: boolean;
+  lastSignInAt?: string;
 }
 
 export interface SentEmail {
@@ -211,8 +244,8 @@ export interface TagLists {
 }
 
 export interface State {
-  /** Cities that have a team account */
-  teamCities: string[];
+  team: TeamMember[];
+  departments: Department[];
   tagLists: TagLists;
   blueprints: Blueprint[];
   applications: Application[];

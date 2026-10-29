@@ -7,10 +7,10 @@ import { currentAccount, fixEmailLinkBase, loadAll, logout, useStore } from "../
 import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
 import { Avatar, ConfirmHost, Toaster, toast } from "../ui/Ui";
 import {
-  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings,
+  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings, IconTeam,
 } from "../ui/Icons";
 
-export type NavKey = "overview" | "applications" | "blueprints" | "network" | "insights" | "outbox" | "settings";
+export type NavKey = "overview" | "applications" | "blueprints" | "network" | "insights" | "outbox" | "team" | "settings";
 
 const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[] = [
   { key: "overview", label: "Overview", href: "/team", Icon: IconHome },
@@ -21,6 +21,7 @@ const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[]
   { key: "outbox", label: "Emails", href: "/team/outbox", Icon: IconMail },
 ];
 const NAV2: typeof NAV = [
+  { key: "team", label: "Team overview", href: "/team/team", Icon: IconTeam },
   { key: "settings", label: "Settings", href: "/team/settings", Icon: IconSettings },
 ];
 
@@ -30,6 +31,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
   const [open, setOpen] = useState(false);
   const newCount = useStore(s => s.submissions.filter(x => x.status === "new").length);
   const unreadMail = useStore(s => s.inbox.filter(m => !m.readAt).length);
+  const me = useStore(s => s.team.find(m => m.id === acc?.memberId));
 
   useEffect(() => {
     (async () => {
@@ -78,7 +80,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
         <a class="sidebar__brand" href="/team"><img src="/logo.png" alt="OneAIM" /><span>Team</span></a>
         <nav class="nav" aria-label="Team navigation">
           {NAV.map(item)}
-          <div class="nav__section">Admin</div>
+          <div class="nav__section">Team</div>
           {NAV2.map(item)}
           <a class="nav__item" href="/apply" target="_blank" rel="noopener"><IconExternal />Applicant site</a>
         </nav>
@@ -90,11 +92,14 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           </label>
         )}
         <div class="sidebar__foot">
-          <Avatar name={`OneAIM ${acc.city}`} />
-          <div style="flex:1;min-width:0">
-            <strong>{acc.city}</strong>
-            <span class="muted small">{acc.email}</span>
-          </div>
+          <a href={acc.memberId ? `/team/team?member=${acc.memberId}` : "/team/settings"} title="My profile"
+            style="display:flex;gap:10px;align-items:center;flex:1;min-width:0;color:inherit;text-decoration:none">
+            <Avatar name={acc.name} src={me?.photo} />
+            <div style="flex:1;min-width:0">
+              <strong>{acc.legacy ? acc.city : acc.name}</strong>
+              <span class="muted small">{acc.legacy ? "Shared city login" : `OneAIM ${acc.city}`}</span>
+            </div>
+          </a>
           <button class="icon-btn" title="Log out" aria-label="Log out"
             onClick={async () => { await logout(); window.location.href = "/team/login"; }}><IconLogout /></button>
         </div>

@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account, Application, InboxMessage, SentEmail, State, Submission } from "../../lib/types";
 import {
-  linkMessage, markRead, markUnread, renderTemplate, sendReply, syncMailboxNow, useStore,
+  actorLabel, linkMessage, markRead, markUnread, renderTemplate, sendReply, syncMailboxNow, useStore,
 } from "../../lib/store";
 import { appTitle, TEMPLATE_LABEL } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
@@ -232,7 +232,7 @@ function Thread({ acc, s, conv }: { acc: Account; s: State; conv: Conversation }
       toEmail: replyTo, toName: conv.name, subject, body,
       personId: conv.personId, submissionId: ctx?.sub.id, applicationId: ctx?.app.id,
       inReplyTo: refMsg, references: refs,
-    }, acc.city), x => (x.skipped ? `Saved, not sent yet: ${x.skipped}` : x.failed ? "Sending failed, see the message below" : "Reply sent"));
+    }, actorLabel(acc)), x => (x.skipped ? `Saved, not sent yet: ${x.skipped}` : x.failed ? "Sending failed, see the message below" : "Reply sent"));
     if (r) setBody("");
     setBusy(false);
   };
@@ -273,7 +273,7 @@ function Thread({ acc, s, conv }: { acc: Account; s: State; conv: Conversation }
         </div>
         <input class="input" value={subject} onInput={e => setSubject(e.currentTarget.value)} aria-label="Subject" placeholder="Subject" />
         <textarea class="input" style="min-height:150px" value={body} onInput={e => setBody(e.currentTarget.value)} aria-label="Message"
-          placeholder={`Hi ${conv.name.split(" ")[0]},\n\n…\n\nBest,\nYour OneAIM ${acc.city} team`} />
+          placeholder={`Hi ${conv.name.split(" ")[0]},\n\n…\n\nBest,\n${acc.name.split(" ")[0]}\nOneAIM ${acc.city}`} />
         {apps.length > 1 && (
           <label class="field">
             <span class="field__label">About which application?</span>

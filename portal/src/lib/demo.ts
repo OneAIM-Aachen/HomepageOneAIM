@@ -3,7 +3,7 @@
 // Supabase; it only changes what this browser displays.
 // Available locally and where PUBLIC_DEMO_MODE=true (the Netlify test site),
 // switched with the toggle in the sidebar (or ?demo=1 / ?demo=0).
-import type { Application, Person, State, Submission, SubmissionStatus } from "./types";
+import type { Application, Department, Person, State, Submission, SubmissionStatus, TeamMember, TeamRole } from "./types";
 import { defaultTemplates } from "./fields";
 
 const KEY = "oneaim-demo";
@@ -94,6 +94,10 @@ const OFFER: { city: string; program: string; pipeline: Application["pipeline"];
   { city: "Frankfurt", program: "AIM Connect", pipeline: "interview", mix: "mixed", size: 20 },
   { city: "Frankfurt", program: "AIM Educate", pipeline: "instant", mix: "mixed", size: 16 },
 ];
+// Demo team: [co-presidents, members per department]
+const TEAM_SIZE: Record<string, [number, number]> = { Munich: [1, 4], Aachen: [1, 3], Frankfurt: [0, 2] };
+const DEPTS = ["Events", "Partnerships", "Marketing", "IT"];
+
 const ROUNDS: [string, string][] = [["SS 26", "2026-03"], ["WS 26/27", "2026-09"], ["SS 27", "2027-03"]];
 const CURRENT = "SS 27";
 
@@ -173,5 +177,40 @@ export function withDemo(s: State): State {
     }
   }
 
-  return { ...s, applications: [...s.applications, ...apps], people: [...s.people, ...people], submissions: [...s.submissions, ...subs] };
+  // Demo team per city: president(s), departments with leads and members.
+  // Some members are former applicants (same network person).
+  const team: TeamMember[] = [];
+  const departments: Department[] = [];
+  for (const city of Object.keys(TEAM_SIZE)) {
+    if (!s.tagLists.locations.includes(city)) continue;
+    const [coPresidents, perDept] = TEAM_SIZE[city]!;
+    const depts = s.departments.filter(d => d.city === city);
+    const useDepts = depts.length ? depts : DEPTS.map((name, i) => {
+      const d = { id: `demo-d-${city}-${i}`.toLowerCase(), city, name, order: i + 1 };
+      departments.push(d);
+      return d;
+    });
+    const former = (pool[city] ?? []).filter(p => subs.some(x => x.personId === p.id && (x.status === "accepted" || x.status === "confirmed")));
+    let n = 0;
+    const add = (role: TeamRole, departmentId?: string, position?: string) => {
+      const person = n % 3 === 0 && former.length ? former.splice(Math.floor(r() * former.length), 1)[0]! : newPerson(city, "mixed");
+      team.push({
+        id: `demo-m${team.length}`, personId: person.id, email: person.email, name: person.name, city, role, departmentId, position,
+        memberSince: pick(r, [["WS 24/25", 2], ["SS 25", 3], ["WS 25/26", 4], ["SS 26", 3]]), active: r() > 0.1,
+      });
+      n++;
+    };
+    add("president");
+    for (let i = 0; i < coPresidents; i++) add("co_president");
+    for (const d of useDepts) {
+      add("lead", d.id, `Head of ${d.name}`);
+      const size = perDept - 1 + Math.floor(r() * 3);
+      for (let i = 0; i < size; i++) add("member", d.id);
+    }
+  }
+
+  return {
+    ...s, applications: [...s.applications, ...apps], people: [...s.people, ...people], submissions: [...s.submissions, ...subs],
+    team: [...s.team, ...(s.team.length ? [] : team)], departments: [...s.departments, ...(s.team.length ? [] : departments)],
+  };
 }

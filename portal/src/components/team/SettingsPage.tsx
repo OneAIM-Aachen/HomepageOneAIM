@@ -66,24 +66,25 @@ function Settings({ acc }: { acc: Account }) {
 
       <section class="grid-2" style="align-items:start">
         <div class="card stack-s">
-          <h2>City accounts</h2>
-          <p class="muted small">One login per city. All accounts have full access to all cities.</p>
+          <h2>Your account</h2>
+          <p class="muted small">Every team member has their own login. All members have the same rights: everyone sees all cities and can invite or remove team members.</p>
           <table class="table" style="margin-top:8px">
             <tbody>
-              {s.teamCities.map(c => (
-                <tr><td><strong style="color:var(--color-text-heading)">{c}</strong></td>
-                  <td class="small">{c === acc.city ? acc.email : ""}</td>
-                  <td class="num">{c === acc.city ? <span class="chip chip--blue">You</span> : null}</td></tr>
-              ))}
+              <tr><td class="muted small">Name</td><td><strong style="color:var(--color-text-heading)">{acc.name}</strong></td></tr>
+              <tr><td class="muted small">Email</td><td class="small">{acc.email}</td></tr>
+              <tr><td class="muted small">City</td><td class="small">{acc.city}</td></tr>
             </tbody>
           </table>
-          <p class="muted small">New city: create a user in the Supabase dashboard (Authentication → Users) and add it to <span class="mono">team_accounts</span>, see docs/supabase-setup.md.</p>
+          <div class="row">
+            {acc.memberId && <a class="btn btn--secondary btn--sm" href={`/team/team?member=${acc.memberId}`}>Edit my team profile</a>}
+            <a class="btn btn--ghost btn--sm" href="/team/team">Team overview</a>
+          </div>
         </div>
         <form class="card stack" onSubmit={e => {
           e.preventDefault();
           act(() => changePassword(pw), "Password changed").then(() => { setPw(""); setPw2(""); });
         }}>
-          <h2>Change password ({acc.city})</h2>
+          <h2>Change password</h2>
           <Field label="New password" help="At least 10 characters."><input class="input" type="password" autoComplete="new-password" value={pw} onInput={e => setPw(e.currentTarget.value)} /></Field>
           <Field label="Repeat password" error={pw2 && pw !== pw2 ? "Passwords don't match." : undefined}><input class="input" type="password" autoComplete="new-password" value={pw2} onInput={e => setPw2(e.currentTarget.value)} /></Field>
           <button class="btn btn--primary" style="align-self:flex-start" disabled={pw.length < 10 || pw !== pw2}>Change password</button>

@@ -15,10 +15,14 @@ The database lives in `supabase/migrations/`:
 | `…120000/120100_…mailbox.sql` | Incoming emails (mailbox sync), team replies, threading |
 | `…180000_email_name_and_slot_rules.sql` | Same email + different name is refused; no interview slots in the past |
 | `…190000_remove_external_forms.sql` | Removes external forms (Tally): every application uses our own form |
+| `20261029100000_team_members.sql` | Personal team accounts, team profiles (linked to the network person), departments for the organigram |
 
 ## Who can do what
 
-- **Team** = a logged-in user listed in `team_accounts` (one per city). Full access to everything, incl. all CVs.
+- **Team** = a logged-in user with a row in `team_members` (personal account). All members have the same rights: full access to everything, incl. all CVs, and they can invite and remove members.
+  - Accounts are created only by invitation (Team overview → "Invite member", edge function `team-accounts`). The email (via Brevo) links to `/team/welcome`, where the person sets their password. "Forgot password?" works the same way.
+  - Every member is linked to the network person (`people`) with the same email; same email under a different name is refused. Universities, study programs, phone and LinkedIn live on that person.
+  - The old city logins (`team_accounts`) stop working once the first personal account has set its password, except logins marked `keep_active` (`aachen@one-aim.org`).
 - **Applicants / public** have no table access at all. They can only:
   - `published_applications()`: list published rounds (also used by one-aim.org)
   - `submit_application(id, answers, consent)`: checks the form, consent and duplicates, creates/updates the person, queues the confirmation email
@@ -50,7 +54,7 @@ Steps 1–3 are done (25 Oct 2026); all migrations are pushed.
    ```
 
 4. **Turn off public sign-ups:** Dashboard → Authentication → Sign In / Providers → Email → disable "Allow new users to sign up". Only the team accounts may exist.
-5. **Create the city accounts:** Dashboard → Authentication → Users → "Add user" → "Create new user", once per city
+5. **(Historic) city accounts** – only needed to invite the first personal accounts: Dashboard → Authentication → Users → "Add user" → "Create new user", once per city
    (e.g. `aachen@one-aim.org`), with a strong password and "Auto confirm user" on.
 6. **Mark them as team accounts:** Dashboard → SQL Editor:
 

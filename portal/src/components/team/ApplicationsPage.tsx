@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 import type { Account, Pipeline } from "../../lib/types";
-import { createApplication, useStore } from "../../lib/store";
+import { actorLabel, createApplication, useStore } from "../../lib/store";
 import { appPhase, appTitle, fmtShort, PIPELINES, type AppPhase } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, Field, Modal, PhaseChip, useParam } from "../ui/Ui";
@@ -112,7 +112,7 @@ function NewApplicationModal({ acc, onClose }: { acc: Account; onClose: () => vo
 
   const create = async () => {
     setBusy(true);
-    const id = await act(() => createApplication({ blueprintId: bp, tags: { semester, program, location }, pipeline, title, createdBy: acc.city }));
+    const id = await act(() => createApplication({ blueprintId: bp, tags: { semester, program, location }, pipeline, title, createdBy: actorLabel(acc) }));
     if (id) window.location.href = `/team/application?id=${id}&tab=setup&created=1`;
     else setBusy(false);
   };

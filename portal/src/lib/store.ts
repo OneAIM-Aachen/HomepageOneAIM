@@ -12,8 +12,8 @@
 
 import { useEffect, useState } from "preact/hooks";
 import type {
-  Account, Answer, Application, Blueprint, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
-  SubmissionStatus, Tags, TemplateKey, Pipeline,
+  Account, Answer, Application, Blueprint, Department, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
+  SubmissionStatus, Tags, TemplateKey, Pipeline, TeamMember,
 } from "./types";
 import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
@@ -22,7 +22,7 @@ import { isDemo, withDemo } from "./demo";
 // ── State ────────────────────────────────────────────────────────────────
 
 const EMPTY: State = {
-  teamCities: [], tagLists: { semesters: [], programs: [], locations: [] },
+  team: [], departments: [], tagLists: { semesters: [], programs: [], locations: [] },
   blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
   universities: [], studyPrograms: [],
 };
@@ -137,12 +137,14 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 }
 
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, accounts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
+  const [programs, locations, semesters, members, departments, memberStatus, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
       supabase.from("semesters").select("id, label, term, start_year").order("start_year").order("term", { ascending: false }),
-      supabase.from("team_accounts").select("city").order("city"),
+      supabase.from("team_members").select("*").order("name"),
+      supabase.from("team_departments").select("*").order("sort_order").order("name"),
+      supabase.rpc("team_member_status"),
       supabase.from("blueprints").select("*").order("updated_at", { ascending: false }),
       all(() => supabase.from("applications").select("*").order("created_at", { ascending: false }).order("id")),
       all(() => supabase.from("interview_slots").select("*").order("starts_at").order("id")),
@@ -181,7 +183,18 @@ export async function loadAll(): Promise<void> {
   const historyRows = check(history) as any[];
 
   state = {
-    teamCities: (check(accounts) as any[]).map(a => a.city),
+    team: (() => {
+      const st = new Map((check(memberStatus) as any[]).map(r => [r.member_id, r]));
+      return (check(members) as any[]).map(m => ({
+        id: m.id, personId: m.person_id ?? undefined, email: m.email, name: m.name, city: label(maps.location, m.location_id),
+        role: m.role, departmentId: m.department_id ?? undefined, position: m.position ?? undefined, photo: m.photo_url ?? undefined,
+        memberSince: m.member_since ?? undefined, about: m.about ?? undefined, invitedAt: m.invited_at ?? undefined,
+        active: !!st.get(m.id)?.has_password, lastSignInAt: st.get(m.id)?.last_sign_in_at ?? undefined,
+      }) as TeamMember);
+    })(),
+    departments: (check(departments) as any[]).map(d => ({
+      id: d.id, city: label(maps.location, d.location_id), name: d.name, order: d.sort_order,
+    }) as Department),
     tagLists: { programs: P.map(p => p.name), locations: L.map(l => l.name), semesters: S.map(s => s.label) },
     blueprints: (check(blueprints) as any[]).map(b => ({
       id: b.id, name: b.name, description: b.description, fields: b.fields ?? [], updatedAt: b.updated_at,
@@ -227,20 +240,45 @@ export async function loadAll(): Promise<void> {
 // ── Session ──────────────────────────────────────────────────────────────
 
 async function accountFor(userId: string, email: string): Promise<Account | null> {
+  const { data: ok } = await supabase.rpc("is_team");
+  if (ok !== true) return null;
+  const { data: m } = await supabase.from("team_members").select("id, name, locations(name)").eq("user_id", userId).maybeSingle();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (m) return { id: userId, memberId: m.id, name: m.name, city: (m as any).locations?.name ?? "", email };
   const { data } = await supabase.from("team_accounts").select("city").eq("user_id", userId).maybeSingle();
-  return data ? { id: userId, city: data.city, email } : null;
+  return data ? { id: userId, name: `OneAIM ${data.city}`, city: data.city, email, legacy: true } : null;
 }
 
-/** Signs in; only accounts listed in team_accounts are let in. */
+/** Signs in; only team members (and, until those are set up, the city logins) are let in. */
 export async function login(email: string, password: string): Promise<Account> {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
   if (error || !data.user) throw new Error("Email or password is wrong.");
   const acc = await accountFor(data.user.id, data.user.email ?? email);
   if (!acc) {
     await supabase.auth.signOut();
-    throw new Error("This account is not a OneAIM team account.");
+    const { data: city } = await supabase.from("team_accounts").select("city").eq("user_id", data.user.id).maybeSingle();
+    throw new Error(city !== null
+      ? "City logins are switched off. Please sign in with your personal account."
+      : "This account is not a OneAIM team account.");
   }
   return acc;
+}
+
+/** Who acted, as stored with applications and replies: "Name (City)". */
+export const actorLabel = (acc: Account) => (acc.legacy ? acc.city : `${acc.name} (${acc.city})`);
+
+/** "Forgot password?": emails a link if the address belongs to a team member. */
+export async function requestPasswordLink(email: string) {
+  const { error } = await supabase.functions.invoke("team-accounts", { body: { action: "reset", email: email.trim() } });
+  if (error) throw new Error("Could not send the link. Please try again later.");
+}
+
+/** Redeems an invitation / password link from an email (welcome page). */
+export async function redeemLink(tokenHash: string, type: "invite" | "recovery"): Promise<Account | null> {
+  await supabase.auth.signOut();
+  const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+  if (error || !data.user) throw new Error("This link has expired or was already used. Use “Forgot password?” on the login page to get a new one.");
+  return accountFor(data.user.id, data.user.email ?? "");
 }
 
 export async function logout() {
@@ -398,8 +436,8 @@ export async function removeSlot(slotId: string) {
 }
 
 /** Header image for the public form → public bucket, returns its URL. */
-export async function uploadImage(file: File): Promise<string> {
-  const path = `headers/${newId()}-${slugify(file.name.replace(/\.[^.]+$/, ""))}.${file.name.split(".").pop()}`;
+export async function uploadImage(file: File, folder = "headers"): Promise<string> {
+  const path = `${folder}/${newId()}-${slugify(file.name.replace(/\.[^.]+$/, ""))}.${file.name.split(".").pop()}`;
   check(await supabase.storage.from(IMAGES_BUCKET).upload(path, file, { contentType: file.type }));
   return supabase.storage.from(IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
 }
@@ -715,4 +753,89 @@ export async function mergeProfileValue(kind: "university" | "studyProgram", fro
   const n = check(await supabase.rpc("merge_profile_value", { p_kind: kind, p_from: from, p_to: to })) as number;
   await loadAll();
   return n;
+}
+
+// ── Team ─────────────────────────────────────────────────────────────────
+
+export const ROLE_LABEL: Record<TeamMember["role"], string> = {
+  president: "President", co_president: "Co-President", lead: "Team lead", member: "Member",
+};
+
+async function teamCall<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke("team-accounts", { body });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const msg = (data as any)?.error ?? (error ? await (error as any).context?.json?.().then((j: any) => j.error).catch(() => undefined) : undefined);
+  if (msg || error) throw new Error(friendlyError(msg ?? error));
+  return data as T;
+}
+
+export interface InviteInput {
+  name: string; email: string; city: string; role: TeamMember["role"]; departmentId?: string; position?: string;
+}
+
+/** Creates the login + team profile and emails the invitation. */
+export async function inviteMember(i: InviteInput): Promise<{ id: string; mailError?: string }> {
+  const r = await teamCall<{ id: string; mailError?: string }>({
+    action: "invite", name: i.name.trim(), email: i.email.trim().toLowerCase(), location_id: idOf(maps.location, i.city),
+    role: i.role, department_id: i.departmentId || null, position: i.position?.trim() || null,
+  });
+  await loadAll();
+  return r;
+}
+
+export async function resendInvite(memberId: string) {
+  await teamCall({ action: "resend", member_id: memberId });
+  await loadAll();
+}
+
+/** Removes the login; the person stays in the network. */
+export async function removeMember(memberId: string) {
+  await teamCall({ action: "remove", member_id: memberId });
+  await loadAll();
+}
+
+export type MemberPatch = Partial<Pick<TeamMember, "name" | "city" | "role" | "departmentId" | "position" | "photo" | "memberSince" | "about">>;
+
+export async function updateMember(id: string, p: MemberPatch) {
+  const row: Record<string, unknown> = {};
+  if (p.name !== undefined) row.name = p.name.trim();
+  if (p.city !== undefined) row.location_id = idOf(maps.location, p.city);
+  if (p.role !== undefined) row.role = p.role;
+  if ("departmentId" in p) row.department_id = p.departmentId || null;
+  if ("position" in p) row.position = p.position?.trim() || null;
+  if ("photo" in p) row.photo_url = p.photo || null;
+  if ("memberSince" in p) row.member_since = p.memberSince || null;
+  if ("about" in p) row.about = p.about?.trim() || null;
+  check(await supabase.from("team_members").update(row).eq("id", id));
+  await loadAll();
+}
+
+/** Personal details live on the network profile (shared with applications). */
+export async function updatePersonDetails(personId: string, p: Partial<Pick<Person, "phone" | "linkedin" | "universities" | "studyPrograms" | "semester" | "degree">>) {
+  const row: Record<string, unknown> = {};
+  if ("phone" in p) row.phone = p.phone?.trim() || null;
+  if ("linkedin" in p) row.linkedin = p.linkedin?.trim() || null;
+  if (p.universities) row.universities = p.universities;
+  if (p.studyPrograms) row.study_programs = p.studyPrograms;
+  if ("semester" in p) row.semester = p.semester || null;
+  if ("degree" in p) row.degree = p.degree || null;
+  check(await supabase.from("people").update(row).eq("id", personId));
+  await loadAll();
+}
+
+export async function addDepartment(city: string, name: string) {
+  const order = Math.max(0, ...state.departments.filter(d => d.city === city).map(d => d.order)) + 1;
+  check(await supabase.from("team_departments").insert({ location_id: idOf(maps.location, city), name: name.trim(), sort_order: order }));
+  await loadAll();
+}
+
+export async function renameDepartment(id: string, name: string) {
+  check(await supabase.from("team_departments").update({ name: name.trim() }).eq("id", id));
+  await loadAll();
+}
+
+/** Members of the department stay in the team, without a department. */
+export async function removeDepartment(id: string) {
+  check(await supabase.from("team_departments").delete().eq("id", id));
+  await loadAll();
 }

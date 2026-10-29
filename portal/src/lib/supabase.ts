@@ -35,12 +35,19 @@ const MESSAGES: Record<string, string> = {
   no_free_slots: "Add interview slots with free places first (tab “Interview slots”). Invitations need bookable slots.",
   slots_incomplete: "Some interview slots are incomplete: online slots need a meeting link, in-person slots a place (tab “Interview slots”).",
   slot_incomplete: "This slot can't be booked right now. Please pick another one.",
+  member_exists: "This email address already belongs to a team member.",
+  remove_self: "You can't remove your own account. Ask another team member.",
+  department_other_city: "This department belongs to another city.",
+  not_found: "This team member doesn't exist anymore.",
 };
 
 export function friendlyError(e: unknown): string {
   const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e);
   const key = msg.split(":")[0]!.trim();
   if (MESSAGES[key]) return MESSAGES[key]!;
+  if (key === "member_name_mismatch") {
+    return `This email is already in the network under the name “${msg.slice(msg.indexOf(":") + 1).trim()}”. Invite them with that name (it can be changed in their profile afterwards), or use another email.`;
+  }
   if (key === "missing_field") return "Please fill in all required fields.";
   if (key === "invalid_file") return "A file upload failed. Please upload it again.";
   return msg || "Something went wrong. Please try again.";

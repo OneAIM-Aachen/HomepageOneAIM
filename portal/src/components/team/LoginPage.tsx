@@ -1,6 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { currentAccount, login } from "../../lib/store";
-import { supabase } from "../../lib/supabase";
+import { currentAccount, login, requestPasswordLink } from "../../lib/store";
 import { Field } from "../ui/Ui";
 
 export default function LoginPage() {
@@ -32,10 +31,13 @@ export default function LoginPage() {
 
   const reset = async (e: Event) => {
     e.preventDefault();
-    if (!email.trim()) { setError("Enter your city account's email first."); return; }
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${location.origin}/team/settings` });
-    if (err) setError(err.message);
-    else setInfo("If this is a team account, a reset link is on its way.");
+    if (!email.trim()) { setError("Enter your email first."); return; }
+    try {
+      await requestPasswordLink(email);
+      setInfo("If this email belongs to a team member, a link to set a new password is on its way.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   return (
@@ -43,7 +45,7 @@ export default function LoginPage() {
       <div class="login__art">
         <p class="overline" style="color:#D9B8FF">OneAIM Team</p>
         <h2>Applications, interviews and our network, in one place.</h2>
-        <p>Internal tools for the OneAIM city teams. Sign in with your city account.</p>
+        <p>Internal tools for the OneAIM city teams. Sign in with your personal team account.</p>
       </div>
       <div class="login__panel">
         <form class="login__form" onSubmit={submit}>
