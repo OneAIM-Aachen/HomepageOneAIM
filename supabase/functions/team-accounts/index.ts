@@ -13,6 +13,12 @@
 // • checkins                                                  (public, daily by pg_cron)
 //   yearly "still active?" emails, one reminder after 14 days
 // • checkin_now {member_id}                                   (team only) asks right away
+// Network site (/members):
+// • network_queue                                             (public, pg_cron every 5 min)
+//   welcome emails for people who just joined the network
+// • network_invite {person_id}                                (team only)
+// • reset {email, site: "members"}                            (public) password link for the
+//   network site; also creates the login if someone in the network has none yet
 //
 // Links are one-time tokens that the portal's /team/welcome page redeems
 // (supabase.auth.verifyOtp), so no redirect URL has to be allowed in Supabase.
@@ -55,6 +61,31 @@ async function sendMail(db: SupabaseClient, to: { email: string; name: string },
     ? `Hi ${first},\n\nwelcome to the OneAIM team! You now have your own account for the team portal.\n\nSet your password here:\n${link}\n\nThe link works once and expires after a while. If it has expired, use "Forgot password?" on the login page.\n\nSee you in the portal!\nOneAIM`
     : `Hi ${first},\n\nset a new password for the OneAIM team portal here:\n${link}\n\nThe link works once and expires after a while. If you didn't ask for this, you can ignore this email.\n\nOneAIM`;
   await brevo(db, to, subject, body);
+}
+
+/** Welcome to the network (new login) or password link (existing login), for /members. */
+async function sendNetworkMail(db: SupabaseClient, to: { email: string; name: string }, kind: Kind, token: string, welcome: boolean) {
+  const { data: s } = await db.from("email_settings").select("apply_base_url, test_mode, test_recipient").single();
+  if (!s) throw new Error("email_settings missing");
+  const link = `${s.apply_base_url.replace(/\/$/, "")}/members/welcome?token_hash=${encodeURIComponent(token)}&type=${kind}`;
+  const first = to.name.split(" ")[0];
+  const subject = welcome ? "Welcome to the OneAIM network!" : "Your login for the OneAIM network";
+  const body = welcome
+    ? `Hi ${first},\n\ncongratulations, you are now a member of the OneAIM network!\n\nOneAIM brings together students and young professionals from medicine, engineering, computer science, business and beyond who want to shape the future of healthcare. As a member you are part of a community full of amazing people: participants of our programs, our city teams and alumni, together with our partners from industry, research and the startup world.\n\nOn the OneAIM network site you can find the other members, see who studies what and where, and get in touch with each other.\n\nSet your password and log in here:\n${link}\n\nAfter logging in, take a minute to complete your profile (photo, studies, LinkedIn), so others can find you.\n\nThe link works once and expires after a while. If it has expired, use "Forgot password?" on the login page.\n\nWelcome aboard!\nYour OneAIM team`
+    : `Hi ${first},\n\nset your password for the OneAIM network here:\n${link}\n\nThe link works once and expires after a while. If you didn't ask for this, you can ignore this email.\n\nYour OneAIM team`;
+  // Like all applicant emails: in test mode everything goes to the test address
+  const target = s.test_mode ? { email: s.test_recipient ?? "", name: to.name } : to;
+  if (!target.email) throw new Error("test mode without test recipient");
+  await brevo(db, target, s.test_mode ? `[TEST → ${to.email}] ${subject}` : subject, body);
+}
+
+/** Login + welcome email for a person in the network; links the login to them. */
+async function inviteToNetwork(db: SupabaseClient, personId: string, welcome: boolean) {
+  const { data: p } = await db.from("people").select("id, email, name").eq("id", personId).single();
+  if (!p) throw new Error("not_found");
+  const link = await linkFor(db, p.email);
+  await db.from("network_accounts").upsert({ person_id: p.id, user_id: link.userId, invited_at: new Date().toISOString() });
+  await sendNetworkMail(db, p, link.kind, link.token, welcome);
 }
 
 async function brevo(db: SupabaseClient, to: { email: string; name: string }, subject: string, body: string) {
@@ -119,6 +150,40 @@ Deno.serve(async req => {
 
   try {
     // ── Public: forgot password. Always answers ok, so it reveals nothing.
+    if (action === "reset" && input.site === "members") {
+      const email = String(input.email ?? "").trim().toLowerCase();
+      const { data: p } = await db.from("people").select("id, email, name").eq("email", email).maybeSingle();
+      const { data: inNetwork } = p ? await db.rpc("person_in_network", { p_person: p.id }) : { data: false };
+      if (p && inNetwork === true) {
+        const { data: acc } = await db.from("network_accounts").select("user_id, reset_sent_at").eq("person_id", p.id).maybeSingle();
+        const { data: tm } = await db.from("team_members").select("user_id").eq("person_id", p.id).maybeSingle();
+        if (!acc?.reset_sent_at || Date.now() - Date.parse(acc.reset_sent_at) > RESET_PAUSE_MS) {
+          const link = await linkFor(db, p.email);
+          // Team members keep their team login; others get (or keep) a network login
+          if (!tm?.user_id) await db.from("network_accounts").upsert({ person_id: p.id, user_id: link.userId, reset_sent_at: new Date().toISOString() });
+          else await db.from("network_accounts").upsert({ person_id: p.id, user_id: null, reset_sent_at: new Date().toISOString() });
+          await sendNetworkMail(db, p, link.kind, link.token, false);
+        }
+      }
+      return json({ ok: true });
+    }
+
+    if (action === "network_queue") {
+      const { data: due } = await db.from("network_invites").select("id, person_id").is("sent_at", null).is("error", null).limit(50);
+      let sent = 0, failed = 0;
+      for (const i of due ?? []) {
+        try {
+          await inviteToNetwork(db, i.person_id, true);
+          await db.from("network_invites").update({ sent_at: new Date().toISOString() }).eq("id", i.id);
+          sent++;
+        } catch (e) {
+          await db.from("network_invites").update({ error: String(e instanceof Error ? e.message : e).slice(0, 300) }).eq("id", i.id);
+          failed++;
+        }
+      }
+      return json({ sent, failed });
+    }
+
     if (action === "reset") {
       const email = String(input.email ?? "").trim().toLowerCase();
       const { data: m } = await db.from("team_members").select("id, name, email, reset_sent_at").eq("email", email).maybeSingle();
@@ -155,6 +220,15 @@ Deno.serve(async req => {
     const { data: who } = await caller.auth.getUser(jwt);
     const { data: isTeam } = await caller.rpc("is_team");
     if (!who.user || isTeam !== true) return json({ error: "not_allowed" }, 403);
+
+    if (action === "network_invite") {
+      const { data: inNetwork } = await db.rpc("person_in_network", { p_person: input.person_id });
+      if (inNetwork !== true) return json({ error: "not_in_network" }, 400);
+      const { data: tm } = await db.from("team_members").select("user_id").eq("person_id", input.person_id).maybeSingle();
+      if (tm?.user_id) return json({ error: "team_has_login" }, 400);
+      await inviteToNetwork(db, String(input.person_id), true);
+      return json({ ok: true });
+    }
 
     if (action === "invite") {
       const email = String(input.email ?? "").trim().toLowerCase();

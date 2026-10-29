@@ -86,6 +86,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           <div class="nav__section">Team</div>
           {NAV2.map(item)}
           <a class="nav__item" href="/apply" target="_blank" rel="noopener"><IconExternal />Applicant site</a>
+          <a class="nav__item" href="/members" target="_blank" rel="noopener"><IconExternal />Network site</a>
         </nav>
         {demoAvailable() && (
           <label class="demo-switch" title="Adds made-up applications from all cities, programs and rounds, only in this browser">

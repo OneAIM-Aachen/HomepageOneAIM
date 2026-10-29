@@ -17,6 +17,7 @@ The database lives in `supabase/migrations/`:
 | `…190000_remove_external_forms.sql` | Removes external forms (Tally): every application uses our own form |
 | `20261029100000_team_members.sql` | Personal team accounts, team profiles (linked to the network person), departments for the organigram |
 | `20261029120000_team_profiles_without_login.sql` | Profiles without login; import of the website team |
+| `20261029220000_network_site.sql` | Network site (/members): logins for everyone in the network, directory/profile functions, welcome email when someone is accepted |
 | `20261029160000_team_history_alumni_checkins.sql` | Position history, alumni, yearly "still active?" check (pg_cron daily → team-accounts `checkins`) |
 
 ## Who can do what
@@ -27,6 +28,7 @@ The database lives in `supabase/migrations/`:
   - Only `status = 'active'` members have access. Alumni keep profile and position history (`team_member_roles`) but can't sign in.
   - Yearly check: one year after the email is added (and a year after every "yes"), team-accounts emails a link to `/team/checkin`; "no" makes the member alumni. One reminder after 14 days; without an answer within one month they become alumni anyway (`expire_team_checkins()`, pg_cron daily).
   - The old city logins (`team_accounts`) stop working once the first personal account has set its password, except logins marked `keep_active` (`aachen@one-aim.org`).
+- **Network members** (members site `/members`): everyone accepted after a selection (screening / interview), plus team and team alumni. Their logins (`network_accounts`) have no table access and are not team (`is_team()` is false). They only call `network_directory()`, `network_me()` and `network_update_me()`, which return the network profile fields (contact, studies, OneAIM programs/events, team history) and nothing else. Accepting someone queues a welcome email with a set-password link (`network_invites`, sent by team-accounts `network_queue`).
 - **Applicants / public** have no table access at all. They can only:
   - `published_applications()`: list published rounds (also used by one-aim.org)
   - `submit_application(id, answers, consent)`: checks the form, consent and duplicates, creates/updates the person, queues the confirmation email

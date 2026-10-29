@@ -39,6 +39,8 @@ const MESSAGES: Record<string, string> = {
   remove_self: "You can't remove your own account. Ask another team member.",
   department_other_city: "This department belongs to another city.",
   not_found: "This team member doesn't exist anymore.",
+  not_in_network: "This person isn't part of the network (accepted after a selection, or team).",
+  team_has_login: "Team members log in to the network site with their team login.",
 };
 
 export function friendlyError(e: unknown): string {

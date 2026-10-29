@@ -270,6 +270,8 @@ export interface TagLists {
 
 export interface State {
   team: TeamMember[];
+  /** Logins for the members site, by person id */
+  networkAccounts: Record<string, { invitedAt?: string }>;
   departments: Department[];
   tagLists: TagLists;
   blueprints: Blueprint[];

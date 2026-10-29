@@ -724,3 +724,35 @@ img.avatar { object-fit: cover; background: var(--p-chip); }
 .org-others { border-top: 1px solid var(--p-line); margin-top: 18px; padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .org-others__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 12px; }
 ol.history { list-style: none; padding: 0; margin: 0; }
+
+/* ── Members site (OneAIM network) ───────────────────────────────────────── */
+.members { min-height: 100vh; }
+.members__bar {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 18px;
+  padding: 12px clamp(16px, 3vw, 40px); background: var(--p-surface); border-bottom: 1px solid var(--p-line);
+}
+.members__brand { display: flex; align-items: center; gap: 10px; font-weight: 800; color: var(--color-text-heading); text-decoration: none; }
+.members__brand img { height: 28px; }
+.members__brand span { font-size: 12px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--color-accent-purple); }
+.members__nav { display: flex; gap: 4px; }
+.members__nav a { padding: 7px 12px; border-radius: var(--radius-pill); font-weight: 700; font-size: 14px; color: var(--color-text-body); text-decoration: none; }
+.members__nav a:hover { background: var(--p-blue-tint); }
+.members__nav a.is-active { background: var(--p-blue-tint); color: var(--color-brand-blue); }
+.members__me { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--color-text-heading); text-decoration: none; }
+.members__main { padding: 32px clamp(16px, 3vw, 40px) 64px; max-width: 1240px; margin: 0 auto; }
+.member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+.member-card {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 20px 14px 16px;
+  background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--radius-lg); cursor: pointer; font: inherit; color: inherit;
+}
+.member-card:hover { border-color: var(--color-brand-blue); box-shadow: 0 4px 16px rgba(0, 82, 233, .08); }
+.member-card:focus-visible { outline: 2px solid var(--color-brand-blue); outline-offset: 2px; }
+.member-card .avatar--lg { width: 72px; height: 72px; font-size: 22px; margin-bottom: 4px; }
+.member-card strong { color: var(--color-text-heading); }
+.member-card__study { color: var(--color-text-body); }
+@media (max-width: 640px) {
+  .members__bar { flex-wrap: wrap; gap: 8px 12px; }
+  .members__nav { order: 3; width: 100%; overflow-x: auto; }
+  .members__me span { display: none; }
+  .member-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}

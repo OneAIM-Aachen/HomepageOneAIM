@@ -22,7 +22,7 @@ import { isDemo, withDemo } from "./demo";
 // ── State ────────────────────────────────────────────────────────────────
 
 const EMPTY: State = {
-  team: [], departments: [], tagLists: { semesters: [], programs: [], locations: [] },
+  team: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
   blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
   universities: [], studyPrograms: [],
 };
@@ -137,7 +137,7 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 }
 
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, members, departments, memberStatus, roles, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
+  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
@@ -145,6 +145,7 @@ export async function loadAll(): Promise<void> {
       supabase.from("team_members").select("*").order("name"),
       supabase.from("team_departments").select("*").order("sort_order").order("name"),
       supabase.rpc("team_member_status"),
+      all(() => supabase.from("network_accounts").select("person_id, invited_at").order("person_id")),
       all(() => supabase.from("team_member_roles").select("*").order("started_on").order("created_at").order("id")),
       supabase.from("blueprints").select("*").order("updated_at", { ascending: false }),
       all(() => supabase.from("applications").select("*").order("created_at", { ascending: false }).order("id")),
@@ -205,6 +206,7 @@ export async function loadAll(): Promise<void> {
         lastConfirmedAt: m.last_confirmed_at ?? undefined, history: hist.get(m.id) ?? [],
       }) as TeamMember);
     })(),
+    networkAccounts: Object.fromEntries((check(netAccounts) as any[]).map(a => [a.person_id, { invitedAt: a.invited_at ?? undefined }])),
     departments: (check(departments) as any[]).map(d => ({
       id: d.id, city: label(maps.location, d.location_id), name: d.name, order: d.sort_order,
     }) as Department),
@@ -513,6 +515,8 @@ export async function decide(subIds: string[], decision: Decision, _by: string, 
     const { data } = await supabase.functions.invoke("send-emails", { body: {} });
     result = { changed, sent: data?.sent, failed: data?.failed, skipped: data?.skipped };
   }
+  // Accepted people join the network: send their welcome email right away
+  if (decision === "accept") await supabase.functions.invoke("team-accounts", { body: { action: "network_queue" } }).catch(() => undefined);
   await loadAll();
   return result;
 }
@@ -862,6 +866,12 @@ export async function updatePersonDetails(personId: string, p: Partial<Pick<Pers
   if ("semester" in p) row.semester = p.semester || null;
   if ("degree" in p) row.degree = p.degree || null;
   check(await supabase.from("people").update(row).eq("id", personId));
+  await loadAll();
+}
+
+/** Login for the members site + welcome email ("you're part of the OneAIM network"). */
+export async function inviteToNetworkSite(personId: string) {
+  await teamCall({ action: "network_invite", person_id: personId });
   await loadAll();
 }
 

@@ -11,45 +11,18 @@
 // function so nothing else can reach them. Team accounts can jump to the
 // full CRM profile from here.
 import { useMemo, useState } from "preact/hooks";
-import type { RoleEntry, State, TeamMember } from "../../lib/types";
-import { useStore } from "../../lib/store";
+import type { State, TeamMember } from "../../lib/types";
+import { inviteToNetworkSite, useStore } from "../../lib/store";
 import { appTitle } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
-import { Avatar, Drawer, useParam } from "../ui/Ui";
+import { act, Avatar, useParam } from "../ui/Ui";
 import { IconExternal, IconSearch } from "../ui/Icons";
-import { fmtMonth, roleLabel, subtitle } from "./MemberDrawer";
+import { subtitle } from "./MemberDrawer";
+import { ProfileDrawer, type NetworkProfile } from "../network/Profile";
 
 export default function NetworkPage() {
   const p = useParam("p");
   return <TeamShell active="network">{() => <Network initial={p} />}</TeamShell>;
-}
-
-interface Participation {
-  title: string;
-  program: string;
-  city: string;
-  semester: string;
-  /** Event without selection (instant registration) */
-  event: boolean;
-}
-
-export interface NetworkProfile {
-  key: string;
-  name: string;
-  photo?: string;
-  email?: string;
-  phone?: string;
-  linkedin?: string;
-  universities: string[];
-  studyPrograms: string[];
-  semester?: string;
-  degree?: string;
-  /** Accepted / confirmed only, newest first */
-  participations: Participation[];
-  team?: { status: TeamMember["status"]; city: string; label: string; alumniSince?: string; history: RoleEntry[] };
-  /** Team area only: links to the full CRM profile and the team profile */
-  personId?: string;
-  memberId?: string;
 }
 
 /** Everyone in the network, reduced to the fields a network profile may show. */
@@ -195,96 +168,29 @@ function Network({ initial }: { initial: string | null }) {
       </div>
       <p class="muted small">{filtered.length} of {rows.length} people. Green = participant accepted after a selection, purple = team, gray = team alumni.</p>
 
-      {openRow && <NetworkDrawer r={openRow} onClose={() => setOpen(null)} />}
+      {openRow && <ProfileDrawer r={openRow} onClose={() => setOpen(null)} foot={<>
+        {openRow.personId && <a class="btn btn--primary btn--sm" href={`/team/crm?p=${openRow.personId}`}>Full profile in CRM</a>}
+        {openRow.memberId && <a class="btn btn--secondary btn--sm" href={`/team/team?member=${openRow.memberId}`}>Team profile</a>}
+        <span class="spacer" />
+        <NetworkSiteStatus r={openRow} />
+      </>} />}
     </div>
   );
 }
 
-/** Network profile: contact, studies, OneAIM history. Nothing from applications beyond what they took part in. */
-function NetworkDrawer({ r, onClose }: { r: NetworkProfile; onClose: () => void }) {
-  const contact: [string, string | undefined, "mail" | "tel" | "link"][] = [
-    ["Email", r.email, "mail"], ["Phone", r.phone, "tel"], ["LinkedIn", r.linkedin, "link"],
-  ];
-  const studies: [string, string | undefined][] = [
-    ["University affiliations", r.universities.join(", ") || undefined], ["Study programs", r.studyPrograms.join(", ") || undefined],
-    ["Semester", r.semester], ["Degree level", r.degree],
-  ];
-  const programs = r.participations.filter(x => !x.event);
-  const events = r.participations.filter(x => x.event);
-  const list = (items: Participation[]) => (
-    <ul class="stack-s" style="list-style:none;padding:0;margin:0">
-      {items.map(x => <li><strong style="color:var(--color-text-heading)">{x.title}</strong><span class="muted small"> · {x.city} · {x.semester}</span></li>)}
-    </ul>
-  );
-
+/** Login on the members site: invited when, or a button to invite. Team members use their team login. */
+function NetworkSiteStatus({ r }: { r: NetworkProfile }) {
+  const acc = useStore(x => (r.personId ? x.networkAccounts[r.personId] : undefined));
+  const teamLogin = useStore(x => x.team.some(m => m.id === r.memberId && m.email));
+  if (r.key.startsWith("demo-")) return <span class="muted small">Demo person</span>;
+  if (teamLogin) return <span class="muted small">Uses the team login on the network site</span>;
+  if (!r.personId) return <span class="muted small">No email yet</span>;
   return (
-    <Drawer onClose={onClose}
-      head={<div class="row" style="flex-wrap:nowrap">
-        <Avatar name={r.name} src={r.photo} large />
-        <div style="min-width:0">
-          <h2 style="font-size:1.25rem">{r.name}</h2>
-          <span class="muted small">
-            {r.team ? (r.team.status === "active" ? `${r.team.label} · OneAIM ${r.team.city}` : `Team alumni · OneAIM ${r.team.city}`) : "OneAIM network"}
-          </span>
-        </div>
-      </div>}
-      foot={<>
-        {r.personId && <a class="btn btn--primary btn--sm" href={`/team/crm?p=${r.personId}`}>Full profile in CRM</a>}
-        {r.memberId && <a class="btn btn--secondary btn--sm" href={`/team/team?member=${r.memberId}`}>Team profile</a>}
-        <span class="spacer" />
-        <span class="muted small">Network view: contact, studies, OneAIM history</span>
-      </>}>
-
-      <section class="stack-s">
-        <h3>Contact</h3>
-        <dl class="qa" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px">
-          {contact.map(([k, v, kind]) => (
-            <div><dt>{k}</dt><dd>{!v ? "–"
-              : kind === "mail" ? <a href={`mailto:${v}`}>{v}</a>
-              : kind === "tel" ? <a href={`tel:${v.replace(/\s+/g, "")}`}>{v}</a>
-              : <a href={v} target="_blank" rel="noopener">{v.replace(/^https?:\/\/(www\.)?/, "")}</a>}</dd></div>
-          ))}
-        </dl>
-      </section>
-
-      <section class="stack-s">
-        <h3>Studies</h3>
-        <dl class="qa" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px">
-          {studies.map(([k, v]) => <div><dt>{k}</dt><dd>{v ?? "–"}</dd></div>)}
-        </dl>
-      </section>
-
-      <section class="stack-s">
-        <h3>OneAIM programs</h3>
-        {programs.length ? list(programs) : <p class="muted small">No program participation yet.</p>}
-      </section>
-
-      {events.length > 0 && (
-        <section class="stack-s">
-          <h3>Events attended</h3>
-          {list(events)}
-        </section>
-      )}
-
-      {r.team && (
-        <section class="stack-s">
-          <h3>In the OneAIM team</h3>
-          {r.team.status === "alumni" && <p class="muted small">Team alumni{r.team.alumniSince ? ` since ${fmtMonth(r.team.alumniSince)}` : ""}.</p>}
-          <ol class="history">
-            {[...r.team.history].reverse().map(e => (
-              <li class="history__item">
-                <span class="history__dot" />
-                <div style="flex:1;min-width:0">
-                  <strong style="color:var(--color-text-heading)">{roleLabel(e)}</strong>
-                  <span class="muted"> · {e.city}{e.department && e.role !== "lead" ? ` · ${e.department}` : ""}</span>
-                  <div class="muted small">{fmtMonth(e.from)} – {e.to ? fmtMonth(e.to) : "today"}</div>
-                </div>
-              </li>
-            ))}
-            {r.team.history.length === 0 && <li class="muted small">No positions recorded yet.</li>}
-          </ol>
-        </section>
-      )}
-    </Drawer>
+    <span class="row" style="gap:8px">
+      {acc?.invitedAt && <span class="muted small">Network site: invited {new Date(acc.invitedAt).toLocaleDateString("en-GB")}</span>}
+      <button class="btn btn--ghost btn--sm" onClick={() => act(() => inviteToNetworkSite(r.personId!), `Welcome email sent to ${r.email}`)}>
+        {acc ? "Send login again" : "Invite to network site"}
+      </button>
+    </span>
   );
 }
