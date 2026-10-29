@@ -87,7 +87,7 @@ function Team({ acc }: { acc: Account }) {
                 <table class="table">
                   <thead><tr><th>Person</th><th>City</th><th>Role</th><th>Department</th><th>Member since</th><th>Account</th></tr></thead>
                   <tbody>
-                    {[...listed].sort((a, b) => a.city.localeCompare(b.city) || byRole(a, b)).map(m => (
+                    {[...listed].sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || a.city.localeCompare(b.city) || a.name.localeCompare(b.name)).map(m => (
                       <tr class="is-clickable" onClick={() => setOpen(m.id)}>
                         <td><div class="cell-person"><Avatar name={m.name} src={m.photo} /><div><strong>{m.name}</strong><span class="muted small">{m.email ?? "No email yet"}</span></div></div></td>
                         <td>{m.city}</td>
