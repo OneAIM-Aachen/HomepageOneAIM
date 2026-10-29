@@ -22,7 +22,7 @@ function Team({ acc }: { acc: Account }) {
   const s = useStore(x => x);
   const initialMember = useParam("member");
   const [city, setCity] = useState(useParam("city") ?? "");
-  const [view, setView] = useState<"org" | "list">("org");
+  const [view, setView] = useState<"org" | "list">(useParam("view") === "org" ? "org" : "list");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(initialMember);
   const [inviting, setInviting] = useState(useParam("invite") === "1");
@@ -66,8 +66,8 @@ function Team({ acc }: { acc: Account }) {
         </div>
         <span class="spacer" />
         <div class="row" style="gap:6px" role="group" aria-label="View">
-          <button class={`chip-btn ${view === "org" ? "is-active" : ""}`} onClick={() => setView("org")}>Organigram</button>
           <button class={`chip-btn ${view === "list" ? "is-active" : ""}`} onClick={() => setView("list")}>List</button>
+          <button class={`chip-btn ${view === "org" ? "is-active" : ""}`} onClick={() => setView("org")}>Organigram</button>
         </div>
       </div>
 
