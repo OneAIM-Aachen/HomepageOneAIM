@@ -17,6 +17,7 @@ The database lives in `supabase/migrations/`:
 | `…190000_remove_external_forms.sql` | Removes external forms (Tally): every application uses our own form |
 | `20261029100000_team_members.sql` | Personal team accounts, team profiles (linked to the network person), departments for the organigram |
 | `20261029120000_team_profiles_without_login.sql` | Profiles without login; import of the website team |
+| `20261030120000_review_workflow.sql` | Interviewers per slot, reviewers per applicant, notes with stage, scorecards (templates + per application, one sheet per member and stage) |
 | `20261029220000_network_site.sql` | Network site (/members): logins for everyone in the network, directory/profile functions, welcome email when someone is accepted |
 | `20261029160000_team_history_alumni_checkins.sql` | Position history, alumni, yearly "still active?" check (pg_cron daily → team-accounts `checkins`) |
 

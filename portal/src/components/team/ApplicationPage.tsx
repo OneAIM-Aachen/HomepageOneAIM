@@ -1,10 +1,12 @@
 import { useMemo, useState } from "preact/hooks";
-import type { Account, Application, Slot, Submission, SubmissionStatus, TemplateKey } from "../../lib/types";
+import type { Account, Application, ReviewStage, Scorecard, Slot, Submission, SubmissionStatus, TemplateKey } from "../../lib/types";
 import {
   addComment, addSlots, decide, deleteApplication, inviteBlocker, removeSlot, renderTemplate, saveApplication,
   sendInterviewDetails, setScore, slotComplete, slotIsPast, slotTaken, updateSlot, uploadImage, useStore, type Decision,
-  formOptionsFromState, getState,
+  formOptionsFromState, getState, applicantScore, assignReviewers, unassignReviewer, setInterviewers, saveScoreSheet,
+  deleteScoreSheet, sheetScore,
 } from "../../lib/store";
+import { AddMember, fmtScore, MemberChips, ScorecardEditor, scorecardValid, ScoreSheetForm, STAGE_LABEL } from "./Review";
 import {
   appPhase, appTitle, fmtDate, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL,
   templatesFor,
@@ -17,7 +19,7 @@ import { FormRenderer } from "../apply/FormRenderer";
 import { isDemoId } from "../../lib/demo";
 import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash } from "../ui/Icons";
 
-type Tab = "applicants" | "setup" | "form" | "emails" | "slots";
+type Tab = "applicants" | "setup" | "form" | "scorecards" | "emails" | "slots";
 
 export default function ApplicationPage() {
   const id = useParam("id");
@@ -47,6 +49,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
     ["applicants", "Applicants", subs.length],
     ["setup", "Setup & dates"],
     ["form", "Form", app.fields.length],
+    ...(app.pipeline !== "instant" ? [["scorecards", "Scorecards", Object.keys(app.scorecards).length] as [Tab, string, number]] : []),
     ["emails", "Emails"],
     ...(app.pipeline === "interview" ? [["slots", "Interview slots", app.slots.length] as [Tab, string, number]] : []),
   ];
@@ -90,6 +93,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
       {tab === "applicants" && <Applicants acc={acc} app={app} subs={subs} openSub={openSub} />}
       {tab === "setup" && <Setup app={app} hasSubs={subs.length > 0} />}
       {tab === "form" && <FormTab app={app} hasSubs={subs.length > 0} />}
+      {tab === "scorecards" && <ScorecardsTab app={app} />}
       {tab === "emails" && <Emails app={app} />}
       {tab === "slots" && <Slots app={app} subs={subs} />}
 
@@ -124,6 +128,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
   const [status, setStatus] = useState<SubmissionStatus | "all">("all");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"date" | "score" | "name">("date");
+  const [mine, setMine] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openSub);
   const [confirm, setConfirm] = useState<{ ids: string[]; decision: Decision } | null>(null);
@@ -136,12 +141,14 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
     const ql = q.toLowerCase();
     return subs
       .filter(x => status === "all" || x.status === status)
+      .filter(x => !mine || (!!acc.memberId && (x.reviewerIds.includes(acc.memberId)
+        || !!app.slots.find(s => s.id === x.slotId)?.interviewerIds.includes(acc.memberId))))
       .filter(x => { const p = person(x); return !ql || `${p.name} ${p.email} ${p.universities.join(" ")} ${p.studyPrograms.join(" ")}`.toLowerCase().includes(ql); })
       .sort((a, b) =>
-        sort === "score" ? (b.score ?? 0) - (a.score ?? 0)
+        sort === "score" ? (applicantScore(app, b).overall ?? b.score ?? 0) - (applicantScore(app, a).overall ?? a.score ?? 0)
         : sort === "name" ? person(a).name.localeCompare(person(b).name)
         : b.submittedAt.localeCompare(a.submittedAt));
-  }, [subs, people, status, q, sort]);
+  }, [subs, people, status, q, sort, mine]);
 
   const toggle = (id: string) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const allSel = rows.length > 0 && rows.every(r => selected.has(r.id));
@@ -161,6 +168,11 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
           </button>
         ))}
         <span class="spacer" />
+        {acc.memberId && (
+          <button class={`chip-btn ${mine ? "is-active" : ""}`} onClick={() => setMine(!mine)} title="Applicants you review or interview">
+            Assigned to me <span style="opacity:.7;margin-left:6px">{subs.filter(x => x.reviewerIds.includes(acc.memberId!) || !!app.slots.find(s => s.id === x.slotId)?.interviewerIds.includes(acc.memberId!)).length}</span>
+          </button>
+        )}
         {app.spots && <span class="chip chip--green">{accepted} / {app.spots} spots filled</span>}
       </div>
 
@@ -184,7 +196,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
                   <tr>
                     <th style="width:36px"><input type="checkbox" aria-label="Select all" checked={allSel}
                       onChange={() => setSelected(allSel ? new Set() : new Set(rows.map(r => r.id)))} /></th>
-                    <th>Applicant</th><th>Study</th><th>Status</th><th>Score</th>
+                    <th>Applicant</th><th>Study</th><th>Status</th><th>Score</th><th>Reviewers</th>
                     {app.pipeline === "interview" && <th>Interview</th>}
                     <th>Submitted</th>
                   </tr>
@@ -199,7 +211,12 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
                         <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.email}</span></div></div></td>
                         <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}{p.semester && /^\d/.test(p.semester) ? ` · ${p.semester}. sem.` : ""}{p.degree ? ` · ${p.degree}` : ""}</span></td>
                         <td><StatusChip status={x.status} /></td>
-                        <td onClick={e => e.stopPropagation()}><Stars value={x.score} onChange={isDemoId(x.id) ? undefined : v => act(() => setScore(x.id, v))} /></td>
+                        <td onClick={e => { if (!applicantScore(app, x).sheets) e.stopPropagation(); }}>
+                          {applicantScore(app, x).sheets
+                            ? <ScoreCell app={app} sub={x} />
+                            : <Stars value={x.score} onChange={isDemoId(x.id) ? undefined : v => act(() => setScore(x.id, v))} />}
+                        </td>
+                        <td><ReviewerAvatars ids={x.reviewerIds} /></td>
                         {app.pipeline === "interview" && (
                           <td class="small">{slot ? fmtSlot(slot.start) : x.status === "invited" ? <span class="chip chip--amber">No slot yet</span> : <span class="muted">–</span>}</td>
                         )}
@@ -221,6 +238,10 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
             <button class={`btn btn--sm ${d === "reset" ? "btn--ghost" : d === "accept" ? "btn--success" : d === "reject" ? "btn--danger" : "btn--secondary"}`}
               onClick={() => setConfirm({ ids: [...selected], decision: d })}>{DECISION_TEXT[d].verb}</button>
           ))}
+          {selSubs.every(x => !isDemoId(x.id)) && (
+            <AddMember label="Assign reviewer…" exclude={[]} city={app.tags.location}
+              onAdd={id => act(() => assignReviewers([...selected], [id]), `Reviewer assigned to ${selected.size} applicant${selected.size > 1 ? "s" : ""}`)} />
+          )}
           <button class="btn btn--ghost btn--sm" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       )}
@@ -328,17 +349,37 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
       <div class="grid-2">
         <div class="card stack-s" style="padding:14px 16px">
           <span class="overline">Score</span>
-          <Stars value={sub.score} onChange={isDemoId(sub.id) ? undefined : v => act(() => setScore(sub.id, v))} />
+          {applicantScore(app, sub).sheets
+            ? <ScoreCell app={app} sub={sub} detailed />
+            : <Stars value={sub.score} onChange={isDemoId(sub.id) ? undefined : v => act(() => setScore(sub.id, v))} />}
         </div>
         {app.pipeline === "interview" && (
           <div class="card stack-s" style="padding:14px 16px">
             <span class="overline">Interview</span>
             {slot ? <span><strong>{fmtSlot(slot.start)}</strong><br /><span class="muted small">{slot.mode === "online" ? "Online" : slot.location}</span>
-                {slot.meetingLink && <><br /><a class="small" href={slot.meetingLink} target="_blank" rel="noopener">Join meeting</a></>}</span>
+                {slot.meetingLink && <><br /><a class="small" href={slot.meetingLink} target="_blank" rel="noopener">Join meeting</a></>}
+                <span class="stack-s" style="margin-top:8px"><span class="muted small">Interviewers</span><MemberChips ids={slot.interviewerIds} empty="Nobody assigned yet (tab “Interview slots”)" /></span></span>
               : <span class="muted small">{sub.status === "invited" ? "Invited, no slot booked yet" : "Not invited"}</span>}
           </div>
         )}
       </div>
+
+      <section class="stack-s">
+        <h3>Reviewers</h3>
+        <div class="row">
+          <MemberChips ids={sub.reviewerIds} empty="Nobody assigned yet."
+            onRemove={isDemoId(sub.id) ? undefined : id => act(() => unassignReviewer(sub.id, id))} />
+          {!isDemoId(sub.id) && <AddMember label="Assign reviewer…" exclude={sub.reviewerIds} city={app.tags.location}
+            onAdd={id => act(() => assignReviewers([sub.id], [id]), "Reviewer assigned")} />}
+        </div>
+      </section>
+
+      {(["screening", "interview"] as ReviewStage[]).filter(st => app.scorecards[st]).map(st => (
+        <StageScores app={app} sub={sub} stage={st} acc={acc} />
+      ))}
+      {app.pipeline !== "instant" && !Object.keys(app.scorecards).length && (
+        <p class="muted small">No scorecard for this application yet. Add one in the tab “Scorecards”.</p>
+      )}
 
       <section class="stack-s">
         <h3>Application</h3>
@@ -346,17 +387,22 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
       </section>
 
       <section class="stack-s">
-        <h3>Internal comments</h3>
-        <p class="muted small">Only visible to the team.</p>
-        {sub.comments.map(c => (
-          <div class="card" style="padding:12px 14px;box-shadow:none">
-            <div class="row row--between small"><strong>{c.author}</strong><span class="muted">{fmtDate(c.at)}</span></div>
-            <p style="margin-top:4px;white-space:pre-wrap">{c.text}</p>
+        <h3>Notes</h3>
+        <p class="muted small">Only visible to the team. Each note is marked with the stage of the process and the time it was written.</p>
+        {[...sub.comments].reverse().map(c => (
+          <div class="note">
+            <div class="row small" style="gap:8px">
+              {c.stage && <span class="chip chip--outline">{STAGE_LABEL[c.stage]}</span>}
+              <strong style="color:var(--color-text-heading)">{c.author}</strong>
+              <span class="spacer" />
+              <span class="muted">{fmtDateTime(c.at)}</span>
+            </div>
+            <p style="margin-top:6px;white-space:pre-wrap">{c.text}</p>
           </div>
         ))}
-        <textarea class="input" style="min-height:70px" placeholder="Add a note, e.g. interview impressions…" value={comment} disabled={isDemoId(sub.id)} onInput={e => setComment(e.currentTarget.value)} />
+        <textarea class="input" style="min-height:70px" placeholder={`Add a note (stage: ${STAGE_LABEL[sub.status]})…`} value={comment} disabled={isDemoId(sub.id)} onInput={e => setComment(e.currentTarget.value)} />
         <button class="btn btn--secondary btn--sm" style="align-self:flex-start" disabled={!comment.trim()}
-          onClick={async () => { await act(() => addComment(sub.id, acc.city, comment)); setComment(""); }}>Add comment</button>
+          onClick={async () => { await act(() => addComment(sub.id, acc.city, comment)); setComment(""); }}>Add note</button>
       </section>
 
       <section class="stack-s">
@@ -646,7 +692,7 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
         : (
           <div class="card card--flush">
             <table class="table">
-              <thead><tr><th>Time</th><th>Place / meeting link</th><th>Booked</th><th /></tr></thead>
+              <thead><tr><th>Time</th><th>Place / meeting link</th><th>Interviewers</th><th>Booked</th><th /></tr></thead>
               <tbody>
                 {app.slots.map(sl => {
                   const booked = subs.filter(x => x.slotId === sl.id);
@@ -669,6 +715,13 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
                             {!past && <button class="btn btn--ghost btn--sm" style="align-self:flex-start;padding:2px 8px" onClick={() => setEditing(sl.id)}>Edit</button>}
                           </div>
                         )}
+                      </td>
+                      <td>
+                        <div class="stack-s">
+                          <MemberChips ids={sl.interviewerIds} onRemove={past ? undefined : id => act(() => setInterviewers(sl.id, sl.interviewerIds.filter(x => x !== id)))} />
+                          {!past && <AddMember label={sl.interviewerIds.length ? "Add interviewer…" : "Assign interviewer…"} exclude={sl.interviewerIds} city={app.tags.location}
+                            onAdd={id => act(() => setInterviewers(sl.id, [...sl.interviewerIds, id]), "Interviewer assigned")} />}
+                        </div>
                       </td>
                       <td>
                         {booked.length === 0 ? <span class="muted small">{past ? "Not booked" : `Free (${sl.capacity})`}</span>
@@ -708,6 +761,146 @@ function SlotEdit({ slot, onDone }: { slot: Slot; onDone: () => void }) {
         <button class="btn btn--ghost btn--sm" onClick={onDone}>Cancel</button>
       </div>
       <span class="muted small">Already booked? Use “Send interview details” on the applicant to send the new link.</span>
+    </div>
+  );
+}
+
+// ── Review: scores, reviewers, scorecards ───────────────────────────────
+
+const dtFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const fmtDateTime = (iso: string) => dtFmt.format(new Date(iso)).replace("Sept", "Sep");
+
+function ScoreCell({ app, sub, detailed }: { app: Application; sub: Submission; detailed?: boolean }) {
+  const sc = applicantScore(app, sub);
+  const part = (label: string, v?: number, n?: number) => v === undefined ? null
+    : <span>{label} <strong>{fmtScore(v)}</strong>{n !== undefined && <span class="muted"> ({n})</span>}</span>;
+  if (!detailed) {
+    return (
+      <span class="score-pill" title={[sc.screening !== undefined ? `Screening ${fmtScore(sc.screening)}` : "", sc.interview !== undefined ? `Interview ${fmtScore(sc.interview)}` : ""].filter(Boolean).join(" · ")}>
+        {fmtScore(sc.overall)}<small>/ 5 · {sc.sheets} sheet{sc.sheets > 1 ? "s" : ""}</small>
+      </span>
+    );
+  }
+  return (
+    <span class="stack-s" style="gap:2px">
+      <span class="score-pill" style="font-size:1.4rem">{fmtScore(sc.overall)}<small>/ 5</small></span>
+      <span class="small row" style="gap:10px">
+        {part("Screening", sc.screening, sub.scoreSheets.filter(x => x.stage === "screening").length)}
+        {part("Interview", sc.interview, sub.scoreSheets.filter(x => x.stage === "interview").length)}
+      </span>
+    </span>
+  );
+}
+
+function ReviewerAvatars({ ids }: { ids: string[] }) {
+  const team = useStore(s => s.team);
+  if (!ids.length) return <span class="muted small">–</span>;
+  return (
+    <span class="row" style="gap:2px;flex-wrap:nowrap" title={ids.map(id => team.find(m => m.id === id)?.name ?? "?").join(", ")}>
+      {ids.slice(0, 3).map(id => { const m = team.find(x => x.id === id); return <Avatar name={m?.name ?? "?"} src={m?.photo} />; })}
+      {ids.length > 3 && <span class="muted small">+{ids.length - 3}</span>}
+    </span>
+  );
+}
+
+/** Scorecards of one stage: everyone's sheets, and your own to fill in */
+function StageScores({ app, sub, stage, acc }: { app: Application; sub: Submission; stage: ReviewStage; acc: Account }) {
+  const team = useStore(s => s.team);
+  const card = app.scorecards[stage]!;
+  const sheets = sub.scoreSheets.filter(x => x.stage === stage);
+  const mine = sheets.find(x => x.memberId === acc.memberId);
+  const [editing, setEditing] = useState(false);
+  const demo = isDemoId(sub.id);
+  const avg = applicantScore(app, sub)[stage];
+
+  return (
+    <section class="stack-s">
+      <div class="row row--between">
+        <h3>{stage === "screening" ? "Screening" : "Interview"} scorecard</h3>
+        <span class="small">{sheets.length ? <>Average <strong>{fmtScore(avg)}</strong> / 5 from {sheets.length}</> : <span class="muted">Not rated yet</span>}</span>
+      </div>
+      {sheets.length > 0 && (
+        <div class="table-wrap">
+          <table class="table table--compact">
+            <thead><tr><th>Category</th>{sheets.map(sh => <th class="num">{team.find(m => m.id === sh.memberId)?.name.split(" ")[0] ?? "Former"}</th>)}</tr></thead>
+            <tbody>
+              {card.criteria.map(c => (
+                <tr><td title={c.help}>{c.label}{c.weight > 1 && <span class="muted small"> ×{c.weight}</span>}</td>
+                  {sheets.map(sh => <td class="num">{sh.scores[c.id] ?? "–"}</td>)}</tr>
+              ))}
+              <tr><td><strong>Total</strong></td>{sheets.map(sh => <td class="num"><strong>{fmtScore(sheetScore(card, sh))}</strong></td>)}</tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      {sheets.filter(sh => sh.note).map(sh => (
+        <p class="small"><strong>{team.find(m => m.id === sh.memberId)?.name ?? "Former member"}:</strong> {sh.note}</p>
+      ))}
+      {!demo && (editing || (!mine && acc.memberId))
+        ? (acc.memberId
+            ? <div class="card" style="padding:14px 16px;box-shadow:none">
+                <ScoreSheetForm card={card} sheet={mine}
+                  onCancel={mine || editing ? () => setEditing(false) : undefined}
+                  onSave={(scores, note) => act(() => saveScoreSheet(sub.id, stage, scores, note, acc), "Scorecard saved").then(() => setEditing(false))} />
+              </div>
+            : null)
+        : !demo && mine && (
+            <div class="row">
+              <span class="muted small">Your total: <strong>{fmtScore(sheetScore(card, mine))}</strong></span>
+              <button class="btn btn--ghost btn--sm" onClick={() => setEditing(true)}>Edit my scorecard</button>
+              <button class="btn btn--ghost btn--sm" onClick={async () => {
+                if (await confirmDialog({ title: "Delete your scorecard?", message: "Your ratings for this stage are removed.", danger: true, confirmLabel: "Delete" })) act(() => deleteScoreSheet(mine.id), "Deleted");
+              }}>Delete</button>
+            </div>
+          )}
+      {!acc.memberId && <p class="muted small">Scorecards need your personal team account.</p>}
+    </section>
+  );
+}
+
+/** The application's own scorecards (copied from templates, editable here) */
+function ScorecardsTab({ app }: { app: Application }) {
+  const templates = useStore(s => s.scorecards);
+  const subs = useStore(s => s.submissions.filter(x => x.applicationId === app.id));
+  const stages: ReviewStage[] = app.pipeline === "interview" ? ["screening", "interview"] : ["screening"];
+  const [drafts, setDrafts] = useState<Partial<Record<ReviewStage, Scorecard>>>(structuredClone(app.scorecards));
+  const dirty = JSON.stringify(drafts) !== JSON.stringify(app.scorecards);
+  const valid = stages.every(st => !drafts[st] || scorecardValid(drafts[st]!));
+  const rated = (st: ReviewStage) => subs.reduce((n, x) => n + x.scoreSheets.filter(y => y.stage === st).length, 0);
+
+  return (
+    <div class="stack">
+      <p class="muted small">Every team member rates applicants with these scorecards: one sheet per person and stage. Templates are managed under Blueprints → Scorecards; changes here only affect this application.</p>
+      {stages.map(st => {
+        const card = drafts[st];
+        return (
+          <section class="card stack">
+            <div class="row row--between">
+              <h3>{st === "screening" ? "Screening" : "Interview"} scorecard</h3>
+              <div class="row" style="gap:6px">
+                <select class="input input--sm" style="width:auto" value="" aria-label="Use template"
+                  onChange={e => {
+                    const t = templates.find(x => x.id === e.currentTarget.value);
+                    if (t) setDrafts({ ...drafts, [st]: { name: t.name, criteria: structuredClone(t.criteria) } });
+                  }}>
+                  <option value="">{card ? "Replace with template…" : "Use template…"}</option>
+                  {templates.map(t => <option value={t.id}>{t.name}</option>)}
+                </select>
+                {card && <button class="btn btn--ghost btn--sm" onClick={() => { const d = { ...drafts }; delete d[st]; setDrafts(d); }}>Remove</button>}
+              </div>
+            </div>
+            {rated(st) > 0 && <p class="small" style="color:var(--p-amber)">{rated(st)} scorecard{rated(st) > 1 ? "s were" : " was"} already filled in. Removing categories drops their ratings from the totals.</p>}
+            {card
+              ? <ScorecardEditor value={card} onChange={c => setDrafts({ ...drafts, [st]: c })} />
+              : <p class="muted small">No scorecard for this stage. Pick a template to start.</p>}
+          </section>
+        );
+      })}
+      <div class="row">
+        <button class="btn btn--primary" disabled={!dirty || !valid} onClick={() => act(() => saveApplication({ ...app, scorecards: drafts }), "Scorecards saved")}>Save scorecards</button>
+        {dirty && <button class="btn btn--ghost" onClick={() => setDrafts(structuredClone(app.scorecards))}>Discard changes</button>}
+        {!valid && <span class="small field__error">Every category needs a name.</span>}
+      </div>
     </div>
   );
 }

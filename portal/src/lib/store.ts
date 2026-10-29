@@ -13,7 +13,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type {
   Account, Answer, Application, Blueprint, Department, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
-  SubmissionStatus, Tags, TemplateKey, Pipeline, RoleEntry, TeamMember,
+  SubmissionStatus, Tags, TemplateKey, Pipeline, RoleEntry, TeamMember, ReviewStage, ScoreSheet, Scorecard,
 } from "./types";
 import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
@@ -24,7 +24,7 @@ import type { PostDraft } from "../components/network/Board";
 // ── State ────────────────────────────────────────────────────────────────
 
 const EMPTY: State = {
-  team: [], posts: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
+  team: [], scorecards: [], posts: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
   blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
   universities: [], studyPrograms: [], companies: [],
 };
@@ -90,6 +90,7 @@ function mapApplication(r: any, slots: Slot[]): Application {
     image: r.image_path ?? undefined,
     // Imported rounds have no templates yet → defaults
     templates: { ...defaultTemplates(r.pipeline), ...(r.templates ?? {}) },
+    scorecards: r.scorecards ?? {},
     slots,
     createdAt: r.created_at,
     createdBy: r.created_by_city ?? "",
@@ -120,6 +121,7 @@ function applicationRow(a: Application) {
     intro: a.intro,
     image_path: a.image || null,
     templates: a.templates,
+    scorecards: a.scorecards,
   };
 }
 
@@ -139,7 +141,7 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 }
 
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs, companyList] =
+  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs, companyList, reviewers, scoreRows, scorecardRows] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
@@ -163,6 +165,9 @@ export async function loadAll(): Promise<void> {
       all(() => supabase.from("universities").select("id, name, city, country, aliases").order("name").order("id")),
       all(() => supabase.from("study_programs").select("id, name, category").order("category").order("name")),
       all(() => supabase.from("companies").select("id, name, category, aliases").order("name").order("id")),
+      all(() => supabase.from("submission_reviewers").select("submission_id, member_id").order("assigned_at").order("member_id")),
+      all(() => supabase.from("submission_scores").select("*").order("created_at").order("id")),
+      supabase.from("scorecards").select("*").order("name"),
     ]);
 
   const P = check(programs) as any[], L = check(locations) as any[], S = check(semesters) as any[];
@@ -180,7 +185,7 @@ export async function loadAll(): Promise<void> {
     const list = slotsByApp.get(r.application_id) ?? [];
     list.push({
       id: r.id, start: toLocal(r.starts_at), durationMin: r.duration_min, location: r.location, capacity: r.capacity,
-      mode: r.mode, meetingLink: r.meeting_link ?? undefined,
+      mode: r.mode, meetingLink: r.meeting_link ?? undefined, interviewerIds: r.interviewer_ids ?? [],
     });
     slotsByApp.set(r.application_id, list);
   }
@@ -229,7 +234,13 @@ export async function loadAll(): Promise<void> {
       id: x.id, applicationId: x.application_id, personId: x.person_id, answers: x.answers ?? {},
       status: x.status, score: x.score ?? undefined, bookingToken: x.booking_token, slotId: x.slot_id ?? undefined,
       submittedAt: x.submitted_at,
-      comments: commentRows.filter(c => c.submission_id === x.id).map(c => ({ author: c.author_city, text: c.body, at: c.created_at })),
+      comments: commentRows.filter(c => c.submission_id === x.id).map(c => ({
+        author: c.author_city, text: c.body, at: c.created_at, stage: c.stage ?? undefined, memberId: c.author_member_id ?? undefined,
+      })),
+      reviewerIds: (check(reviewers) as any[]).filter(r => r.submission_id === x.id).map(r => r.member_id),
+      scoreSheets: (check(scoreRows) as any[]).filter(r => r.submission_id === x.id).map(r => ({
+        id: r.id, memberId: r.member_id, stage: r.stage, scores: r.scores ?? {}, note: r.note ?? undefined, updatedAt: r.updated_at,
+      })),
       history: historyRows.filter(h => h.submission_id === x.id).map(h => ({ status: h.status, at: h.changed_at, by: h.changed_by })),
     }) as Submission),
     outbox: (check(mails) as any[]).map(m => ({
@@ -247,6 +258,7 @@ export async function loadAll(): Promise<void> {
     }) as InboxMessage),
     universities: (check(unis) as any[]).map(u => ({ id: u.id, name: u.name, city: u.city ?? undefined, country: u.country ?? undefined, aliases: u.aliases ?? [] })),
     studyPrograms: check(studyProgs) as any[],
+    scorecards: (check(scorecardRows) as any[]).map(c => ({ id: c.id, name: c.name, description: c.description, criteria: c.criteria ?? [] })),
     companies: (check(companyList) as any[]).map(c => ({ id: c.id, name: c.name, category: c.category, aliases: c.aliases ?? [] })),
     mailbox: (() => {
       const m = check(mailbox) as any;
@@ -391,6 +403,7 @@ export async function createApplication(input: {
     tags: { ...input.tags }, pipeline: input.pipeline, published: false,
     dates: { opensAt: t, deadline: in30 }, intro: bp.description,
     templates: defaultTemplates(input.pipeline), slots: [], createdAt: t, createdBy: input.createdBy,
+    scorecards: defaultScorecards(input.pipeline),
   };
   const { data: auth } = await supabase.auth.getUser();
   const row = check(await supabase.from("applications")
@@ -411,7 +424,7 @@ export async function deleteApplication(id: string) {
   await loadAll();
 }
 
-export async function addSlots(applicationId: string, slots: Omit<Slot, "id">[]) {
+export async function addSlots(applicationId: string, slots: Omit<Slot, "id" | "interviewerIds">[]) {
   check(await supabase.from("interview_slots").insert(slots.map(s => ({
     application_id: applicationId, starts_at: new Date(s.start).toISOString(),
     duration_min: s.durationMin, location: s.location, capacity: s.capacity,
@@ -554,6 +567,20 @@ export async function openFile(file: FileRef) {
 
 // ── Public (apply site) ──────────────────────────────────────────────────
 
+/** Standard scorecards for a new application: screening (and interview, if the pipeline has one) */
+function defaultScorecards(pipeline: Pipeline): Application["scorecards"] {
+  const pick = (name: string) => {
+    const c = state.scorecards.find(x => x.name === name);
+    return c ? { name: c.name, criteria: structuredClone(c.criteria) } : undefined;
+  };
+  if (pipeline === "instant") return {};
+  const out: Application["scorecards"] = {};
+  const s = pick("Screening – standard");
+  if (s) out.screening = s;
+  if (pipeline === "interview") { const i = pick("Interview – standard"); if (i) out.interview = i; }
+  return out;
+}
+
 export interface PublicApplication extends Application {
   phase: "upcoming" | "open" | "closed";
 }
@@ -572,7 +599,7 @@ export async function fetchPublishedApplications(): Promise<PublicApplication[]>
     },
     spots: r.spots ?? undefined, fee: r.fee ?? undefined,
     intro: r.intro ?? "", image: r.image_path ?? undefined,
-    templates: defaultTemplates(r.pipeline), slots: [], createdAt: "", createdBy: "",
+    templates: defaultTemplates(r.pipeline), slots: [], createdAt: "", createdBy: "", scorecards: {},
   }));
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -889,6 +916,71 @@ export async function updatePersonDetails(personId: string, p: Partial<Pick<Pers
 /** Login for the members site + welcome email ("you're part of the OneAIM network"). */
 export async function inviteToNetworkSite(personId: string) {
   await teamCall({ action: "network_invite", person_id: personId });
+  await loadAll();
+}
+
+// ── Review workflow: interviewers, reviewers, scorecards ─────────────────
+
+export async function setInterviewers(slotId: string, memberIds: string[]) {
+  check(await supabase.from("interview_slots").update({ interviewer_ids: memberIds }).eq("id", slotId));
+  await loadAll();
+}
+
+/** Assigns team members to review the applicants (keeps existing assignments). */
+export async function assignReviewers(subIds: string[], memberIds: string[]) {
+  const rows = subIds.flatMap(submission_id => memberIds.map(member_id => ({ submission_id, member_id })));
+  check(await supabase.from("submission_reviewers").upsert(rows, { onConflict: "submission_id,member_id", ignoreDuplicates: true }));
+  await loadAll();
+}
+
+export async function unassignReviewer(subId: string, memberId: string) {
+  check(await supabase.from("submission_reviewers").delete().eq("submission_id", subId).eq("member_id", memberId));
+  await loadAll();
+}
+
+/** Your own scorecard for this applicant and stage (created or updated). */
+export async function saveScoreSheet(subId: string, stage: ReviewStage, scores: Record<string, number>, note: string, acc: Account) {
+  if (!acc.memberId) throw new Error(friendlyError("personal_account_needed"));
+  check(await supabase.from("submission_scores").upsert({
+    submission_id: subId, member_id: acc.memberId, stage, scores, note: note.trim() || null,
+  }, { onConflict: "submission_id,member_id,stage" }));
+  await loadAll();
+}
+
+export async function deleteScoreSheet(id: string) {
+  check(await supabase.from("submission_scores").delete().eq("id", id));
+  await loadAll();
+}
+
+/** Weighted average of one sheet (1–5), or undefined if nothing is rated */
+export function sheetScore(card: Scorecard | undefined, sheet: Pick<ScoreSheet, "scores">): number | undefined {
+  const crit = card?.criteria ?? Object.keys(sheet.scores).map(id => ({ id, weight: 1 }));
+  let sum = 0, w = 0;
+  for (const c of crit) {
+    const v = sheet.scores[c.id];
+    if (typeof v === "number") { sum += v * (c.weight || 1); w += c.weight || 1; }
+  }
+  return w ? sum / w : undefined;
+}
+
+/** Average over all team members' sheets: per stage, and overall (interview counts when there is one) */
+export function applicantScore(app: Application, sub: Submission): { screening?: number; interview?: number; overall?: number; sheets: number } {
+  const avg = (stage: ReviewStage) => {
+    const v = sub.scoreSheets.filter(x => x.stage === stage).map(x => sheetScore(app.scorecards[stage], x)).filter((x): x is number => x !== undefined);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : undefined;
+  };
+  const screening = avg("screening"), interview = avg("interview");
+  return { screening, interview, overall: interview ?? screening, sheets: sub.scoreSheets.length };
+}
+
+export async function saveScorecardTemplate(c: Scorecard) {
+  const row = { name: c.name.trim(), description: c.description?.trim() ?? "", criteria: c.criteria };
+  check(c.id ? await supabase.from("scorecards").update(row).eq("id", c.id) : await supabase.from("scorecards").insert(row));
+  await loadAll();
+}
+
+export async function deleteScorecardTemplate(id: string) {
+  check(await supabase.from("scorecards").delete().eq("id", id));
   await loadAll();
 }
 

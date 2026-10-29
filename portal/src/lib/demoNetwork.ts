@@ -43,7 +43,7 @@ export function profilesFromState(s: State): NetworkProfile[] {
  */
 export function demoProfiles(tags: { locations: string[]; programs: string[] }, hasRealTeam: boolean): NetworkProfile[] {
   const empty: State = {
-    team: [], posts: [], networkAccounts: {}, departments: [], tagLists: { ...tags, semesters: [] },
+    team: [], scorecards: [], posts: [], networkAccounts: {}, departments: [], tagLists: { ...tags, semesters: [] },
     blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
     universities: [], studyPrograms: [], companies: [],
   };

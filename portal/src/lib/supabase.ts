@@ -40,6 +40,7 @@ const MESSAGES: Record<string, string> = {
   department_other_city: "This department belongs to another city.",
   not_found: "This team member doesn't exist anymore.",
   not_in_network: "This person isn't part of the network (accepted after a selection, or team).",
+  personal_account_needed: "Scorecards need your personal team account (not the shared city login).",
   too_many_pending: "You already have 5 posts waiting for approval. Please wait until the team has reviewed them.",
   team_has_login: "Team members log in to the network site with their team login.",
 };

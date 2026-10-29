@@ -53,6 +53,8 @@ export interface Slot {
   mode: "online" | "in_person";
   /** Zoom/Teams/Meet link – only sent by email after booking, never shown on the booking page */
   meetingLink?: string;
+  /** Team members who lead the interview */
+  interviewerIds: string[];
 }
 
 export type TemplateKey = "confirmation" | "invite" | "interview_booked" | "rejection" | "acceptance";
@@ -99,6 +101,8 @@ export interface Application {
   image?: string;
   templates: Record<TemplateKey, EmailTemplate>;
   slots: Slot[];
+  /** Rating forms per stage (copies of scorecard templates) */
+  scorecards: Partial<Record<ReviewStage, Scorecard>>;
   createdAt: string;
   createdBy: string;
 }
@@ -111,7 +115,12 @@ export interface FileRef {
 }
 export type Answer = string | string[] | boolean | FileRef | CompanyEntry[] | undefined;
 
-export interface Comment { author: string; text: string; at: string }
+export interface Comment {
+  author: string; text: string; at: string;
+  /** Applicant's status when the note was written */
+  stage?: SubmissionStatus;
+  memberId?: string;
+}
 
 export interface Submission {
   id: string;
@@ -125,7 +134,28 @@ export interface Submission {
   comments: Comment[];
   history: { status: SubmissionStatus; at: string; by: string }[];
   submittedAt: string;
+  /** Team members assigned to review (team_members.id) */
+  reviewerIds: string[];
+  /** Filled-in scorecards (one per member and stage) */
+  scoreSheets: ScoreSheet[];
 }
+
+export type ReviewStage = "screening" | "interview";
+
+export interface ScoreSheet {
+  id: string;
+  memberId: string;
+  stage: ReviewStage;
+  /** criterion id → 1..5 */
+  scores: Record<string, number>;
+  note?: string;
+  updatedAt: string;
+}
+
+export interface Criterion { id: string; label: string; help?: string; weight: number }
+
+/** Rating form: template (Blueprints → Scorecards) or an application's copy */
+export interface Scorecard { id?: string; name: string; description?: string; criteria: Criterion[] }
 
 export interface Person {
   id: string;
@@ -277,6 +307,7 @@ export interface TagLists {
 
 export interface State {
   team: TeamMember[];
+  scorecards: Scorecard[];
   /** Network board (all statuses) */
   posts: import("../components/network/Board").Post[];
   /** Logins for the members site, by person id */

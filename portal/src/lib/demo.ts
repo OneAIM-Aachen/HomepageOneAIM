@@ -138,6 +138,17 @@ function statusFor(r: () => number, pipeline: Application["pipeline"], current: 
   return { status: x < 0.68 ? "rejected" : "accepted", interviewed: true };         // after the interview
 }
 
+/** Standard scorecards from the templates (like new applications get them) */
+function demoScorecards(s: State, pipeline: Application["pipeline"]): Application["scorecards"] {
+  if (pipeline === "instant") return {};
+  const pick = (name: string) => s.scorecards.find(c => c.name === name);
+  const out: Application["scorecards"] = {};
+  const sc = pick("Screening – standard"), iv = pick("Interview – standard");
+  if (sc) out.screening = { name: sc.name, criteria: sc.criteria };
+  if (iv && pipeline === "interview") out.interview = { name: iv.name, criteria: iv.criteria };
+  return out;
+}
+
 export function withDemo(s: State): State {
   const r = rng(42);
   const apps: Application[] = [];
@@ -186,7 +197,7 @@ export function withDemo(s: State): State {
         title: o.pipeline === "instant" ? `${o.program.replace("AIM ", "")} Summit ${o.city} – ${round}` : undefined,
         blueprintName: "Demo", fields: [], tags: { semester: round, program: o.program, location: o.city }, pipeline: o.pipeline,
         published: true, dates: { opensAt: opens, deadline: `${month}-28` }, intro: "", image: undefined,
-        templates: defaultTemplates(o.pipeline), slots: [], createdAt: opens, createdBy: o.city,
+        templates: defaultTemplates(o.pipeline), slots: [], createdAt: opens, createdBy: o.city, scorecards: demoScorecards(s, o.pipeline),
       };
       apps.push(app);
       const size = Math.round(o.size * (0.8 + r() * 0.5) * (round === CURRENT ? 1.1 : 1));
@@ -200,9 +211,40 @@ export function withDemo(s: State): State {
         subs.push({
           id: `demo-s${subs.length}`, applicationId: app.id, personId: person.id, answers: {}, status,
           score: status === "new" || o.pipeline === "instant" ? undefined : 1 + Math.floor(r() * 5), bookingToken: "", comments: [],
+          reviewerIds: [], scoreSheets: [],
           history: interviewed ? [{ status: "invited", at: app.dates.deadline, by: o.city }] : [],
           submittedAt: `${month}-${String(2 + Math.floor(r() * 17)).padStart(2, "0")}T12:00:00Z`,
         });
+      }
+    }
+  }
+
+  // Reviews: real team members (own city first) as reviewers of current screenings,
+  // filled-in scorecards for decided applicants. Separate random stream, so
+  // the rest of the demo data stays the same.
+  const rr = rng(7);
+  const active = s.team.filter(m => m.status === "active");
+  const reviewersFor = (city: string) => {
+    const local = active.filter(m => m.city === city);
+    const list = local.length ? local : active;
+    const n = 1 + Math.floor(rr() * 2);
+    return [...new Set(Array.from({ length: n }, () => list[Math.floor(rr() * list.length)]!.id))];
+  };
+  if (active.length) {
+    for (const x of subs) {
+      const app = apps.find(a => a.id === x.applicationId)!;
+      if (app.pipeline === "instant") continue;
+      x.reviewerIds = reviewersFor(app.tags.location);
+      const sheet = (stage: "screening" | "interview", memberId: string) => {
+        const card = app.scorecards[stage];
+        if (!card) return;
+        const base = x.score ?? 3;
+        const scores = Object.fromEntries(card.criteria.map(c => [c.id, Math.min(5, Math.max(1, base + Math.round(rr() * 2 - 1)))]));
+        x.scoreSheets.push({ id: `demo-sh-${x.id}-${stage}-${memberId}`, memberId, stage, scores, updatedAt: app.dates.deadline });
+      };
+      if (x.status !== "new") {
+        for (const m of x.reviewerIds) sheet("screening", m);
+        if (x.history.some(h => h.status === "invited") && x.status !== "invited") sheet("interview", x.reviewerIds[0]!);
       }
     }
   }

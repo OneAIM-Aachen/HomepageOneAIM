@@ -787,3 +787,21 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .filter-search__clear:hover { background: var(--p-chip); }
 .filter-search__clear svg { width: 13px; height: 13px; }
 .filter-search .picker__menu { min-width: 260px; }
+
+/* ── Review workflow ─────────────────────────────────────────────────────── */
+.member-chip { gap: 6px; padding: 3px 6px 3px 3px; }
+.member-chip .avatar { width: 22px; height: 22px; font-size: 9.5px; }
+.criterion-row { display: grid; grid-template-columns: 1.1fr 1.6fr 70px auto; gap: 8px; align-items: center; }
+@media (max-width: 720px) { .criterion-row { grid-template-columns: 1fr 70px auto; } .criterion-row > input:nth-child(2) { grid-column: 1 / -1; grid-row: 2; } }
+.scoresheet__row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--p-line); }
+.scale { display: flex; gap: 4px; flex-shrink: 0; }
+.scale button {
+  width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--p-line); background: var(--p-surface);
+  font-weight: 800; cursor: pointer; color: var(--color-text-body);
+}
+.scale button:hover { border-color: var(--color-brand-blue); }
+.scale button.is-on { background: var(--color-brand-blue); border-color: var(--color-brand-blue); color: #fff; }
+.score-pill { display: inline-flex; align-items: baseline; gap: 4px; font-weight: 800; color: var(--color-text-heading); }
+.score-pill small { font-weight: 600; color: var(--color-text-muted); }
+.note { padding: 12px 14px; border-radius: var(--radius-md); background: #FAFBFE; border: 1px solid var(--p-line); }
+.table--compact th, .table--compact td { padding: 8px 10px; font-size: 13px; }

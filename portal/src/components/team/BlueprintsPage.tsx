@@ -1,6 +1,7 @@
 import { useState } from "preact/hooks";
-import type { Blueprint } from "../../lib/types";
-import { createBlueprint, deleteBlueprint, formOptionsFromState, getState, saveBlueprint, useStore } from "../../lib/store";
+import type { Blueprint, Scorecard } from "../../lib/types";
+import { createBlueprint, deleteBlueprint, deleteScorecardTemplate, formOptionsFromState, getState, saveBlueprint, saveScorecardTemplate, useStore } from "../../lib/store";
+import { ScorecardEditor, scorecardValid } from "./Review";
 import { fmtDate } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { FormBuilder } from "./FormBuilder";
@@ -69,6 +70,8 @@ function List({ startNew }: { startNew: boolean }) {
         })}
       </div>
 
+      <ScorecardTemplates />
+
       {creating && (
         <Modal title="New blueprint" onClose={() => setCreating(false)}>
           <Field label="Name" required>
@@ -128,5 +131,59 @@ function Editor({ id }: { id: string }) {
         </Modal>
       )}
     </div>
+  );
+}
+
+/** Scorecard templates: rating forms with weighted categories, copied into applications */
+function ScorecardTemplates() {
+  const cards = useStore(x => x.scorecards);
+  const apps = useStore(x => x.applications);
+  const [edit, setEdit] = useState<Scorecard | null>(null);
+  const usedBy = (name: string) => apps.filter(a => Object.values(a.scorecards).some(c => c?.name === name)).length;
+
+  return (
+    <section class="stack">
+      <div class="row row--between" style="align-items:flex-end">
+        <div class="stack-s">
+          <h2>Scorecards</h2>
+          <p class="muted small">Rating forms for screening and interviews: categories rated 1–5, with weights. Applications get a copy, so editing a template never changes running applications.</p>
+        </div>
+        <button class="btn btn--secondary" onClick={() => setEdit({ name: "", description: "", criteria: [] })}><IconPlus width={18} />New scorecard</button>
+      </div>
+      <div class="app-grid">
+        {cards.map(c => (
+          <div class="card stack-s" style="gap:12px">
+            <div class="row row--between" style="align-items:flex-start">
+              <strong style="font-size:1.05rem;color:var(--color-text-heading)">{c.name}</strong>
+              <span class="chip">{c.criteria.length} categories</span>
+            </div>
+            <p class="muted small">{c.description || "No description."}</p>
+            <div class="row" style="gap:6px">{c.criteria.map(x => <span class="chip chip--outline">{x.label}{x.weight > 1 ? ` ×${x.weight}` : ""}</span>)}</div>
+            <div class="app-card__foot" style="align-items:center">
+              <span>{usedBy(c.name) ? `used in ${usedBy(c.name)} application${usedBy(c.name) > 1 ? "s" : ""}` : "not used yet"}</span>
+              <span class="row" style="gap:2px">
+                <button class="icon-btn" title="Duplicate" aria-label="Duplicate"
+                  onClick={() => setEdit({ name: `${c.name} (copy)`, description: c.description, criteria: structuredClone(c.criteria) })}><IconCopy /></button>
+                <button class="icon-btn" title="Delete" aria-label="Delete" onClick={async () => {
+                  if (await confirmDialog({ title: "Delete scorecard?", danger: true, confirmLabel: "Delete", message: `Delete the template “${c.name}”? Applications keep their copy.` }))
+                    act(() => deleteScorecardTemplate(c.id!), "Scorecard deleted");
+                }}><IconTrash /></button>
+                <button class="btn btn--secondary btn--sm" onClick={() => setEdit(structuredClone(c))}>Edit</button>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {edit && (
+        <Modal title={edit.id ? "Edit scorecard" : "New scorecard"} onClose={() => setEdit(null)} wide>
+          <ScorecardEditor value={edit} onChange={setEdit} />
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn btn--ghost" onClick={() => setEdit(null)}>Cancel</button>
+            <button class="btn btn--primary" disabled={!scorecardValid(edit)}
+              onClick={() => act(() => saveScorecardTemplate(edit), "Scorecard saved").then(r => { if (r !== undefined) setEdit(null); })}>Save scorecard</button>
+          </div>
+        </Modal>
+      )}
+    </section>
   );
 }
