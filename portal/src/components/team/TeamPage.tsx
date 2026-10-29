@@ -130,7 +130,6 @@ function CityOrg({ city, members, departments, onOpen }: {
   const cols = [...departments].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
     .map(d => ({ key: d.id, name: d.name, people: members.filter(m => m.departmentId === d.id).sort(byRole) }));
   const loose = members.filter(m => !top.includes(m) && !m.departmentId).sort(byRole);
-  if (loose.length) cols.push({ key: "none", name: "Without department", people: loose });
 
   return (
     <section class="card org-city">
@@ -161,6 +160,12 @@ function CityOrg({ city, members, departments, onOpen }: {
           </div>
         </div>
       </div>
+      {loose.length > 0 && (
+        <div class="org-others">
+          <div class="org__dept-name" style="text-align:left">Other members</div>
+          <div class="org-others__grid">{loose.map(m => <PersonCard m={m} kind="row" onOpen={onOpen} />)}</div>
+        </div>
+      )}
     </section>
   );
 }
@@ -227,7 +232,7 @@ function DepartmentsModal({ city: preset, onClose }: { city: string; onClose: ()
     const n = s.team.filter(m => m.departmentId === d.id).length;
     if (await confirmDialog({
       title: `Remove “${d.name}”?`, danger: true, confirmLabel: "Remove department",
-      message: n ? `${n} member${n > 1 ? "s" : ""} stay in the team, shown under “Without department”.` : "Nobody is in this department.",
+      message: n ? `${n} member${n > 1 ? "s" : ""} stay in the team, listed under “Other members”.` : "Nobody is in this department.",
     })) act(() => removeDepartment(d.id), `Removed ${d.name}`);
   };
 

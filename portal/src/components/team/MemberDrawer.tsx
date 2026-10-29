@@ -29,7 +29,7 @@ export function RoleFields({ city, role, departmentId, onChange }: {
           {(Object.keys(ROLE_LABEL) as TeamRole[]).map(r => <option value={r}>{ROLE_LABEL[r]}</option>)}
         </select>
       </Field>
-      <Field label="Department" help={top ? "Presidents stand above the departments." : "Optional: members and leads can also be without a department."}>
+      <Field label="Department" help={top ? "Presidents stand above the departments." : "Optional: people without a department are listed under “Other members”."}>
         <select class="input" value={top ? "" : departmentId ?? ""} disabled={top} onChange={e => onChange({ departmentId: e.currentTarget.value || undefined })}>
           <option value="">No department</option>
           {depts.map(d => <option value={d.id}>{d.name}</option>)}

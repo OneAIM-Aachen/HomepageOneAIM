@@ -720,3 +720,6 @@ img.avatar { object-fit: cover; background: var(--p-chip); }
 .sidebar__me:hover { background: var(--p-blue-tint); }
 .sidebar__me:focus-visible { outline: 2px solid var(--color-brand-blue); outline-offset: 2px; }
 .person-card--lead .person-card__text span, .person-card--top .person-card__text span { white-space: normal; }
+/* Members without a department: below the organigram, after a divider */
+.org-others { border-top: 1px solid var(--p-line); margin-top: 18px; padding-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.org-others__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 12px; }
