@@ -65,7 +65,9 @@ function Directory() {
       <option value="">{label}</option>{o.map(x => <option>{x}</option>)}
     </select>
   );
-  const whoBtn = (v: Who, text: string) => <button class={`chip-btn ${who === v ? "is-active" : ""}`} onClick={() => setWho(v)}>{text}</button>;
+  const whoBtn = (v: Who, text: string, n: number) => (
+    <button class={`chip-btn ${who === v ? "is-active" : ""}`} onClick={() => setWho(v)}>{text} <span class="chip-btn__count">{n}</span></button>
+  );
   const openRow = all.find(r => r.key === open);
 
   return (
@@ -86,7 +88,10 @@ function Directory() {
         {sel("All universities", uni, setUni, opts.unis)}
       </div>
       <div class="row" style="gap:6px" role="group" aria-label="Who">
-        {whoBtn("", "Everyone")}{whoBtn("participants", "Participants")}{whoBtn("team", "Team")}{whoBtn("alumni", "Alumni")}
+        {whoBtn("", "Everyone", all.length)}
+        {whoBtn("participants", "Participants", all.filter(isParticipant).length)}
+        {whoBtn("team", "Team", all.filter(r => r.team?.status === "active").length)}
+        {whoBtn("alumni", "Alumni", all.filter(r => r.team?.status === "alumni").length)}
       </div>
 
       <div class="member-grid">
