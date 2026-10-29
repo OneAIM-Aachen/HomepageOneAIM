@@ -184,6 +184,28 @@ export interface TeamMember {
   /** Has set a password (invitation accepted) */
   active: boolean;
   lastSignInAt?: string;
+  /** Alumni have left the team: not in the organigram, no portal access */
+  status: "active" | "alumni";
+  alumniSince?: string;
+  /** Yearly "still active?" check */
+  nextCheckAt?: string;
+  checkSentAt?: string;
+  checkRemindedAt?: string;
+  lastConfirmedAt?: string;
+  /** Positions over time, oldest first */
+  history: RoleEntry[];
+}
+
+/** One position a member held, from – to (to empty = current) */
+export interface RoleEntry {
+  id: string;
+  city: string;
+  role: TeamRole;
+  departmentId?: string;
+  department?: string;
+  position?: string;
+  from: string;
+  to?: string;
 }
 
 export interface SentEmail {

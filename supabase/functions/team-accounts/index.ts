@@ -10,6 +10,9 @@
 // • resend  {member_id}                                       (team only)
 // • remove  {member_id}                                       (team only, not yourself)
 // • reset   {email}                                           (public: "Forgot password?")
+// • checkins                                                  (public, daily by pg_cron)
+//   yearly "still active?" emails, one reminder after 14 days
+// • checkin_now {member_id}                                   (team only) asks right away
 //
 // Links are one-time tokens that the portal's /team/welcome page redeems
 // (supabase.auth.verifyOtp), so no redirect URL has to be allowed in Supabase.
@@ -21,6 +24,7 @@ import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 const RESET_PAUSE_MS = 2 * 60 * 1000;
 const ROLES = ["president", "co_president", "lead", "member"];
+const REMIND_AFTER_MS = 14 * 24 * 3600 * 1000;
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -42,9 +46,7 @@ async function makeLink(db: SupabaseClient, email: string, kind: Kind) {
 }
 
 async function sendMail(db: SupabaseClient, to: { email: string; name: string }, kind: Kind, token: string) {
-  const apiKey = Deno.env.get("BREVO_API_KEY");
-  if (!apiKey) throw new Error("BREVO_API_KEY is not set");
-  const { data: s } = await db.from("email_settings").select("sender_email, reply_to, apply_base_url").single();
+  const { data: s } = await db.from("email_settings").select("apply_base_url").single();
   if (!s) throw new Error("email_settings missing");
   const link = `${s.apply_base_url.replace(/\/$/, "")}/team/welcome?token_hash=${encodeURIComponent(token)}&type=${kind}`;
   const first = to.name.split(" ")[0];
@@ -52,6 +54,14 @@ async function sendMail(db: SupabaseClient, to: { email: string; name: string },
   const body = kind === "invite"
     ? `Hi ${first},\n\nwelcome to the OneAIM team! You now have your own account for the team portal.\n\nSet your password here:\n${link}\n\nThe link works once and expires after a while. If it has expired, use "Forgot password?" on the login page.\n\nSee you in the portal!\nOneAIM`
     : `Hi ${first},\n\nset a new password for the OneAIM team portal here:\n${link}\n\nThe link works once and expires after a while. If you didn't ask for this, you can ignore this email.\n\nOneAIM`;
+  await brevo(db, to, subject, body);
+}
+
+async function brevo(db: SupabaseClient, to: { email: string; name: string }, subject: string, body: string) {
+  const apiKey = Deno.env.get("BREVO_API_KEY");
+  if (!apiKey) throw new Error("BREVO_API_KEY is not set");
+  const { data: s } = await db.from("email_settings").select("sender_email, reply_to").single();
+  if (!s) throw new Error("email_settings missing");
   const res = await fetch(BREVO_URL, {
     method: "POST",
     headers: { "api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" },
@@ -69,6 +79,21 @@ async function sendMail(db: SupabaseClient, to: { email: string; name: string },
     const out = await res.json().catch(() => ({}));
     throw new Error(`Brevo ${res.status}: ${out.message ?? ""}`);
   }
+}
+
+type CheckMember = { id: string; email: string; name: string; check_token: string | null; locations: { name: string } | null };
+
+/** Yearly "still active?" email; the link opens /team/checkin with Yes / No. */
+async function sendCheck(db: SupabaseClient, m: CheckMember, reminder: boolean) {
+  const { data: s } = await db.from("email_settings").select("apply_base_url").single();
+  const token = m.check_token ?? crypto.randomUUID();
+  const link = `${String(s?.apply_base_url ?? "").replace(/\/$/, "")}/team/checkin?t=${token}`;
+  const city = m.locations?.name ?? "";
+  const first = m.name.split(" ")[0];
+  const body = `Hi ${first},\n\n${reminder ? "a quick reminder: " : ""}once a year we check who is still active in OneAIM ${city}. Are you still an active part of the team?\n\nPlease answer here (one click):\n${link}\n\nIf you have left, you'll move to our alumni and stay part of the OneAIM network.\n\nThanks!\nOneAIM`;
+  await brevo(db, m, reminder ? "Reminder: still part of the OneAIM team?" : "Still part of the OneAIM team?", body);
+  const now = new Date().toISOString();
+  await db.from("team_members").update(reminder ? { check_reminded_at: now } : { check_token: token, check_sent_at: now }).eq("id", m.id);
 }
 
 /** Invite link, or a password link when the login already exists (e.g. an old city login). */
@@ -97,6 +122,23 @@ Deno.serve(async req => {
         await sendMail(db, m, "recovery", token);
       }
       return json({ ok: true });
+    }
+
+    // ── Public (cron): due yearly checks and reminders
+    if (action === "checkins") {
+      const sel = "id, email, name, check_token, locations(name)";
+      const now = new Date();
+      const { data: due } = await db.from("team_members").select(sel).eq("status", "active").not("email", "is", null)
+        .not("user_id", "is", null).is("check_sent_at", null).lte("next_check_at", now.toISOString());
+      const { data: remind } = await db.from("team_members").select(sel).eq("status", "active").not("check_token", "is", null)
+        .is("check_reminded_at", null).lte("check_sent_at", new Date(now.getTime() - REMIND_AFTER_MS).toISOString());
+      let sent = 0, failed = 0;
+      for (const [list, reminder] of [[due ?? [], false], [remind ?? [], true]] as const) {
+        for (const m of list as unknown as CheckMember[]) {
+          try { await sendCheck(db, m, reminder); sent++; } catch { failed++; }
+        }
+      }
+      return json({ sent, failed });
     }
 
     // ── Everything else: signed-in team members only
@@ -158,6 +200,14 @@ Deno.serve(async req => {
       } catch (e) {
         return json({ ok: true, mailError: String(e instanceof Error ? e.message : e) });
       }
+      return json({ ok: true });
+    }
+
+    if (action === "checkin_now") {
+      const { data: c } = await db.from("team_members").select("id, email, name, check_token, status, locations(name)").eq("id", m.id).single();
+      if (!c?.email || c.status !== "active") return json({ error: "missing_field" }, 400);
+      await db.from("team_members").update({ check_reminded_at: null }).eq("id", m.id);
+      await sendCheck(db, c as unknown as CheckMember, false);
       return json({ ok: true });
     }
 

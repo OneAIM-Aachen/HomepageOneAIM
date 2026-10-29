@@ -2,13 +2,22 @@
 // department, photo…) plus studies and contact from their network profile.
 // Opened from the Team overview and from "my profile" in the sidebar.
 import { useState } from "preact/hooks";
-import type { Account, Department, TeamMember, TeamRole } from "../../lib/types";
-import { activateMember, removeMember, resendInvite, ROLE_LABEL, updateMember, updatePersonDetails, uploadImage, useStore } from "../../lib/store";
+import type { Account, Department, RoleEntry, TeamMember, TeamRole } from "../../lib/types";
+import { activateMember, checkinNow, removeMember, removeRoleEntry, resendInvite, saveRoleEntry, setMemberStatus, ROLE_LABEL, updateMember, updatePersonDetails, uploadImage, useStore } from "../../lib/store";
 import { isDemoId } from "../../lib/demo";
 import { DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS } from "../../lib/fields";
 import { act, Avatar, confirmDialog, Drawer, Field } from "../ui/Ui";
-import { IconTrash } from "../ui/Icons";
+import { IconPlus, IconTrash } from "../ui/Icons";
 import { ListPicker } from "../apply/ListPicker";
+
+const monthFmt = new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric" });
+export const fmtMonth = (iso: string) => monthFmt.format(new Date(`${iso.slice(0, 10)}T12:00:00`)).replace("Sept", "Sep");
+
+/** Label of a past or current position, like subtitle() */
+export function roleLabel(e: Pick<RoleEntry, "role" | "department" | "position">): string {
+  if (e.position) return e.position;
+  return e.role === "lead" && e.department ? `Team Lead | ${e.department}` : ROLE_LABEL[e.role];
+}
 
 export // Leads are shown as "Team Lead | Events"; a custom position replaces the label.
 function subtitle(m: TeamMember, departments: Department[]): string {
@@ -126,6 +135,10 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
         </div>}
       </section>
 
+      {!demo && <StatusSection m={m} />}
+
+      <HistorySection m={m} demo={demo} />
+
       <fieldset class="stack" disabled={demo} style="border:none;padding:0;margin:0">
         <section class="stack">
           <h3>Team profile</h3>
@@ -194,5 +207,121 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
         )}
       </fieldset>
     </Drawer>
+  );
+}
+
+function StatusSection({ m }: { m: TeamMember }) {
+  if (m.status === "alumni") {
+    return (
+      <section class="team-note">
+        <div style="flex:1;min-width:0">
+          <span class="overline">Alumni</span>
+          <p>Left the team{m.alumniSince ? ` on ${fmtDate(m.alumniSince)}` : ""}. Not in the organigram, no portal access.</p>
+        </div>
+        <button class="btn btn--secondary btn--sm" onClick={async () => {
+          if (await confirmDialog({ title: `Bring ${m.name} back to the team?`, message: "They appear in the organigram again with their current role and can sign in again (if they have a login).", confirmLabel: "Back to the team" })) {
+            act(() => setMemberStatus(m.id, "active"), `${m.name} is back in the team`);
+          }
+        }}>Back to the team</button>
+      </section>
+    );
+  }
+  const check = m.checkSentAt
+    ? `Asked on ${fmtDate(m.checkSentAt)} whether they're still active${m.checkRemindedAt ? `, reminded on ${fmtDate(m.checkRemindedAt)}` : ""}. No answer yet.`
+    : m.nextCheckAt ? `Next “still active?” email: ${fmtDate(m.nextCheckAt)}${m.lastConfirmedAt ? ` (last confirmed ${fmtDate(m.lastConfirmedAt)})` : ""}.`
+    : "The yearly “still active?” email starts one year after an email is added.";
+  return (
+    <section class="stack-s">
+      <h3>Yearly check</h3>
+      <p class="muted small">{check}</p>
+      <div class="row">
+        {m.email && m.active && <button class="btn btn--secondary btn--sm" onClick={() => act(() => checkinNow(m.id), `Asked ${m.name.split(" ")[0]} by email`)}>Ask now</button>}
+        <button class="btn btn--ghost btn--sm" onClick={async () => {
+          if (await confirmDialog({
+            title: `Move ${m.name} to the alumni?`, confirmLabel: "Move to alumni",
+            message: "They leave the organigram and can no longer sign in to the portal. Their profile, positions and network entry stay.",
+          })) act(() => setMemberStatus(m.id, "alumni"), `${m.name} moved to the alumni`);
+        }}>Move to alumni</button>
+      </div>
+    </section>
+  );
+}
+
+type Draft = Omit<RoleEntry, "id"> & { id?: string };
+
+const dayBefore = (iso?: string) => {
+  if (!iso) return undefined;
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+};
+
+function HistorySection({ m, demo }: { m: TeamMember; demo: boolean }) {
+  const departments = useStore(x => x.departments);
+  const cities = useStore(x => x.tagLists.locations);
+  const [edit, setEdit] = useState<Draft | null>(null);
+  const entries = [...m.history].reverse();
+
+  const save = (e: Event) => {
+    e.preventDefault();
+    if (!edit) return;
+    act(() => saveRoleEntry(m.id, edit), "Saved").then(r => { if (r !== undefined) setEdit(null); });
+  };
+  const form = edit && (
+    <form class="card stack-s" style="padding:14px" onSubmit={save}>
+      <div class="grid-2">
+        <Field label="From" required><input class="input input--sm" type="date" required value={edit.from} onInput={e => setEdit({ ...edit, from: e.currentTarget.value })} /></Field>
+        <Field label="Until" help="Empty = current position"><input class="input input--sm" type="date" value={edit.to ?? ""} min={edit.from} onInput={e => setEdit({ ...edit, to: e.currentTarget.value || undefined })} /></Field>
+        <Field label="City"><select class="input input--sm" value={edit.city} onChange={e => setEdit({ ...edit, city: e.currentTarget.value })}>{cities.map(c => <option>{c}</option>)}</select></Field>
+        <Field label="Role"><select class="input input--sm" value={edit.role} onChange={e => setEdit({ ...edit, role: e.currentTarget.value as TeamRole })}>
+          {(Object.keys(ROLE_LABEL) as TeamRole[]).map(x => <option value={x}>{ROLE_LABEL[x]}</option>)}</select></Field>
+        <Field label="Department"><input class="input input--sm" list={`depts-${m.id}`} value={edit.department ?? ""}
+          onInput={e => { const v = e.currentTarget.value; setEdit({ ...edit, department: v, departmentId: departments.find(d => d.city === edit.city && d.name === v)?.id }); }} />
+          <datalist id={`depts-${m.id}`}>{departments.filter(d => d.city === edit.city).map(d => <option value={d.name} />)}</datalist></Field>
+        <Field label="Position" help="Optional, replaces the role label"><input class="input input--sm" value={edit.position ?? ""} onInput={e => setEdit({ ...edit, position: e.currentTarget.value })} /></Field>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <button type="button" class="btn btn--ghost btn--sm" onClick={() => setEdit(null)}>Cancel</button>
+        <button class="btn btn--primary btn--sm" disabled={!edit.from}>Save</button>
+      </div>
+    </form>
+  );
+
+  return (
+    <section class="stack-s">
+      <div class="row row--between">
+        <h3>Positions in the team</h3>
+        {!demo && !edit && <button class="btn btn--ghost btn--sm" onClick={() => setEdit({
+          city: m.city, role: "member", from: "", to: dayBefore(m.history[0]?.from),
+        })}><IconPlus width={15} />Add earlier position</button>}
+      </div>
+      <p class="muted small">Recorded automatically when role, department or position change. Dates can be corrected.</p>
+      {edit && !edit.id && form}
+      <ol class="history">
+        {entries.map(e => (
+          <li class="history__item">
+            <span class="history__dot" />
+            {edit?.id === e.id ? <div style="flex:1">{form}</div> : (
+              <div style="flex:1;min-width:0">
+                <strong style="color:var(--color-text-heading)">{roleLabel(e)}</strong>
+                <span class="muted"> · {e.city}{e.department && e.role !== "lead" ? ` · ${e.department}` : ""}</span>
+                <div class="muted small">{fmtMonth(e.from)} – {e.to ? fmtMonth(e.to) : "today"}</div>
+              </div>
+            )}
+            {!demo && edit?.id !== e.id && (
+              <span class="row" style="gap:2px;flex-wrap:nowrap">
+                <button class="btn btn--ghost btn--sm" onClick={() => setEdit({ ...e })}>Edit</button>
+                <button class="icon-btn" title="Delete entry" aria-label="Delete entry" onClick={async () => {
+                  if (await confirmDialog({ title: "Delete this entry?", message: `${roleLabel(e)}, ${fmtMonth(e.from)} – ${e.to ? fmtMonth(e.to) : "today"}`, danger: true, confirmLabel: "Delete" })) {
+                    act(() => removeRoleEntry(e.id), "Deleted");
+                  }
+                }}><IconTrash width={15} /></button>
+              </span>
+            )}
+          </li>
+        ))}
+        {entries.length === 0 && <li class="muted small">No positions recorded yet.</li>}
+      </ol>
+    </section>
   );
 }

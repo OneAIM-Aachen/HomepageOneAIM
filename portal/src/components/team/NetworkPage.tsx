@@ -128,7 +128,7 @@ function Network({ initial }: { initial: string | null }) {
             <tbody>
               {filtered.map(({ p, subs }) => (
                 <tr class="is-clickable" onClick={() => setOpen(p.id)}>
-                  <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong>{(() => { const m = s.team.find(t => t.personId === p.id); return m ? <span class="chip chip--purple" style="margin-left:6px" title={`${ROLE_LABEL[m.role]}, OneAIM ${m.city}`}>Team · {m.city}</span> : null; })()}<span class="muted small">{p.email}</span></div></div></td>
+                  <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong>{(() => { const m = s.team.find(t => t.personId === p.id); return m ? <span class="chip chip--purple" style="margin-left:6px" title={`${ROLE_LABEL[m.role]}, OneAIM ${m.city}`}>{m.status === "alumni" ? "Alumni" : "Team"} · {m.city}</span> : null; })()}<span class="muted small">{p.email}</span></div></div></td>
                   <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}</span></td>
                   <td>{cvsOf(subs as Entry[]).length
                     ? <span class="chip chip--blue" title={cvsOf(subs as Entry[])[0]!.file.fileName}><IconFile width={14} />CV</span>
@@ -188,7 +188,7 @@ function PersonDrawer({ person: p, subs, onClose }: { person: Person; subs: Entr
       {member && (
         <section class="team-note">
           <div style="flex:1;min-width:0">
-            <span class="overline">OneAIM team</span>
+            <span class="overline">{member.status === "alumni" ? `OneAIM alumni${member.alumniSince ? ` · left ${fmtDate(member.alumniSince)}` : ""}` : "OneAIM team"}</span>
             <p><strong style="color:var(--color-text-heading)">{member.position || (member.role === "lead" && dept ? `Team Lead | ${dept.name}` : ROLE_LABEL[member.role])}</strong> · {member.city}{dept && member.role !== "lead" ? ` · ${dept.name}` : ""}{member.memberSince ? ` · since ${member.memberSince}` : ""}</p>
           </div>
           <a class="btn btn--secondary btn--sm" href={`/team/team?member=${member.id}`}>Team profile</a>

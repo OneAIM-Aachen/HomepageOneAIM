@@ -7,7 +7,7 @@ import { addDepartment, inviteMember, removeDepartment, renameDepartment, useSto
 import { isDemoId } from "../../lib/demo";
 import { fmtDate } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
-import { MemberDrawer, RoleFields, subtitle } from "./MemberDrawer";
+import { fmtMonth, MemberDrawer, roleLabel, RoleFields, subtitle } from "./MemberDrawer";
 import { act, Avatar, confirmDialog, Field, Modal, useParam } from "../ui/Ui";
 import { IconPlus, IconSearch, IconTrash } from "../ui/Icons";
 
@@ -22,20 +22,24 @@ function Team({ acc }: { acc: Account }) {
   const s = useStore(x => x);
   const initialMember = useParam("member");
   const [city, setCity] = useState(useParam("city") ?? "");
-  const [view, setView] = useState<"org" | "list">(useParam("view") === "org" ? "org" : "list");
+  const viewParam = useParam("view");
+  const [view, setView] = useState<"org" | "list" | "alumni">(viewParam === "org" || viewParam === "alumni" ? viewParam : "list");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(initialMember);
   const [inviting, setInviting] = useState(useParam("invite") === "1");
   const [editingDepts, setEditingDepts] = useState(false);
 
   const cities = s.tagLists.locations;
-  const shown = city ? [city] : cities.filter(c => s.team.some(m => m.city === c) || s.departments.some(d => d.city === c));
+  const team = s.team.filter(m => m.status === "active");
+  const alumni = s.team.filter(m => m.status === "alumni");
+  const shown = city ? [city] : cities.filter(c => team.some(m => m.city === c) || s.departments.some(d => d.city === c));
   const member = s.team.find(m => m.id === open);
-  const pending = s.team.filter(m => m.email && !m.active).length;
-  const noLogin = s.team.filter(m => !m.email).length;
+  const pending = team.filter(m => m.email && !m.active).length;
+  const noLogin = team.filter(m => !m.email).length;
+  const checksOpen = team.filter(m => m.checkSentAt).length;
 
   const ql = q.trim().toLowerCase();
-  const listed = s.team.filter(m => (!city || m.city === city) &&
+  const listed = (view === "alumni" ? alumni : team).filter(m => (!city || m.city === city) &&
     (!ql || `${m.name} ${m.email ?? ""} ${m.position ?? ""} ${s.departments.find(d => d.id === m.departmentId)?.name ?? ""}`.toLowerCase().includes(ql)));
 
   return (
@@ -54,11 +58,15 @@ function Team({ acc }: { acc: Account }) {
       )}
 
       <div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-        <div class="card stat"><span class="stat__num">{s.team.length}</span><span class="stat__label">Team members</span></div>
-        <div class="card stat"><span class="stat__num">{s.departments.length}</span><span class="stat__label">Departments</span></div>
+        <div class="card stat"><span class="stat__num">{team.length}</span><span class="stat__label">Team members</span><span class="muted small">{s.departments.length} departments</span></div>
+        <div class="card stat"><span class="stat__num">{alumni.length}</span><span class="stat__label">Alumni</span></div>
         <div class="card stat"><span class="stat__num">{noLogin}</span><span class="stat__label">Without login</span><span class="muted small">no email added yet</span></div>
         <div class="card stat"><span class="stat__num">{pending}</span><span class="stat__label">Invitations open</span><span class="muted small">no password set yet</span></div>
       </div>
+
+      {checksOpen > 0 && (
+        <p class="muted small">{checksOpen} member{checksOpen > 1 ? "s" : ""} haven't answered the yearly “still active?” email yet (marked “Check open” in the list).</p>
+      )}
 
       <div class="row">
         <div class="row" style="gap:6px" role="group" aria-label="City">
@@ -69,14 +77,40 @@ function Team({ acc }: { acc: Account }) {
         <div class="row" style="gap:6px" role="group" aria-label="View">
           <button class={`chip-btn ${view === "list" ? "is-active" : ""}`} onClick={() => setView("list")}>List</button>
           <button class={`chip-btn ${view === "org" ? "is-active" : ""}`} onClick={() => setView("org")}>Organigram</button>
+          <button class={`chip-btn ${view === "alumni" ? "is-active" : ""}`} onClick={() => setView("alumni")}>Alumni{alumni.length ? ` (${alumni.length})` : ""}</button>
         </div>
       </div>
 
       {view === "org"
         ? (shown.length
-            ? shown.map(c => <CityOrg city={c} members={s.team.filter(m => m.city === c)} departments={s.departments.filter(d => d.city === c)} onOpen={setOpen} />)
+            ? shown.map(c => <CityOrg city={c} members={team.filter(m => m.city === c)} departments={s.departments.filter(d => d.city === c)} onOpen={setOpen} />)
             : <div class="empty">No team members yet. Start with “Invite member”.</div>)
-        : (
+        : view === "alumni" ? (
+          <div class="stack-s">
+            <p class="muted small">Former team members, with the positions they held. They stay in the network; open a profile to see their history or bring them back to the team.</p>
+            <div class="card card--flush">
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th>Person</th><th>City</th><th>Last position</th><th>In the team</th></tr></thead>
+                  <tbody>
+                    {[...listed].sort((a, b) => (b.alumniSince ?? "").localeCompare(a.alumniSince ?? "") || a.name.localeCompare(b.name)).map(m => {
+                      const last = m.history[m.history.length - 1];
+                      return (
+                        <tr class="is-clickable" onClick={() => setOpen(m.id)}>
+                          <td><div class="cell-person"><Avatar name={m.name} src={m.photo} /><div><strong>{m.name}</strong><span class="muted small">{m.email ?? "No email"}</span></div></div></td>
+                          <td>{m.city}</td>
+                          <td>{last ? roleLabel(last) : subtitle(m, s.departments)}</td>
+                          <td class="small">{m.history[0] ? fmtMonth(m.history[0].from) : "?"} – {m.alumniSince ? fmtMonth(m.alumniSince) : "?"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {listed.length === 0 && <div class="empty" style="border:none">No alumni{city ? ` in ${city}` : ""} yet. Members who answer “No” to the yearly check, or are moved to the alumni in their profile, show up here.</div>}
+            </div>
+          </div>
+        ) : (
           <div class="stack-s">
             <div style="position:relative;max-width:380px">
               <IconSearch width={17} style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted)" />
@@ -94,7 +128,8 @@ function Team({ acc }: { acc: Account }) {
                         <td>{subtitle(m, s.departments)}</td>
                         <td>{s.departments.find(d => d.id === m.departmentId)?.name ?? "–"}</td>
                         <td class="muted small">{m.memberSince ?? "–"}</td>
-                        <td>{!m.email ? <span class="chip chip--gray">No login</span> : m.active ? <span class="chip chip--green">Active</span> : <span class="chip chip--amber" title={m.invitedAt ? `Invited ${fmtDate(m.invitedAt)}` : undefined}>Invited</span>}</td>
+                        <td>{!m.email ? <span class="chip chip--gray">No login</span> : m.active ? <span class="chip chip--green">Active</span> : <span class="chip chip--amber" title={m.invitedAt ? `Invited ${fmtDate(m.invitedAt)}` : undefined}>Invited</span>}
+                          {m.checkSentAt && <span class="chip chip--purple" style="margin-left:4px" title={`Asked ${fmtDate(m.checkSentAt)} whether they're still active`}>Check open</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -177,7 +212,7 @@ function InviteModal({ acc, city: preset, onClose, onDone }: { acc: Account; cit
   const [busy, setBusy] = useState(false);
   // Imported profiles without login: invite them from their profile instead of creating a second one
   const same = (a: string, b: string) => a.trim().replace(/\s+/g, " ").toLowerCase() === b.trim().replace(/\s+/g, " ").toLowerCase();
-  const existing = useStore(x => x.team.find(m => !m.email && d.name.trim() && same(m.name, d.name)));
+  const existing = useStore(x => x.team.find(m => !m.email && m.status === "active" && d.name.trim() && same(m.name, d.name)));
   const valid = d.name.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim()) && d.city;
 
   const submit = async (e: Event) => {

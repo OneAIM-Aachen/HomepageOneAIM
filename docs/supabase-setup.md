@@ -16,12 +16,16 @@ The database lives in `supabase/migrations/`:
 | `…180000_email_name_and_slot_rules.sql` | Same email + different name is refused; no interview slots in the past |
 | `…190000_remove_external_forms.sql` | Removes external forms (Tally): every application uses our own form |
 | `20261029100000_team_members.sql` | Personal team accounts, team profiles (linked to the network person), departments for the organigram |
+| `20261029120000_team_profiles_without_login.sql` | Profiles without login; import of the website team |
+| `20261029160000_team_history_alumni_checkins.sql` | Position history, alumni, yearly "still active?" check (pg_cron daily → team-accounts `checkins`) |
 
 ## Who can do what
 
 - **Team** = a logged-in user with a row in `team_members` (personal account). All members have the same rights: full access to everything, incl. all CVs, and they can invite and remove members.
   - Accounts are created only by invitation (Team overview → "Invite member", edge function `team-accounts`). The email (via Brevo) links to `/team/welcome`, where the person sets their password. "Forgot password?" works the same way.
   - Every member is linked to the network person (`people`) with the same email; same email under a different name is refused. Universities, study programs, phone and LinkedIn live on that person.
+  - Only `status = 'active'` members have access. Alumni keep profile and position history (`team_member_roles`) but can't sign in.
+  - Yearly check: one year after the email is added (and a year after every "yes"), team-accounts emails a link to `/team/checkin`; "no" makes the member alumni. One reminder after 14 days.
   - The old city logins (`team_accounts`) stop working once the first personal account has set its password, except logins marked `keep_active` (`aachen@one-aim.org`).
 - **Applicants / public** have no table access at all. They can only:
   - `published_applications()`: list published rounds (also used by one-aim.org)

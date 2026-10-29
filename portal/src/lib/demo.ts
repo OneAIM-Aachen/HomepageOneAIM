@@ -194,9 +194,12 @@ export function withDemo(s: State): State {
     let n = 0;
     const add = (role: TeamRole, departmentId?: string, position?: string) => {
       const person = n % 3 === 0 && former.length ? former.splice(Math.floor(r() * former.length), 1)[0]! : newPerson(city, "mixed");
+      const [memberSince, from] = pick(r, [[["WS 24/25", "2024-10-01"], 2], [["SS 25", "2025-04-01"], 3], [["WS 25/26", "2025-10-01"], 4], [["SS 26", "2026-04-01"], 3]]);
+      const id = `demo-m${team.length}`;
       team.push({
-        id: `demo-m${team.length}`, personId: person.id, email: person.email, name: person.name, city, role, departmentId, position,
-        memberSince: pick(r, [["WS 24/25", 2], ["SS 25", 3], ["WS 25/26", 4], ["SS 26", 3]]), active: r() > 0.1,
+        id, personId: person.id, email: person.email, name: person.name, city, role, departmentId, position, memberSince,
+        active: r() > 0.1, status: "active",
+        history: [{ id: `${id}-h`, city, role, departmentId, department: useDepts.find(d => d.id === departmentId)?.name, position, from }],
       });
       n++;
     };

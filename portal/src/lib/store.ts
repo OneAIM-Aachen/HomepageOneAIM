@@ -13,7 +13,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type {
   Account, Answer, Application, Blueprint, Department, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
-  SubmissionStatus, Tags, TemplateKey, Pipeline, TeamMember,
+  SubmissionStatus, Tags, TemplateKey, Pipeline, RoleEntry, TeamMember,
 } from "./types";
 import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
@@ -137,7 +137,7 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 }
 
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, members, departments, memberStatus, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
+  const [programs, locations, semesters, members, departments, memberStatus, roles, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
@@ -145,6 +145,7 @@ export async function loadAll(): Promise<void> {
       supabase.from("team_members").select("*").order("name"),
       supabase.from("team_departments").select("*").order("sort_order").order("name"),
       supabase.rpc("team_member_status"),
+      all(() => supabase.from("team_member_roles").select("*").order("started_on").order("created_at").order("id")),
       supabase.from("blueprints").select("*").order("updated_at", { ascending: false }),
       all(() => supabase.from("applications").select("*").order("created_at", { ascending: false }).order("id")),
       all(() => supabase.from("interview_slots").select("*").order("starts_at").order("id")),
@@ -185,11 +186,23 @@ export async function loadAll(): Promise<void> {
   state = {
     team: (() => {
       const st = new Map((check(memberStatus) as any[]).map(r => [r.member_id, r]));
+      const hist = new Map<string, RoleEntry[]>();
+      for (const r of check(roles) as any[]) {
+        const list = hist.get(r.member_id) ?? [];
+        list.push({
+          id: r.id, city: label(maps.location, r.location_id), role: r.role, departmentId: r.department_id ?? undefined,
+          department: r.department ?? undefined, position: r.position ?? undefined, from: r.started_on, to: r.ended_on ?? undefined,
+        });
+        hist.set(r.member_id, list);
+      }
       return (check(members) as any[]).map(m => ({
         id: m.id, personId: m.person_id ?? undefined, email: m.email ?? undefined, linkedin: m.linkedin ?? undefined, name: m.name, city: label(maps.location, m.location_id),
         role: m.role, departmentId: m.department_id ?? undefined, position: m.position ?? undefined, photo: m.photo_url ?? undefined,
         memberSince: m.member_since ?? undefined, about: m.about ?? undefined, invitedAt: m.invited_at ?? undefined,
         active: !!st.get(m.id)?.has_password, lastSignInAt: st.get(m.id)?.last_sign_in_at ?? undefined,
+        status: m.status, alumniSince: m.alumni_since ?? undefined, nextCheckAt: m.next_check_at ?? undefined,
+        checkSentAt: m.check_sent_at ?? undefined, checkRemindedAt: m.check_reminded_at ?? undefined,
+        lastConfirmedAt: m.last_confirmed_at ?? undefined, history: hist.get(m.id) ?? [],
       }) as TeamMember);
     })(),
     departments: (check(departments) as any[]).map(d => ({
@@ -259,7 +272,7 @@ export async function login(email: string, password: string): Promise<Account> {
     const { data: city } = await supabase.from("team_accounts").select("city").eq("user_id", data.user.id).maybeSingle();
     throw new Error(city !== null
       ? "City logins are switched off. Please sign in with your personal account."
-      : "This account is not a OneAIM team account.");
+      : "This account is not (or no longer) an active OneAIM team account.");
   }
   return acc;
 }
@@ -829,6 +842,43 @@ export async function updatePersonDetails(personId: string, p: Partial<Pick<Pers
   if ("degree" in p) row.degree = p.degree || null;
   check(await supabase.from("people").update(row).eq("id", personId));
   await loadAll();
+}
+
+/** Alumni leave the organigram and lose portal access; history and profile stay. */
+export async function setMemberStatus(id: string, status: TeamMember["status"]) {
+  check(await supabase.from("team_members").update({ status }).eq("id", id));
+  await loadAll();
+}
+
+/** Sends the yearly "still active?" email right away. */
+export async function checkinNow(memberId: string) {
+  await teamCall({ action: "checkin_now", member_id: memberId });
+  await loadAll();
+}
+
+export async function saveRoleEntry(memberId: string, e: Omit<RoleEntry, "id"> & { id?: string }) {
+  const row = {
+    member_id: memberId, location_id: idOf(maps.location, e.city), role: e.role, department_id: e.departmentId || null,
+    department: e.department?.trim() || null, position: e.position?.trim() || null, started_on: e.from, ended_on: e.to || null,
+  };
+  check(e.id ? await supabase.from("team_member_roles").update(row).eq("id", e.id) : await supabase.from("team_member_roles").insert(row));
+  await loadAll();
+}
+
+export async function removeRoleEntry(id: string) {
+  check(await supabase.from("team_member_roles").delete().eq("id", id));
+  await loadAll();
+}
+
+// Yearly check page (public, by the token in the email)
+export async function getCheckin(token: string): Promise<{ name: string; city: string } | null> {
+  const { data, error } = await supabase.rpc("team_checkin_info", { p_token: token });
+  if (error) throw new Error(friendlyError(error));
+  return data ?? null;
+}
+
+export async function answerCheckin(token: string, stillActive: boolean): Promise<"active" | "alumni"> {
+  return check(await supabase.rpc("team_checkin", { p_token: token, p_still_active: stillActive })) as "active" | "alumni";
 }
 
 export async function addDepartment(city: string, name: string) {
