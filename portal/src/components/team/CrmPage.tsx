@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account, Application, FileRef, Person, Submission, SubmissionStatus } from "../../lib/types";
-import { actorLabel, loadEmailSettings, personalize, ROLE_LABEL, sendGroupEmail, useStore, type EmailSettings } from "../../lib/store";
+import { actorLabel, inviteToNetworkSite, loadEmailSettings, personalize, ROLE_LABEL, sendGroupEmail, useStore, type EmailSettings } from "../../lib/store";
 import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS, STATUS_LABEL, TEMPLATE_LABEL } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, Avatar, confirmDialog, Drawer, Field, Modal, StatusChip, useParam } from "../ui/Ui";
@@ -8,7 +8,7 @@ import { IconDownload, IconFile, IconMail, IconSearch } from "../ui/Icons";
 import { Answers, FileCard, isFile, openFile } from "./Answers";
 
 // CRM: everyone who ever applied, one profile per email address.
-// (The curated internal network is NetworkPage.)
+// (The curated network is its own site: /members.)
 export default function CrmPage() {
   const p = useParam("p");
   return <TeamShell active="crm">{acc => <Crm acc={acc} initial={p} />}</TeamShell>;
@@ -89,7 +89,7 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
   return (
     <div class="stack" style="gap:20px">
       <PageHead overline="CRM" title="All applicants"
-        sub="Everyone who ever applied, one profile per email address, with their full application history. The curated network is under “Network”."
+        sub="Everyone who ever applied, one profile per email address, with their full application history. The curated network is on the network site."
         actions={<>
           <button class="btn btn--secondary" onClick={exportCsv}><IconDownload width={16} />Export CSV</button>
           <button class="btn btn--primary" disabled={!filtered.length} onClick={() => setMailing(true)}
@@ -190,7 +190,7 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
   return (
     <Drawer onClose={onClose}
       head={<div class="row" style="flex-wrap:nowrap"><Avatar name={p.name} large /><div><h2 style="font-size:1.25rem">{p.name}</h2><span class="muted small">First applied {fmtDate(p.firstSeen)} · {subs.length} application{subs.length === 1 ? "" : "s"}</span></div></div>}
-      foot={<><a class="btn btn--secondary btn--sm" href={`/team/outbox?p=${p.id}`}>Emails with {p.name.split(" ")[0]}</a><span class="spacer" />
+      foot={<><a class="btn btn--secondary btn--sm" href={`/team/outbox?p=${p.id}`}>Emails with {p.name.split(" ")[0]}</a><NetworkSiteStatus person={p} /><span class="spacer" />
         <span class="muted small">Profile = newest answers from their applications</span></>}>
 
       {member && (
@@ -350,5 +350,26 @@ function GroupEmailModal({ people, acc, onClose }: { people: Person[]; acc: Acco
         </div>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * Network site login for people in the network (accepted after a selection,
+ * or team): invited when, and a button to (re)send the welcome email.
+ */
+function NetworkSiteStatus({ person: p }: { person: Person }) {
+  const acc = useStore(x => x.networkAccounts[p.id]);
+  const member = useStore(x => x.team.find(m => m.personId === p.id));
+  const inNetwork = useStore(x => !!member || x.submissions.some(s => s.personId === p.id && s.status === "accepted"
+    && x.applications.find(a => a.id === s.applicationId)?.pipeline !== "instant"));
+  if (!inNetwork || p.id.startsWith("demo-")) return null;
+  if (member?.email) return <span class="muted small">Network site: uses the team login</span>;
+  return (
+    <span class="row" style="gap:8px">
+      {acc?.invitedAt && <span class="muted small">Network site: invited {fmtDate(acc.invitedAt)}</span>}
+      <button class="btn btn--ghost btn--sm" onClick={() => act(() => inviteToNetworkSite(p.id), `Welcome email sent to ${p.email}`)}>
+        {acc ? "Send network login again" : "Invite to network site"}
+      </button>
+    </span>
   );
 }

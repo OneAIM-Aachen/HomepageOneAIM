@@ -1,5 +1,5 @@
 ---
-import Base from "../../layouts/Base.astro";
-import NetworkPage from "../../components/team/NetworkPage";
+// The network is its own site now (/members); old links land there.
 ---
-<Base title="Network · OneAIM Team"><NetworkPage client:only="preact" /></Base>
+<meta http-equiv="refresh" content="0; url=/members" />
+<script>location.replace("/members");</script>
