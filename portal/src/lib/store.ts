@@ -13,7 +13,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type {
   Account, Answer, Application, Blueprint, Department, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
-  SubmissionStatus, Tags, TemplateKey, Pipeline, RoleEntry, TeamMember, ReviewStage, ScoreSheet, Scorecard,
+  SubmissionStatus, Tags, TemplateKey, Pipeline, RoleEntry, TeamMember, ReviewStage, ScoreSheet, Scorecard, PlannedDecision,
 } from "./types";
 import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
@@ -237,6 +237,7 @@ export async function loadAll(): Promise<void> {
       comments: commentRows.filter(c => c.submission_id === x.id).map(c => ({
         author: c.author_city, text: c.body, at: c.created_at, stage: c.stage ?? undefined, memberId: c.author_member_id ?? undefined,
       })),
+      plannedDecision: x.planned_decision ?? undefined, plannedBy: x.planned_by ?? undefined,
       reviewerIds: (check(reviewers) as any[]).filter(r => r.submission_id === x.id).map(r => r.member_id),
       scoreSheets: (check(scoreRows) as any[]).filter(r => r.submission_id === x.id).map(r => ({
         id: r.id, memberId: r.member_id, stage: r.stage, scores: r.scores ?? {}, note: r.note ?? undefined, updatedAt: r.updated_at,
@@ -917,6 +918,40 @@ export async function updatePersonDetails(personId: string, p: Partial<Pick<Pers
 export async function inviteToNetworkSite(personId: string) {
   await teamCall({ action: "network_invite", person_id: personId });
   await loadAll();
+}
+
+// ── Batch decisions: plan first, then apply + send all at once ───────────
+
+/** Plans (or clears) a decision without changing the status or sending anything.
+ *  Demo applicants are planned only in this browser. */
+export async function planDecision(subIds: string[], decision: PlannedDecision | null) {
+  const demo = subIds.filter(id => id.startsWith("demo-"));
+  const real = subIds.filter(id => !id.startsWith("demo-"));
+  if (real.length) check(await supabase.from("submissions").update({ planned_decision: decision }).in("id", real));
+  if (demo.length) {
+    state = { ...state, submissions: state.submissions.map(x => (demo.includes(x.id) ? { ...x, plannedDecision: decision ?? undefined, plannedBy: decision ? "Demo" : undefined } : x)) };
+    notify();
+  }
+  if (real.length) await loadAll();
+}
+
+export interface BatchResult { applied: number; sent?: number; failed?: number; skipped?: string }
+
+/** Applies every planned decision of these applicants (grouped by decision); emails go out together. */
+export async function applyPlannedDecisions(subs: Submission[], sendMail: boolean): Promise<BatchResult> {
+  let applied = 0;
+  for (const d of ["invite", "accept", "reject"] as PlannedDecision[]) {
+    const ids = subs.filter(x => x.plannedDecision === d && !x.id.startsWith("demo-")).map(x => x.id);
+    if (ids.length) applied += check(await supabase.rpc("decide", { p_submission_ids: ids, p_decision: d, p_send_email: sendMail })) as number;
+  }
+  let out: BatchResult = { applied };
+  if (sendMail && applied) {
+    const { data } = await supabase.functions.invoke("send-emails", { body: {} });
+    out = { applied, sent: data?.sent, failed: data?.failed, skipped: data?.skipped };
+    if (subs.some(x => x.plannedDecision === "accept")) await supabase.functions.invoke("team-accounts", { body: { action: "network_queue" } }).catch(() => undefined);
+  }
+  await loadAll();
+  return out;
 }
 
 // ── Review workflow: interviewers, reviewers, scorecards ─────────────────

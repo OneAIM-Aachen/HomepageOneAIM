@@ -1,11 +1,12 @@
 import { useMemo, useState } from "preact/hooks";
-import type { Account, Application, ReviewStage, Scorecard, Slot, Submission, SubmissionStatus, TemplateKey } from "../../lib/types";
+import type { Account, Application, PlannedDecision, ReviewStage, Scorecard, Slot, Submission, SubmissionStatus, TemplateKey } from "../../lib/types";
 import {
   addComment, addSlots, decide, deleteApplication, inviteBlocker, removeSlot, renderTemplate, saveApplication,
   sendInterviewDetails, setScore, slotComplete, slotIsPast, slotTaken, updateSlot, uploadImage, useStore, type Decision,
-  formOptionsFromState, getState, applicantScore, assignReviewers, unassignReviewer, setInterviewers, saveScoreSheet,
+  formOptionsFromState, getState, applicantScore, planDecision, assignReviewers, unassignReviewer, setInterviewers, saveScoreSheet,
   deleteScoreSheet, sheetScore,
 } from "../../lib/store";
+import { DecisionsTab } from "./DecisionsTab";
 import { AddMember, fmtScore, MemberChips, ScorecardEditor, scorecardValid, ScoreSheetForm, STAGE_LABEL } from "./Review";
 import {
   appPhase, appTitle, CURRENCIES, feeValue, fmtDate, parseFee, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL,
@@ -19,7 +20,7 @@ import { FormRenderer } from "../apply/FormRenderer";
 import { isDemoId } from "../../lib/demo";
 import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash } from "../ui/Icons";
 
-type Tab = "applicants" | "setup" | "form" | "scorecards" | "emails" | "slots";
+type Tab = "applicants" | "decisions" | "setup" | "form" | "scorecards" | "emails" | "slots";
 
 export default function ApplicationPage() {
   const id = useParam("id");
@@ -40,6 +41,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
   const subs = useStore(s => s.submissions.filter(x => x.applicationId === id));
   const [tab, setTab] = useState<Tab>(initialTab);
   const [preview, setPreview] = useState(false);
+  const [openFromDecisions, setOpenFromDecisions] = useState<string | null>(null);
 
   if (!app) return <div class="empty">This application does not exist. <a href="/team/applications">Back to applications</a></div>;
 
@@ -47,6 +49,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
   const publicUrl = `/apply/form?a=${app.slug}`;
   const tabs: [Tab, string, number?][] = [
     ["applicants", "Applicants", subs.length],
+    ...(app.pipeline !== "instant" ? [["decisions", "Decisions", subs.filter(x => x.plannedDecision).length || undefined] as [Tab, string, number?]] : []),
     ["setup", "Setup & dates"],
     ["form", "Form", app.fields.length],
     ...(app.pipeline !== "instant" ? [["scorecards", "Scorecards", Object.keys(app.scorecards).length] as [Tab, string, number]] : []),
@@ -90,7 +93,8 @@ function Detail({ acc, id, initialTab, openSub, created }: {
         ))}
       </nav>
 
-      {tab === "applicants" && <Applicants acc={acc} app={app} subs={subs} openSub={openSub} />}
+      {tab === "applicants" && <Applicants acc={acc} app={app} subs={subs} openSub={openSub ?? openFromDecisions} />}
+      {tab === "decisions" && <DecisionsTab app={app} subs={subs} onOpen={id => { setOpenFromDecisions(id); setTab("applicants"); }} />}
       {tab === "setup" && <Setup app={app} hasSubs={subs.length > 0} />}
       {tab === "form" && <FormTab app={app} hasSubs={subs.length > 0} />}
       {tab === "scorecards" && <ScorecardsTab app={app} />}
@@ -210,7 +214,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
                         <td onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.name}`} disabled={isDemoId(x.id)} checked={selected.has(x.id)} onChange={() => toggle(x.id)} /></td>
                         <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.email}</span></div></div></td>
                         <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}{p.semester && /^\d/.test(p.semester) ? ` · ${p.semester}. sem.` : ""}{p.degree ? ` · ${p.degree}` : ""}</span></td>
-                        <td><StatusChip status={x.status} /></td>
+                        <td><StatusChip status={x.status} />{x.plannedDecision && <div style="margin-top:4px"><span class={`chip ${x.plannedDecision === "accept" ? "chip--green" : x.plannedDecision === "reject" ? "chip--red" : "chip--purple"}`} title={`Planned by ${x.plannedBy ?? "?"}, not sent yet`}>Planned: {DECISION_TEXT[x.plannedDecision].verb}</span></div>}</td>
                         <td onClick={e => { if (!applicantScore(app, x).sheets) e.stopPropagation(); }}>
                           {applicantScore(app, x).sheets
                             ? <ScoreCell app={app} sub={x} />
@@ -234,10 +238,11 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
         <div class="bulkbar" role="toolbar" aria-label="Bulk actions">
           <strong>{selected.size} selected</strong>
           {bulk.length === 0 && <span class="small" style="opacity:.8">Selected applicants are in different stages: no common action.</span>}
-          {bulk.map(d => (
-            <button class={`btn btn--sm ${d === "reset" ? "btn--ghost" : d === "accept" ? "btn--success" : d === "reject" ? "btn--danger" : "btn--secondary"}`}
-              onClick={() => setConfirm({ ids: [...selected], decision: d })}>{DECISION_TEXT[d].verb}</button>
+          {bulk.filter(d => d !== "reset").map(d => (
+            <button class="btn btn--sm btn--secondary"
+              onClick={() => act(() => planDecision([...selected], d as PlannedDecision), `Planned for ${selected.size}: ${DECISION_TEXT[d].verb}`).then(() => setSelected(new Set()))}>Plan: {DECISION_TEXT[d].verb}</button>
           ))}
+          {bulk.includes("reset") && <button class="btn btn--sm btn--ghost" onClick={() => setConfirm({ ids: [...selected], decision: "reset" })}>{DECISION_TEXT.reset.verb}</button>}
           {selSubs.every(x => !isDemoId(x.id)) && (
             <AddMember label="Assign reviewer…" exclude={[]} city={app.tags.location}
               onAdd={id => act(() => assignReviewers([...selected], [id]), `Reviewer assigned to ${selected.size} applicant${selected.size > 1 ? "s" : ""}`)} />
@@ -332,7 +337,16 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
       </div>}
       foot={<>
         {isDemoId(sub.id) ? <span class="muted small">Demo applicant: view only.</span> : <>
-        {decisions.map(d => <button class={`btn btn--sm ${DECISION_TEXT[d].btn}`} onClick={() => onDecide(d)}>{DECISION_TEXT[d].verb}</button>)}
+        {decisions.filter(d => d !== "reset").map(d => {
+          const on = sub.plannedDecision === d;
+          return (
+            <button class={`btn btn--sm ${on ? DECISION_TEXT[d].btn : "btn--secondary"}`} title="Planned only: applied and sent together under “Decisions”"
+              onClick={() => act(() => planDecision([sub.id], on ? null : d as PlannedDecision), on ? "Plan removed" : `Planned: ${DECISION_TEXT[d].verb}`)}>
+              {on ? `✓ Planned: ${DECISION_TEXT[d].verb}` : `Plan: ${DECISION_TEXT[d].verb}`}
+            </button>
+          );
+        })}
+        {decisions.includes("reset") && <button class="btn btn--sm btn--ghost" onClick={() => onDecide("reset")}>{DECISION_TEXT.reset.verb}</button>}
         {decisions.length === 0 && <span class="muted small">Confirmed automatically (instant pipeline).</span>}
         </>}
         {sub.status === "invited" && sub.slotId && (

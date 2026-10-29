@@ -136,11 +136,15 @@ export interface Submission {
   submittedAt: string;
   /** Team members assigned to review (team_members.id) */
   reviewerIds: string[];
+  /** Decision planned in the batch overview, not applied/sent yet */
+  plannedDecision?: PlannedDecision;
+  plannedBy?: string;
   /** Filled-in scorecards (one per member and stage) */
   scoreSheets: ScoreSheet[];
 }
 
 export type ReviewStage = "screening" | "interview";
+export type PlannedDecision = "invite" | "accept" | "reject";
 
 export interface ScoreSheet {
   id: string;

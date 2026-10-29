@@ -805,3 +805,21 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .score-pill small { font-weight: 600; color: var(--color-text-muted); }
 .note { padding: 12px 14px; border-radius: var(--radius-md); background: #FAFBFE; border: 1px solid var(--p-line); }
 .table--compact th, .table--compact td { padding: 8px 10px; font-size: 13px; }
+
+/* ── Batch decisions ─────────────────────────────────────────────────────── */
+.seg { display: inline-flex; border: 1px solid var(--p-line); border-radius: 10px; overflow: hidden; }
+.seg__btn { border: none; background: var(--p-surface); padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--color-text-body); }
+.seg__btn + .seg__btn { border-left: 1px solid var(--p-line); }
+.seg__btn:hover { background: var(--p-chip); }
+.seg__btn--invite.is-on { background: #F3E9FE; color: var(--color-accent-purple); }
+.seg__btn--accept.is-on { background: var(--p-green-tint); color: var(--p-green); }
+.seg__btn--reject.is-on { background: var(--p-red-tint); color: var(--p-red); }
+.link-btn { all: unset; cursor: pointer; }
+.link-btn:hover strong { color: var(--color-brand-blue); }
+.link-btn:focus-visible { outline: 2px solid var(--color-brand-blue); outline-offset: 2px; border-radius: 8px; }
+.breakdown { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr 24px; gap: 8px; align-items: center; font-size: 13px; }
+.breakdown__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-heading); }
+.breakdown__bar { height: 8px; background: var(--p-chip); border-radius: 999px; overflow: hidden; }
+.breakdown__bar span { display: block; height: 100%; background: var(--color-brand-blue); border-radius: 999px; }
+.breakdown__num { text-align: right; font-weight: 700; color: var(--color-text-heading); }
+.link-btn.cell-person { display: flex; text-align: left; }

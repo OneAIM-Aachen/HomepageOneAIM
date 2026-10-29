@@ -235,15 +235,17 @@ export function withDemo(s: State): State {
       const app = apps.find(a => a.id === x.applicationId)!;
       if (app.pipeline === "instant") continue;
       x.reviewerIds = reviewersFor(app.tags.location);
+      const quality = x.score ?? 1 + Math.floor(rr() * 5);   // how strong this applicant is
       const sheet = (stage: "screening" | "interview", memberId: string) => {
         const card = app.scorecards[stage];
         if (!card) return;
-        const base = x.score ?? 3;
+        const base = quality;
         const scores = Object.fromEntries(card.criteria.map(c => [c.id, Math.min(5, Math.max(1, base + Math.round(rr() * 2 - 1)))]));
         x.scoreSheets.push({ id: `demo-sh-${x.id}-${stage}-${memberId}`, memberId, stage, scores, updatedAt: app.dates.deadline });
       };
-      if (x.status !== "new") {
-        for (const m of x.reviewerIds) sheet("screening", m);
+      // Decided applicants are fully rated; current screenings mostly (reviews in progress)
+      if (x.status !== "new" || rr() < 0.7) {
+        for (const m of x.reviewerIds) if (x.status !== "new" || rr() < 0.8) sheet("screening", m);
         if (x.history.some(h => h.status === "invited") && x.status !== "invited") sheet("interview", x.reviewerIds[0]!);
       }
     }
