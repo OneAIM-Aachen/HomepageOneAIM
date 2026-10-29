@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account, Application, FileRef, Person, Submission, SubmissionStatus } from "../../lib/types";
 import { actorLabel, loadEmailSettings, personalize, ROLE_LABEL, sendGroupEmail, useStore, type EmailSettings } from "../../lib/store";
-import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS, STATUS_LABEL } from "../../lib/fields";
+import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS, STATUS_LABEL, TEMPLATE_LABEL } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, Avatar, confirmDialog, Drawer, Field, Modal, StatusChip, useParam } from "../ui/Ui";
 import { IconDownload, IconFile, IconMail, IconSearch } from "../ui/Icons";
@@ -257,7 +257,41 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
           </details>
         ))}
       </section>
+
+      <EmailHistory person={p} />
     </Drawer>
+  );
+}
+
+/** Every email to and from this person (sent by the portal and received in the mailbox), newest first. */
+function EmailHistory({ person: p }: { person: Person }) {
+  const mails = useStore(x => [
+    ...x.outbox.filter(m => m.personId === p.id || m.to.toLowerCase() === p.email.toLowerCase())
+      .map(m => ({ id: m.id, out: true, subject: m.subject || TEMPLATE_LABEL[m.type as keyof typeof TEMPLATE_LABEL] || "Email", body: m.body, at: m.at, note: m.status === "sent" ? "" : m.status === "queued" ? "waiting to be sent" : "sending failed" })),
+    ...x.inbox.filter(m => m.personId === p.id || m.fromEmail?.toLowerCase() === p.email.toLowerCase())
+      .map(m => ({ id: m.id, out: false, subject: m.subject, body: m.body, at: m.receivedAt, note: "" })),
+  ].sort((a, b) => b.at.localeCompare(a.at)));
+
+  return (
+    <section class="stack-s">
+      <div class="row row--between">
+        <h3>Email history</h3>
+        {mails.length > 0 && <a class="btn btn--ghost btn--sm" href={`/team/outbox?p=${p.id}`}>Open conversation →</a>}
+      </div>
+      {mails.length === 0 && <p class="muted small">No emails yet.</p>}
+      {mails.map(m => (
+        <details class="acc">
+          <summary>
+            <div style="flex:1;min-width:0">
+              <strong style="color:var(--color-text-heading)">{m.subject}</strong>
+              <div class="muted small">{m.out ? "Sent" : "Received"} {fmtDate(m.at)}{m.note ? ` · ${m.note}` : ""}</div>
+            </div>
+            <span class={`chip ${m.out ? "chip--blue" : "chip--green"}`}>{m.out ? "To them" : "From them"}</span>
+          </summary>
+          <div class="acc__body"><p class="small" style="white-space:pre-wrap">{m.body || "(Text is filled in when the email is sent.)"}</p></div>
+        </details>
+      ))}
+    </section>
   );
 }
 
