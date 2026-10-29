@@ -70,7 +70,7 @@ function Insights() {
   // Link to the network list with the current filters + one dimension
   const netLink = (extra: Record<string, string>) => {
     const q = new URLSearchParams({ ...(city && { city }), ...(program && { program }), ...(round && { round }), ...(status && { status }), ...(appId && { app: appId }), ...extra });
-    return `/team/network?${q}`;
+    return `/team/crm?${q}`;
   };
 
   // Distribution over people (multi-value dimensions count once per value)

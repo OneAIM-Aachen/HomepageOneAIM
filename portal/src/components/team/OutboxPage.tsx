@@ -246,7 +246,7 @@ function Thread({ acc, s, conv }: { acc: Account; s: State; conv: Conversation }
             <h2 style="font-size:1.2rem">{conv.name}</h2>
             <span class="muted small">{conv.email}</span>
           </div>
-          {conv.personId && <a class="btn btn--ghost btn--sm" href={`/team/network?p=${conv.personId}`}>Network profile →</a>}
+          {conv.personId && <a class="btn btn--ghost btn--sm" href={`/team/crm?p=${conv.personId}`}>CRM profile →</a>}
         </div>
         {apps.length > 0 ? (
           <div class="stack-s">

@@ -104,7 +104,7 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
         ? <span class="muted small">Demo member: made up, can't be changed.</span>
         : <>
             <button class="btn btn--primary btn--sm" disabled={!dirty} onClick={save}>Save profile</button>
-            {person && <a class="btn btn--secondary btn--sm" href={`/team/network?p=${person.id}`}>Network profile{apps ? ` (${apps} application${apps > 1 ? "s" : ""})` : ""}</a>}
+            {person && <a class="btn btn--secondary btn--sm" href={`/team/crm?p=${person.id}`}>CRM profile{apps ? ` (${apps} application${apps > 1 ? "s" : ""})` : ""}</a>}
             <span class="spacer" />
             {!isMe && <button class="btn btn--ghost btn--sm" style="color:var(--p-red)" onClick={remove}><IconTrash width={16} />Remove</button>}
           </>}>
@@ -168,7 +168,7 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
             </Field>
           </div>
           {!person && (
-            <Field label="LinkedIn" help="Moves to their network profile once an email is added.">
+            <Field label="LinkedIn" help="Moves to their CRM profile once an email is added.">
               <input class="input" type="url" placeholder="https://linkedin.com/in/…" value={d.linkedin} onInput={e => setD({ ...d, linkedin: e.currentTarget.value })} />
             </Field>
           )}
@@ -181,7 +181,7 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
           <section class="stack">
             <div class="stack-s">
               <h3>Studies & contact</h3>
-              <p class="muted small">Stored once in the network profile, the same one their applications update.</p>
+              <p class="muted small">Stored once in their CRM profile, the same one their applications update.</p>
             </div>
             <ListPicker label="University affiliations" placeholder="Start typing a university…" minChars={2}
               options={s.universities.map(u => ({ name: u.name, hint: u.country, terms: u.aliases }))}

@@ -228,7 +228,7 @@ function InviteModal({ acc, city: preset, onClose, onDone }: { acc: Account; cit
   return (
     <Modal title="Invite a team member" onClose={onClose} wide>
       <form class="stack" onSubmit={submit}>
-        <p class="muted small">They get an email with a link to set their own password. If they already applied to OneAIM, use the same email and name, so their team profile is linked to their network profile.</p>
+        <p class="muted small">They get an email with a link to set their own password. If they already applied to OneAIM, use the same email and name, so their team profile is linked to their CRM profile.</p>
         <div class="grid-2">
           <Field label="Full name" required><input class="input" value={d.name} onInput={e => setD({ ...d, name: e.currentTarget.value })} /></Field>
           <Field label="Email" required><input class="input" type="email" value={d.email} onInput={e => setD({ ...d, email: e.currentTarget.value })} /></Field>

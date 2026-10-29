@@ -46,7 +46,7 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
                   <strong>{f.label}{f.required && <span style="color:var(--color-accent-pink)"> *</span>}</strong>
                   <span class="muted small">
                     {KINDS[f.kind].label}
-                    {locked ? " · always included, mandatory" : profile ? " · fills the network profile" : ""}
+                    {locked ? " · always included, mandatory" : profile ? " · fills the CRM profile" : ""}
                     {f.kind === "university" || f.kind === "studyProgram" ? " · list, several allowed" : f.kind === "semester" || f.kind === "degree" ? " · fixed options" : ""}
                     {f.options ? ` · ${f.options.length} options` : ""}
                     {f.maxWords ? ` · max ${f.maxWords} words` : ""}
@@ -113,7 +113,7 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
         <aside class="palette">
           <div class="card stack-s">
             <h3>Optional profile fields</h3>
-            <p class="muted small">Saved to the person's network profile. University, study program, semester and degree level are always included.</p>
+            <p class="muted small">Saved to the person's CRM profile. University, study program, semester and degree level are always included.</p>
             <div class="palette__grid">
               {PROFILE_KINDS.map(k => (
                 <button class="palette__btn" disabled={has(k)} onClick={() => add(k)}>+ {KINDS[k].label}</button>

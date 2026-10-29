@@ -322,7 +322,7 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
         )}
         <span class="spacer" />
         <a class="btn btn--ghost btn--sm" href={`/team/outbox?p=${person.id}`}>Emails →</a>
-        <a class="btn btn--ghost btn--sm" href={`/team/network?p=${person.id}`}>Network profile{others ? ` (+${others})` : ""} →</a>
+        <a class="btn btn--ghost btn--sm" href={`/team/crm?p=${person.id}`}>CRM profile{others ? ` (+${others})` : ""} →</a>
       </>}>
 
       <div class="grid-2">

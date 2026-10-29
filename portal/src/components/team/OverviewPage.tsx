@@ -83,7 +83,7 @@ export default function OverviewPage() {
           </div>
 
           <section class="card card--flush">
-            <div class="card__head" style="padding:20px 24px 0"><h2>Latest applicants</h2><a href="/team/network" class="small">Open network →</a></div>
+            <div class="card__head" style="padding:20px 24px 0"><h2>Latest applicants</h2><a href="/team/crm" class="small">Open CRM →</a></div>
             <div class="table-wrap">
               <table class="table">
                 <thead><tr><th>Person</th><th>Application</th><th>Status</th><th>Submitted</th></tr></thead>

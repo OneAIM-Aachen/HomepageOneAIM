@@ -8,15 +8,16 @@ import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
 import { Avatar, ConfirmHost, Modal, Toaster, toast } from "../ui/Ui";
 import { MemberDrawer } from "./MemberDrawer";
 import {
-  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings, IconTeam,
+  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconCrm, IconNetwork, IconSettings, IconTeam,
 } from "../ui/Icons";
 
-export type NavKey = "overview" | "applications" | "blueprints" | "network" | "insights" | "outbox" | "team" | "settings";
+export type NavKey = "overview" | "applications" | "blueprints" | "crm" | "network" | "insights" | "outbox" | "team" | "settings";
 
 const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[] = [
   { key: "overview", label: "Overview", href: "/team", Icon: IconHome },
   { key: "applications", label: "Applications", href: "/team/applications", Icon: IconApps },
   { key: "blueprints", label: "Blueprints", href: "/team/blueprints", Icon: IconBlueprint },
+  { key: "crm", label: "CRM", href: "/team/crm", Icon: IconCrm },
   { key: "network", label: "Network", href: "/team/network", Icon: IconNetwork },
   { key: "insights", label: "Insights", href: "/team/insights", Icon: IconChart },
   { key: "outbox", label: "Emails", href: "/team/outbox", Icon: IconMail },
