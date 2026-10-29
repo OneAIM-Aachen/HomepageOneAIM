@@ -5,7 +5,8 @@ import { useEffect, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import { currentAccount, fixEmailLinkBase, loadAll, logout, useStore } from "../../lib/store";
 import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
-import { Avatar, ConfirmHost, Toaster, toast } from "../ui/Ui";
+import { Avatar, ConfirmHost, Modal, Toaster, toast } from "../ui/Ui";
+import { MemberDrawer } from "./MemberDrawer";
 import {
   IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconNetwork, IconSettings, IconTeam,
 } from "../ui/Icons";
@@ -29,6 +30,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
   const [acc, setAcc] = useState<Account | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
   const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const newCount = useStore(s => s.submissions.filter(x => x.status === "new").length);
   const unreadMail = useStore(s => s.inbox.filter(m => !m.readAt).length);
   const me = useStore(s => s.team.find(m => m.id === acc?.memberId));
@@ -92,14 +94,13 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           </label>
         )}
         <div class="sidebar__foot">
-          <a href={acc.memberId ? `/team/team?member=${acc.memberId}` : "/team/settings"} title="My profile"
-            style="display:flex;gap:10px;align-items:center;flex:1;min-width:0;color:inherit;text-decoration:none">
+          <button class="sidebar__me" title="Edit my profile" onClick={() => { setOpen(false); setProfileOpen(true); }}>
             <Avatar name={acc.name} src={me?.photo} />
             <div style="flex:1;min-width:0">
               <strong>{acc.legacy ? acc.city : acc.name}</strong>
-              <span class="muted small">{acc.legacy ? "Shared city login" : `OneAIM ${acc.city}`}</span>
+              <span class="muted small">{acc.legacy ? "Shared city login" : "My profile"}</span>
             </div>
-          </a>
+          </button>
           <button class="icon-btn" title="Log out" aria-label="Log out"
             onClick={async () => { await logout(); window.location.href = "/team/login"; }}><IconLogout /></button>
         </div>
@@ -113,6 +114,18 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
         )}
         {children(acc)}
       </main>
+      {profileOpen && me && <MemberDrawer member={me} acc={acc} onClose={() => setProfileOpen(false)} />}
+      {profileOpen && !me && (
+        <Modal title="No personal profile" onClose={() => setProfileOpen(false)}>
+          <p>{acc.legacy
+            ? `You're signed in with the shared ${acc.city} login, which has no personal profile. Invite yourself with your own email, then sign in with that account to edit your profile.`
+            : "Your team profile couldn't be found. Please reload the page."}</p>
+          <div class="row" style="justify-content:flex-end">
+            <button class="btn btn--ghost" onClick={() => setProfileOpen(false)}>Close</button>
+            {acc.legacy && <a class="btn btn--primary" href="/team/team?invite=1">Invite myself</a>}
+          </div>
+        </Modal>
+      )}
       <Toaster />
       <ConfirmHost />
     </div>

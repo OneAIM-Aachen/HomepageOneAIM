@@ -714,3 +714,9 @@ img.avatar { object-fit: cover; background: var(--p-chip); }
   .org__dept-name { text-align: left; }
   .person-card--top { width: 100%; }
 }
+.sidebar__me {
+  display: flex; gap: 10px; align-items: center; flex: 1; min-width: 0; text-align: left;
+  background: none; border: none; padding: 6px; margin: -6px; border-radius: var(--radius-sm); cursor: pointer; font: inherit; color: inherit;
+}
+.sidebar__me:hover { background: var(--p-blue-tint); }
+.sidebar__me:focus-visible { outline: 2px solid var(--color-brand-blue); outline-offset: 2px; }
