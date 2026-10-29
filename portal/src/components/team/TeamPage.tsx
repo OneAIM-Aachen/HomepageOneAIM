@@ -100,7 +100,9 @@ function Team({ acc }: { acc: Account }) {
                           <td><div class="cell-person"><Avatar name={m.name} src={m.photo} /><div><strong>{m.name}</strong><span class="muted small">{m.email ?? "No email"}</span></div></div></td>
                           <td>{m.city}</td>
                           <td>{last ? roleLabel(last) : subtitle(m, s.departments)}</td>
-                          <td class="small">{m.history[0] ? fmtMonth(m.history[0].from) : "?"} – {m.alumniSince ? fmtMonth(m.alumniSince) : "?"}</td>
+                          <td class="small">{!m.history[0] && !m.alumniSince
+                            ? <span class="muted">Dates unknown</span>
+                            : `${m.history[0] ? fmtMonth(m.history[0].from) : "?"} – ${m.alumniSince ? fmtMonth(m.alumniSince) : "?"}`}</td>
                         </tr>
                       );
                     })}
