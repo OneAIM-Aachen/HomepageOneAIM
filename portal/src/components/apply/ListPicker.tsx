@@ -1,8 +1,9 @@
-// Searchable multi-select for list fields (university affiliations, study
-// programs). Selected values show as chips; "Other (please specify)" adds a
-// free-text value the team can later merge into the list.
+// Type-ahead field for list values (university affiliations, study programs,
+// companies): start typing, pick a suggestion. Several values show as chips
+// below the field; with `single` the chosen name stays in the field and can
+// be typed over. A name that isn't in the list can be used as it is
+// ("Other"); the team can later merge it into the list.
 import { useMemo, useRef, useState } from "preact/hooks";
-import { OTHER_LABEL } from "../../lib/fields";
 import { IconX } from "../ui/Icons";
 
 export interface PickerOption {
@@ -50,113 +51,133 @@ function score(x: Indexed, q: string): number | null {
   return null;
 }
 
-export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 0, maxResults = 60, single, hint }: {
+export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 1, maxResults = 12, single }: {
   options: PickerOption[];
   value: string[];
   onChange: (v: string[]) => void;
   invalid?: boolean;
   placeholder: string;
   label: string;
-  /** Show suggestions only after this many typed characters (long lists) */
+  /** Suggestions appear after this many typed letters; 0 = also show the whole (short) list on focus */
   minChars?: number;
   maxResults?: number;
-  /** Exactly one value (choosing again replaces it) */
+  /** Exactly one value, shown in the field itself */
   single?: boolean;
-  /** Example shown while fewer than minChars letters are typed */
-  hint?: string;
 }) {
   const [q, setQ] = useState("");
+  const [editing, setEditing] = useState(false);
   const [open, setOpen] = useState(false);
-  const [other, setOther] = useState<string | null>(null);
   const [active, setActive] = useState(0);
   const box = useRef<HTMLDivElement>(null);
 
-  const typed = q.trim().length >= minChars;
   const indexed = useMemo(() => options.map(index), [options]);
+  const query = q.trim();
   const matches = useMemo(() => {
-    const ql = norm(q.trim());
-    if (!ql) return minChars ? [] : options.filter(o => !value.includes(o.name));
+    const ql = norm(query);
+    const taken = (n: string) => !single && value.includes(n);
+    if (!ql) return minChars === 0 ? options.filter(o => !taken(o.name)) : [];
     return indexed
-      .filter(x => !value.includes(x.o.name))
+      .filter(x => !taken(x.o.name))
       .map(x => ({ o: x.o, sc: score(x, ql) }))
       .filter((x): x is { o: PickerOption; sc: number } => x.sc !== null)
       .sort((a, b) => a.sc - b.sc || a.o.name.length - b.o.name.length)
-      .slice(0, minChars ? 12 : maxResults)
+      .slice(0, maxResults)
       .map(x => x.o);
-  }, [q, indexed, value, minChars, maxResults]);
+  }, [query, indexed, value, minChars, maxResults, single]);
 
-  const add = (v: string) => {
+  // Typed text that isn't exactly a list entry can be used as it is
+  const exact = (t: string) => {
+    const n = norm(t.trim());
+    return options.find(o => norm(o.name) === n || (o.terms ?? []).some(x => norm(x) === n))?.name;
+  };
+  const canUseTyped = query.length > 0 && !matches.some(o => norm(o.name) === norm(query));
+  const showMenu = open && (query.length >= Math.max(minChars, 1) || minChars === 0);
+
+  const choose = (v: string) => {
     const t = v.trim();
-    if (t && single) { onChange([t]); setOpen(false); }
-    else if (t && !value.some(x => x.toLowerCase() === t.toLowerCase())) onChange([...value, t]);
+    if (!t) return;
+    if (single) onChange([t]);
+    else if (!value.some(x => x.toLowerCase() === t.toLowerCase())) onChange([...value, t]);
     setQ("");
+    setEditing(false);
+    setOpen(false);
     setActive(0);
   };
   const remove = (v: string) => onChange(value.filter(x => x !== v));
 
+  // Leaving the field: in single mode the typed text is the value (list name if it matches)
+  const commit = () => {
+    if (single && editing) {
+      if (!query) onChange([]);
+      else if (query !== value[0]) onChange([exact(query) ?? query]);
+    }
+    setEditing(false);
+    setOpen(false);
+    setQ("");
+  };
+
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setActive(a => Math.min(a + 1, matches.length)); }
+    const n = matches.length + (canUseTyped ? 1 : 0);
+    if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setActive(a => Math.min(a + 1, n - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setActive(a => Math.max(a - 1, 0)); }
     else if (e.key === "Enter") {
       e.preventDefault();
-      if (active < matches.length && matches[active]) add(matches[active]!.name);
-      else { setOther(q); setOpen(false); }
-    } else if (e.key === "Escape") setOpen(false);
-    else if (e.key === "Backspace" && !q && value.length) remove(value[value.length - 1]!);
+      if (active < matches.length && matches[active]) choose(matches[active]!.name);
+      else if (query) choose(exact(query) ?? query);
+    } else if (e.key === "Escape") { setOpen(false); }
   };
 
+  const inList = (v: string) => options.some(o => o.name === v);
+  const shown = single && !editing ? (value[0] ?? "") : q;
   let lastGroup: string | undefined;
   return (
     <div class="picker" ref={box}
-      onFocusOut={e => { if (!box.current?.contains(e.relatedTarget as Node)) setOpen(false); }}>
-      <div class={`picker__box input ${invalid ? "input--invalid" : ""}`} onClick={() => box.current?.querySelector("input")?.focus()}>
-        {value.map(v => (
-          <span class={`chip ${options.some(o => o.name === v) ? "chip--blue" : "chip--purple"}`}>
-            {v}
-            <button type="button" class="picker__remove" aria-label={`Remove ${v}`} onClick={e => { e.stopPropagation(); remove(v); }}><IconX /></button>
-          </span>
-        ))}
-        {!(single && value.length > 0) && (
-          <input class="picker__input" value={q} placeholder={value.length ? "Add more…" : placeholder}
-            role="combobox" aria-expanded={open} aria-label={label} aria-autocomplete="list"
-            onInput={e => { setQ(e.currentTarget.value); setOpen(true); setActive(0); }}
-            onFocus={() => setOpen(true)} onKeyDown={onKey} />
-        )}
-      </div>
+      onFocusOut={e => { if (!box.current?.contains(e.relatedTarget as Node)) commit(); }}>
+      <input class={`input ${invalid ? "input--invalid" : ""}`} value={shown} placeholder={placeholder}
+        role="combobox" aria-expanded={showMenu} aria-label={label} aria-autocomplete="list" autoComplete="off"
+        onFocus={e => {
+          setEditing(true);
+          if (single) { setQ(value[0] ?? ""); e.currentTarget.select(); }
+          if (minChars === 0) setOpen(true);
+        }}
+        onInput={e => { setEditing(true); setQ(e.currentTarget.value); setOpen(true); setActive(0); }}
+        onKeyDown={onKey} />
 
-      {open && !typed && (
-        <div class="picker__menu"><div class="picker__empty">Type at least {minChars} letters{hint ? `, e.g. ${hint}` : ", e.g. “rwth”, “oxford” or “munich”"}.</div></div>
-      )}
-      {open && typed && (
+      {showMenu && (matches.length > 0 || canUseTyped) && (
         <div class="picker__menu" role="listbox">
           {matches.map((o, i) => {
-            const head = !q.trim() && o.group && o.group !== lastGroup ? o.group : null;
+            const head = !query && o.group && o.group !== lastGroup ? o.group : null;
             lastGroup = o.group;
             return (
               <>
                 {head && <div class="picker__group">{head}</div>}
                 <button type="button" role="option" aria-selected={i === active} class={`picker__opt ${i === active ? "is-active" : ""}`}
-                  onMouseDown={e => e.preventDefault()} onClick={() => add(o.name)}>
+                  onMouseDown={e => e.preventDefault()} onClick={() => choose(o.name)}>
                   {o.name}{o.hint && <span class="picker__hint"> · {o.hint}</span>}
                 </button>
               </>
             );
           })}
-          {matches.length === 0 && q && <div class="picker__empty">No match in the list.</div>}
-          <button type="button" class={`picker__opt picker__opt--other ${active === matches.length ? "is-active" : ""}`}
-            onMouseDown={e => e.preventDefault()} onClick={() => { setOther(q); setOpen(false); }}>
-            + {OTHER_LABEL}{q ? `: “${q}”` : ""}
-          </button>
+          {canUseTyped && (
+            <button type="button" class={`picker__opt picker__opt--other ${active === matches.length ? "is-active" : ""}`}
+              onMouseDown={e => e.preventDefault()} onClick={() => choose(query)}>
+              {matches.length ? "Not in the list? " : "Not in the list: "}Use “{query}”
+            </button>
+          )}
         </div>
       )}
 
-      {other !== null && (
-        <div class="row" style="margin-top:8px;flex-wrap:nowrap">
-          <input class="input input--sm" value={other} placeholder="Please specify" aria-label={`${label}: other`} autoFocus
-            onInput={e => setOther(e.currentTarget.value)}
-            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(other); setOther(null); } }} />
-          <button type="button" class="btn btn--secondary btn--sm" disabled={!other.trim()} onClick={() => { add(other); setOther(null); }}>Add</button>
-          <button type="button" class="btn btn--ghost btn--sm" onClick={() => setOther(null)}>Cancel</button>
+      {single && !editing && value[0] && !inList(value[0]) && (
+        <span class="field__help">Not in our list yet; we'll add it.</span>
+      )}
+      {!single && value.length > 0 && (
+        <div class="picker__chips">
+          {value.map(v => (
+            <span class={`chip ${inList(v) ? "chip--blue" : "chip--purple"}`}>
+              {v}
+              <button type="button" class="picker__remove" aria-label={`Remove ${v}`} onClick={() => remove(v)}><IconX /></button>
+            </span>
+          ))}
         </div>
       )}
     </div>

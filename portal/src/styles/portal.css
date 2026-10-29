@@ -776,3 +776,5 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .company-entry__grid { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .company-input--invalid .company-entry { border-color: var(--p-red); }
 @media (max-width: 600px) { .company-entry__grid { grid-template-columns: 1fr; } }
+.picker__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.picker__chips .chip { padding-right: 4px; }

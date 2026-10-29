@@ -68,7 +68,7 @@ export function CompanyInput({ options, value, onChange, allowNone, invalid }: {
           <div class="company-entry__grid">
             <div class="stack-s">
               <span class="field__help">Company</span>
-              <ListPicker single label={`Company ${i + 1}`} placeholder="Start typing the company…" minChars={2} hint="“healthineers”, “bcg” or “roche”"
+              <ListPicker single label={`Company ${i + 1}`} placeholder="Start typing the company…"
                 options={pickerOptions} value={e.company ? [e.company] : []} onChange={v => set(i, { company: v[v.length - 1] ?? "" })} />
             </div>
             <label class="stack-s">
