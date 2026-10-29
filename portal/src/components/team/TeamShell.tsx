@@ -8,10 +8,10 @@ import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
 import { Avatar, ConfirmHost, Modal, Toaster, toast } from "../ui/Ui";
 import { MemberDrawer } from "./MemberDrawer";
 import {
-  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconCrm, IconNetwork, IconSettings, IconTeam,
+  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconBoard, IconCrm, IconNetwork, IconSettings, IconTeam,
 } from "../ui/Icons";
 
-export type NavKey = "overview" | "applications" | "blueprints" | "crm" | "network" | "insights" | "outbox" | "team" | "settings";
+export type NavKey = "overview" | "applications" | "blueprints" | "crm" | "network" | "board" | "insights" | "outbox" | "team" | "settings";
 
 const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[] = [
   { key: "overview", label: "Overview", href: "/team", Icon: IconHome },
@@ -19,6 +19,7 @@ const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[]
   { key: "blueprints", label: "Blueprints", href: "/team/blueprints", Icon: IconBlueprint },
   { key: "crm", label: "CRM", href: "/team/crm", Icon: IconCrm },
   { key: "network", label: "Network", href: "/team/network", Icon: IconNetwork },
+  { key: "board", label: "Board", href: "/team/board", Icon: IconBoard },
   { key: "insights", label: "Insights", href: "/team/insights", Icon: IconChart },
   { key: "outbox", label: "Emails", href: "/team/outbox", Icon: IconMail },
 ];
@@ -34,6 +35,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
   const [profileOpen, setProfileOpen] = useState(false);
   const newCount = useStore(s => s.submissions.filter(x => x.status === "new").length);
   const unreadMail = useStore(s => s.inbox.filter(m => !m.readAt).length);
+  const pendingPosts = useStore(s => s.posts.filter(p => p.status === "pending").length);
   const me = useStore(s => s.team.find(m => m.id === acc?.memberId));
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
     <a href={n.href} class={`nav__item ${active === n.key ? "is-active" : ""}`} aria-current={active === n.key ? "page" : undefined}>
       <n.Icon />{n.label}
       {n.key === "applications" && newCount > 0 && <span class="nav__badge" title="Applicants waiting for screening">{newCount}</span>}
+      {n.key === "board" && pendingPosts > 0 && <span class="nav__badge" title="Posts waiting for approval">{pendingPosts}</span>}
       {n.key === "outbox" && unreadMail > 0 && <span class="nav__badge" title="Unread emails">{unreadMail}</span>}
     </a>
   );

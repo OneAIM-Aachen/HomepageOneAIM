@@ -270,6 +270,8 @@ export interface TagLists {
 
 export interface State {
   team: TeamMember[];
+  /** Network board (all statuses) */
+  posts: import("../components/network/Board").Post[];
   /** Logins for the members site, by person id */
   networkAccounts: Record<string, { invitedAt?: string }>;
   departments: Department[];

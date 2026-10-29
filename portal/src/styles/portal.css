@@ -756,3 +756,12 @@ ol.history { list-style: none; padding: 0; margin: 0; }
   .members__me span { display: none; }
   .member-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 }
+
+/* ── Network board ───────────────────────────────────────────────────────── */
+.post { display: flex; flex-direction: column; gap: 10px; }
+.post--past { opacity: .72; }
+.post__title { font-size: 1.15rem; }
+.post__meta { color: var(--color-text-body); font-weight: 600; }
+.post__body { white-space: pre-wrap; }
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 640px) { .board { grid-template-columns: 1fr; } }

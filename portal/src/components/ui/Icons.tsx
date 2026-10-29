@@ -28,3 +28,4 @@ export const IconDownload = (p: P) => <svg {...base} {...p}><path d="M12 4v11M7 
 export const IconChart = (p: P) => <svg {...base} {...p}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>;
 export const IconTeam = (p: P) => <svg {...base} {...p}><rect x="9" y="3" width="6" height="5" rx="1.2" /><rect x="3" y="16" width="6" height="5" rx="1.2" /><rect x="15" y="16" width="6" height="5" rx="1.2" /><path d="M12 8v4M6 16v-4h12v4" /></svg>;
 export const IconCrm = (p: P) => <svg {...base} {...p}><rect x="4" y="3" width="15" height="18" rx="2" /><circle cx="11.5" cy="10" r="2.6" /><path d="M7.5 17c.6-2 2.1-3 4-3s3.4 1 4 3M2.5 8h3M2.5 13h3M21 7v4" /></svg>;
+export const IconBoard = (p: P) => <svg {...base} {...p}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9h6M7 13h10M7 17h4" /><circle cx="17" cy="9" r="1.2" /></svg>;

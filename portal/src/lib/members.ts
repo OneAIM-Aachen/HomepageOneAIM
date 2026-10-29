@@ -6,6 +6,7 @@
 // which only return what a network profile may show.
 
 import type { NetworkProfile } from "../components/network/Profile";
+import type { Post, PostDraft } from "../components/network/Board";
 import type { RoleEntry, TeamRole } from "./types";
 import { IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
 
@@ -103,4 +104,31 @@ export async function redeemMemberLink(tokenHash: string, type: "invite" | "reco
 export async function setMemberPassword(password: string) {
   const { error } = await supabase.auth.updateUser({ password });
   if (error) throw new Error(error.message);
+}
+
+// ── Board (jobs, events, news) ───────────────────────────────────────────
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export function mapPost(j: any): Post {
+  return {
+    id: j.id, kind: j.kind, title: j.title, organization: j.organization ?? undefined, location: j.location ?? undefined,
+    date: j.date ?? j.date_on ?? undefined, link: j.link ?? undefined, body: j.body, status: j.status,
+    authorName: j.authorName ?? j.author_name, authorIsTeam: j.authorIsTeam ?? j.author_is_team ?? false,
+    reviewNote: j.reviewNote ?? j.review_note ?? undefined, reviewedBy: j.reviewed_by ?? undefined,
+    createdAt: j.createdAt ?? j.created_at, mine: j.mine ?? false,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+export async function fetchBoard(): Promise<Post[]> {
+  return (check(await supabase.rpc("network_board")) as unknown[]).map(mapPost);
+}
+
+/** Team members publish right away; other members' posts wait for approval. */
+export async function submitPost(d: PostDraft): Promise<"published" | "pending"> {
+  return check(await supabase.rpc("network_submit_post", { p: d })) as "published" | "pending";
+}
+
+export async function withdrawPost(id: string) {
+  check(await supabase.rpc("network_withdraw_post", { p_id: id }));
 }

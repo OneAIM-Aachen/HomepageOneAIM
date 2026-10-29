@@ -18,11 +18,13 @@ import type {
 import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
 import { isDemo, withDemo } from "./demo";
+import { mapPost } from "./members";
+import type { PostDraft } from "../components/network/Board";
 
 // ── State ────────────────────────────────────────────────────────────────
 
 const EMPTY: State = {
-  team: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
+  team: [], posts: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
   blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
   universities: [], studyPrograms: [],
 };
@@ -137,7 +139,7 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 }
 
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
+  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
@@ -145,6 +147,7 @@ export async function loadAll(): Promise<void> {
       supabase.from("team_members").select("*").order("name"),
       supabase.from("team_departments").select("*").order("sort_order").order("name"),
       supabase.rpc("team_member_status"),
+      all(() => supabase.from("network_posts").select("*").order("created_at", { ascending: false }).order("id")),
       all(() => supabase.from("network_accounts").select("person_id, invited_at").order("person_id")),
       all(() => supabase.from("team_member_roles").select("*").order("started_on").order("created_at").order("id")),
       supabase.from("blueprints").select("*").order("updated_at", { ascending: false }),
@@ -206,6 +209,7 @@ export async function loadAll(): Promise<void> {
         lastConfirmedAt: m.last_confirmed_at ?? undefined, history: hist.get(m.id) ?? [],
       }) as TeamMember);
     })(),
+    posts: (check(posts) as any[]).map(mapPost),
     networkAccounts: Object.fromEntries((check(netAccounts) as any[]).map(a => [a.person_id, { invitedAt: a.invited_at ?? undefined }])),
     departments: (check(departments) as any[]).map(d => ({
       id: d.id, city: label(maps.location, d.location_id), name: d.name, order: d.sort_order,
@@ -872,6 +876,41 @@ export async function updatePersonDetails(personId: string, p: Partial<Pick<Pers
 /** Login for the members site + welcome email ("you're part of the OneAIM network"). */
 export async function inviteToNetworkSite(personId: string) {
   await teamCall({ action: "network_invite", person_id: personId });
+  await loadAll();
+}
+
+// ── Network board ────────────────────────────────────────────────────────
+
+const postRow = (d: PostDraft) => ({
+  kind: d.kind, title: d.title.trim(), organization: d.organization?.trim() || null, location: d.location?.trim() || null,
+  date_on: d.date || null, link: d.link?.trim() || null, body: d.body.trim(),
+});
+
+/** Team post: published right away. */
+export async function createPost(d: PostDraft, acc: Account) {
+  const by = acc.legacy ? `OneAIM ${acc.city}` : acc.name;
+  check(await supabase.from("network_posts").insert({
+    ...postRow(d), status: "published", author_name: by, author_is_team: true, reviewed_by: by, reviewed_at: new Date().toISOString(),
+    author_person_id: getState().team.find(m => m.id === acc.memberId)?.personId ?? null,
+  }));
+  await loadAll();
+}
+
+export async function updatePost(id: string, d: PostDraft) {
+  check(await supabase.from("network_posts").update(postRow(d)).eq("id", id));
+  await loadAll();
+}
+
+/** Approve (publish) or decline a member's post; also used to take a post down. */
+export async function reviewPost(id: string, status: "published" | "rejected" | "pending", acc: Account, note?: string) {
+  check(await supabase.from("network_posts").update({
+    status, review_note: note?.trim() || null, reviewed_by: actorLabel(acc), reviewed_at: new Date().toISOString(),
+  }).eq("id", id));
+  await loadAll();
+}
+
+export async function deletePost(id: string) {
+  check(await supabase.from("network_posts").delete().eq("id", id));
   await loadAll();
 }
 
