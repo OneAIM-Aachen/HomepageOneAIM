@@ -81,7 +81,10 @@ async function brevo(db: SupabaseClient, to: { email: string; name: string }, su
   }
 }
 
-type CheckMember = { id: string; email: string; name: string; check_token: string | null; locations: { name: string } | null };
+type CheckMember = {
+  id: string; email: string; name: string; check_token: string | null; check_sent_at: string | null; locations: { name: string } | null;
+};
+const deadlineFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
 
 /** Yearly "still active?" email; the link opens /team/checkin with Yes / No. */
 async function sendCheck(db: SupabaseClient, m: CheckMember, reminder: boolean) {
@@ -90,7 +93,10 @@ async function sendCheck(db: SupabaseClient, m: CheckMember, reminder: boolean) 
   const link = `${String(s?.apply_base_url ?? "").replace(/\/$/, "")}/team/checkin?t=${token}`;
   const city = m.locations?.name ?? "";
   const first = m.name.split(" ")[0];
-  const body = `Hi ${first},\n\n${reminder ? "a quick reminder: " : ""}once a year we check who is still active in OneAIM ${city}. Are you still an active part of the team?\n\nPlease answer here (one click):\n${link}\n\nIf you have left, you'll move to our alumni and stay part of the OneAIM network.\n\nThanks!\nOneAIM`;
+  // No answer within one month of the first email → alumni (database job expire_team_checkins)
+  const deadline = new Date(reminder && m.check_sent_at ? m.check_sent_at : Date.now());
+  deadline.setMonth(deadline.getMonth() + 1);
+  const body = `Hi ${first},\n\n${reminder ? "a quick reminder: " : ""}once a year we check who is still active in OneAIM ${city}. Are you still an active part of the team?\n\nPlease answer here (one click):\n${link}\n\nPlease answer by ${deadlineFmt.format(deadline)}. Without an answer, or if you have left, you'll move to our alumni and stay part of the OneAIM network.\n\nThanks!\nOneAIM`;
   await brevo(db, m, reminder ? "Reminder: still part of the OneAIM team?" : "Still part of the OneAIM team?", body);
   const now = new Date().toISOString();
   await db.from("team_members").update(reminder ? { check_reminded_at: now } : { check_token: token, check_sent_at: now }).eq("id", m.id);
@@ -126,7 +132,7 @@ Deno.serve(async req => {
 
     // ── Public (cron): due yearly checks and reminders
     if (action === "checkins") {
-      const sel = "id, email, name, check_token, locations(name)";
+      const sel = "id, email, name, check_token, check_sent_at, locations(name)";
       const now = new Date();
       const { data: due } = await db.from("team_members").select(sel).eq("status", "active").not("email", "is", null)
         .not("user_id", "is", null).is("check_sent_at", null).lte("next_check_at", now.toISOString());
@@ -204,7 +210,7 @@ Deno.serve(async req => {
     }
 
     if (action === "checkin_now") {
-      const { data: c } = await db.from("team_members").select("id, email, name, check_token, status, locations(name)").eq("id", m.id).single();
+      const { data: c } = await db.from("team_members").select("id, email, name, check_token, check_sent_at, status, locations(name)").eq("id", m.id).single();
       if (!c?.email || c.status !== "active") return json({ error: "missing_field" }, 400);
       await db.from("team_members").update({ check_reminded_at: null }).eq("id", m.id);
       await sendCheck(db, c as unknown as CheckMember, false);

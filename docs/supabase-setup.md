@@ -25,7 +25,7 @@ The database lives in `supabase/migrations/`:
   - Accounts are created only by invitation (Team overview → "Invite member", edge function `team-accounts`). The email (via Brevo) links to `/team/welcome`, where the person sets their password. "Forgot password?" works the same way.
   - Every member is linked to the network person (`people`) with the same email; same email under a different name is refused. Universities, study programs, phone and LinkedIn live on that person.
   - Only `status = 'active'` members have access. Alumni keep profile and position history (`team_member_roles`) but can't sign in.
-  - Yearly check: one year after the email is added (and a year after every "yes"), team-accounts emails a link to `/team/checkin`; "no" makes the member alumni. One reminder after 14 days.
+  - Yearly check: one year after the email is added (and a year after every "yes"), team-accounts emails a link to `/team/checkin`; "no" makes the member alumni. One reminder after 14 days; without an answer within one month they become alumni anyway (`expire_team_checkins()`, pg_cron daily).
   - The old city logins (`team_accounts`) stop working once the first personal account has set its password, except logins marked `keep_active` (`aachen@one-aim.org`).
 - **Applicants / public** have no table access at all. They can only:
   - `published_applications()`: list published rounds (also used by one-aim.org)

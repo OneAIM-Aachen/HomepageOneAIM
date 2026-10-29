@@ -210,6 +210,12 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
   );
 }
 
+const oneMonthAfter = (iso: string) => {
+  const d = new Date(iso);
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString();
+};
+
 function StatusSection({ m }: { m: TeamMember }) {
   if (m.status === "alumni") {
     return (
@@ -227,7 +233,7 @@ function StatusSection({ m }: { m: TeamMember }) {
     );
   }
   const check = m.checkSentAt
-    ? `Asked on ${fmtDate(m.checkSentAt)} whether they're still active${m.checkRemindedAt ? `, reminded on ${fmtDate(m.checkRemindedAt)}` : ""}. No answer yet.`
+    ? `Asked on ${fmtDate(m.checkSentAt)} whether they're still active${m.checkRemindedAt ? `, reminded on ${fmtDate(m.checkRemindedAt)}` : ""}. Without an answer they move to the alumni on ${fmtDate(oneMonthAfter(m.checkSentAt))}.`
     : m.nextCheckAt ? `Next “still active?” email: ${fmtDate(m.nextCheckAt)}${m.lastConfirmedAt ? ` (last confirmed ${fmtDate(m.lastConfirmedAt)})` : ""}.`
     : "The yearly “still active?” email starts one year after an email is added.";
   return (

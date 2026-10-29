@@ -65,7 +65,7 @@ function Team({ acc }: { acc: Account }) {
       </div>
 
       {checksOpen > 0 && (
-        <p class="muted small">{checksOpen} member{checksOpen > 1 ? "s" : ""} haven't answered the yearly “still active?” email yet (marked “Check open” in the list).</p>
+        <p class="muted small">{checksOpen} member{checksOpen > 1 ? "s" : ""} haven't answered the yearly “still active?” email yet (marked “Check open” in the list). Without an answer within a month they move to the alumni.</p>
       )}
 
       <div class="row">
