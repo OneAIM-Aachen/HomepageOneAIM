@@ -1,17 +1,17 @@
-import { useMemo, useState } from "preact/hooks";
-import type { Application, FileRef, Person, Submission, SubmissionStatus } from "../../lib/types";
-import { ROLE_LABEL, useStore } from "../../lib/store";
+import { useEffect, useMemo, useState } from "preact/hooks";
+import type { Account, Application, FileRef, Person, Submission, SubmissionStatus } from "../../lib/types";
+import { actorLabel, loadEmailSettings, personalize, ROLE_LABEL, sendGroupEmail, useStore, type EmailSettings } from "../../lib/store";
 import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS, STATUS_LABEL } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
-import { Avatar, Drawer, StatusChip, useParam } from "../ui/Ui";
-import { IconDownload, IconFile, IconSearch } from "../ui/Icons";
+import { act, Avatar, confirmDialog, Drawer, Field, Modal, StatusChip, useParam } from "../ui/Ui";
+import { IconDownload, IconFile, IconMail, IconSearch } from "../ui/Icons";
 import { Answers, FileCard, isFile, openFile } from "./Answers";
 
 // CRM: everyone who ever applied, one profile per email address.
 // (The curated internal network is NetworkPage.)
 export default function CrmPage() {
   const p = useParam("p");
-  return <TeamShell active="crm">{() => <Crm initial={p} />}</TeamShell>;
+  return <TeamShell active="crm">{acc => <Crm acc={acc} initial={p} />}</TeamShell>;
 }
 
 type Outcome = "" | "accepted" | "rejected" | "pending";
@@ -19,8 +19,9 @@ type Outcome = "" | "accepted" | "rejected" | "pending";
 // Filters can come from the URL (links from the Insights page)
 const param = (k: string) => (typeof window === "undefined" ? "" : new URLSearchParams(location.search).get(k) ?? "");
 
-function Crm({ initial }: { initial: string | null }) {
+function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
   const s = useStore(x => x);
+  const [mailing, setMailing] = useState(false);
   const [q, setQ] = useState("");
   const [program, setProgram] = useState(param("program"));
   const [location, setLocation] = useState(param("city"));
@@ -89,7 +90,12 @@ function Crm({ initial }: { initial: string | null }) {
     <div class="stack" style="gap:20px">
       <PageHead overline="CRM" title="All applicants"
         sub="Everyone who ever applied, one profile per email address, with their full application history. The curated network is under “Network”."
-        actions={<button class="btn btn--secondary" onClick={exportCsv}><IconDownload width={16} />Export CSV</button>} />
+        actions={<>
+          <button class="btn btn--secondary" onClick={exportCsv}><IconDownload width={16} />Export CSV</button>
+          <button class="btn btn--primary" disabled={!filtered.length} onClick={() => setMailing(true)}
+            title="Write one email to everyone matching the current filters"><IconMail width={16} />Email {filtered.length} {filtered.length === 1 ? "person" : "people"}</button>
+        </>} />
+      {mailing && <GroupEmailModal people={filtered.map(r => r.p)} acc={acc} onClose={() => setMailing(false)} />}
 
       {appId && (
         <div class="row" style="margin-bottom:-6px">
@@ -252,5 +258,63 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
         ))}
       </section>
     </Drawer>
+  );
+}
+
+/** One email to everyone matching the CRM filters; each person gets their own copy. */
+function GroupEmailModal({ people, acc, onClose }: { people: Person[]; acc: Account; onClose: () => void }) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState(`Hi {first_name},\n\n\n\nBest,\n${acc.legacy ? `Your OneAIM ${acc.city} team` : `${acc.name.split(" ")[0]}\nOneAIM ${acc.city}`}`);
+  const [settings, setSettings] = useState<EmailSettings | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { loadEmailSettings().then(setSettings).catch(() => undefined); }, []);
+
+  const real = people.filter(p => !p.id.startsWith("demo-"));
+  const demoCount = people.length - real.length;
+  const sample = real[0] ?? people[0];
+  const days = settings ? Math.ceil(real.length / settings.daily_limit) : 1;
+
+  const send = async () => {
+    if (!(await confirmDialog({
+      title: `Send to ${real.length} ${real.length === 1 ? "person" : "people"}?`, confirmLabel: "Send emails",
+      message: `Everyone gets their own email (they don't see each other).${days > 1 ? ` Because of the daily limit (${settings!.daily_limit}), sending takes about ${days} days.` : ""}${settings?.test_mode ? `\n\nTest mode is on: all emails go to ${settings.test_recipient ?? "nobody"}.` : ""}`,
+    }))) return;
+    setBusy(true);
+    const r = await act(() => sendGroupEmail(real, subject, body, actorLabel(acc)), x => `${x.queued} emails queued. You'll find them under Emails.`);
+    setBusy(false);
+    if (r) onClose();
+  };
+
+  return (
+    <Modal title="Email everyone in this selection" onClose={onClose} wide>
+      <div class="stack">
+        <div class="stack-s">
+          <p class="small"><strong>{real.length} recipient{real.length === 1 ? "" : "s"}</strong>, everyone matching the current filters. Each person gets their own email.</p>
+          {demoCount > 0 && <p class="muted small">{demoCount} demo people are left out (made up, they have no real address).</p>}
+          <details>
+            <summary class="small" style="cursor:pointer">Show recipients</summary>
+            <p class="muted small" style="margin-top:6px;max-height:120px;overflow:auto">{real.map(p => `${p.name} <${p.email}>`).join(", ") || "–"}</p>
+          </details>
+          {settings?.test_mode && <div class="demo-banner" role="status"><span><strong>Test mode is on:</strong> all emails go to {settings.test_recipient ?? "nobody"} instead of the recipients.</span></div>}
+          {days > 1 && <p class="muted small">Brevo sends up to {settings!.daily_limit} emails per day; the rest go out automatically over the next {days - 1} day{days > 2 ? "s" : ""}.</p>}
+        </div>
+        <Field label="Subject" required><input class="input" value={subject} onInput={e => setSubject(e.currentTarget.value)} /></Field>
+        <Field label="Message" required help="{first_name} and {full_name} are filled in for each person.">
+          <textarea class="input" rows={9} value={body} onInput={e => setBody(e.currentTarget.value)} />
+        </Field>
+        {sample && subject.trim() && (
+          <div class="stack-s">
+            <span class="overline">Preview for {sample.name}</span>
+            <div class="card" style="padding:14px;white-space:pre-wrap;font-size:14px"><strong>{personalize(subject, sample)}</strong>{"\n\n"}{personalize(body, sample)}</div>
+          </div>
+        )}
+        <div class="row" style="justify-content:flex-end">
+          <button class="btn btn--ghost" onClick={onClose}>Cancel</button>
+          <button class="btn btn--primary" disabled={busy || !real.length || !subject.trim() || !body.trim()} onClick={send}>
+            {busy ? "Sending…" : `Send to ${real.length} ${real.length === 1 ? "person" : "people"}`}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }

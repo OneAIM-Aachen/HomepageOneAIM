@@ -78,7 +78,7 @@ function outContent(s: State, m: SentEmail): { subject: string; body: string } {
   return { subject: renderTemplate(t.subject, app, { name: m.toName }, sub), body: renderTemplate(t.body, app, { name: m.toName }, sub) };
 }
 
-const kindLabel = (m: SentEmail) => (m.type === "reply" ? "Reply" : TEMPLATE_LABEL[m.type]);
+const kindLabel = (m: SentEmail) => (m.type === "reply" ? "Team email" : TEMPLATE_LABEL[m.type]);
 
 function linkify(text: string) {
   return text.split(/(https?:\/\/\S+)/g).map((part, i) => (i % 2 ? <a href={part} target="_blank" rel="noopener">{part}</a> : part));

@@ -728,6 +728,27 @@ export async function sendReply(r: ReplyInput, city: string): Promise<{ sent?: n
   return data ?? {};
 }
 
+/** Fills {first_name} / {full_name} for one recipient of a group email. */
+export function personalize(text: string, p: Pick<Person, "name">): string {
+  return text.replace(/\{first_name\}/g, firstName(p.name)).replace(/\{full_name\}/g, p.name);
+}
+
+/**
+ * Group email from the CRM: one personal email per person, through the same
+ * queue as all other emails (daily limit: the rest goes out the next days).
+ */
+export async function sendGroupEmail(people: Pick<Person, "id" | "email" | "name">[], subject: string, body: string, by: string): Promise<{ queued: number }> {
+  if (!subject.trim() || !body.trim()) throw new Error("Subject and message can't be empty.");
+  const rows = people.map(p => ({
+    template: "reply", to_email: p.email, to_name: p.name, subject: personalize(subject.trim(), p), body: personalize(body, p),
+    person_id: p.id, queued_by: by,
+  }));
+  for (let i = 0; i < rows.length; i += 500) check(await supabase.from("email_log").insert(rows.slice(i, i + 500)));
+  await supabase.functions.invoke("send-emails", { body: {} }).catch(() => undefined);
+  await loadAll();
+  return { queued: rows.length };
+}
+
 // ── Lists: universities & study programs (Settings) ──────────────────────
 
 export function formOptionsFromState(s: State): FormOptions {
