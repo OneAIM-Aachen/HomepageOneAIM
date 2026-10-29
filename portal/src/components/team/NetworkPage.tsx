@@ -1,5 +1,6 @@
-// Network: the curated OneAIM network. Only people who were accepted after
-// a screening + interview process, current team members and team alumni.
+// Network: the curated OneAIM network. Only people who were accepted in an
+// application with a selection (screening, or screening + interview),
+// current team members and team alumni. Instant registrations don't count.
 // (Everyone who ever applied is in the CRM.)
 import { useMemo, useState } from "preact/hooks";
 import type { Account, Person, TeamMember } from "../../lib/types";
@@ -26,7 +27,7 @@ interface Row {
   linkedin?: string;
   person?: Person;
   member?: TeamMember;
-  /** Accepted after screening + interview */
+  /** Accepted after a selection (screening or screening + interview) */
   participations: Entry[];
   universities: string[];
   studyPrograms: string[];
@@ -50,7 +51,7 @@ function Network({ acc, initial }: { acc: Account; initial: string | null }) {
       const participations = s.submissions
         .filter(x => x.personId === p.id && x.status === "accepted")
         .map(x => ({ sub: x, app: s.applications.find(a => a.id === x.applicationId)! }))
-        .filter(x => x.app?.pipeline === "interview");
+        .filter(x => x.app && x.app.pipeline !== "instant");
       const member = memberOf.get(p.id);
       if (!participations.length && !member) continue;
       out.push({
@@ -103,11 +104,11 @@ function Network({ acc, initial }: { acc: Account; initial: string | null }) {
   return (
     <div class="stack" style="gap:20px">
       <PageHead overline="Network" title="OneAIM network"
-        sub="People who were accepted after a screening and interview, our team and our alumni. Everyone who ever applied is in the CRM." />
+        sub="People who were accepted after a selection (screening, or screening and interview), our team and our alumni. Everyone who ever applied is in the CRM." />
 
       <div class="stats">
         <div class="card stat"><span class="stat__num">{rows.length}</span><span class="stat__label">In the network</span></div>
-        <div class="card stat"><span class="stat__num">{nParticipants}</span><span class="stat__label">Participants</span><span class="muted small">accepted after an interview</span></div>
+        <div class="card stat"><span class="stat__num">{nParticipants}</span><span class="stat__label">Participants</span><span class="muted small">accepted after a selection</span></div>
         <div class="card stat"><span class="stat__num">{nTeam}</span><span class="stat__label">Team members</span></div>
         <div class="card stat"><span class="stat__num">{nAlumni}</span><span class="stat__label">Team alumni</span></div>
       </div>
@@ -160,7 +161,7 @@ function Network({ acc, initial }: { acc: Account; initial: string | null }) {
         </div>
         {filtered.length === 0 && <div class="empty" style="border:none">Nobody matches these filters.</div>}
       </div>
-      <p class="muted small">{filtered.length} of {rows.length} people. Green = participant accepted after an interview, purple = team, gray = team alumni.</p>
+      <p class="muted small">{filtered.length} of {rows.length} people. Green = participant accepted after a selection, purple = team, gray = team alumni.</p>
 
       {openRow?.person && (
         <PersonDrawer person={openRow.person}
