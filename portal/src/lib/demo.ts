@@ -212,6 +212,14 @@ export function withDemo(s: State): State {
     }
     // A few members without a department
     for (let i = 0; i < 2; i++) add("member");
+    // Former members (alumni)
+    for (let i = 0; i < 2; i++) {
+      add("member", useDepts[i % useDepts.length]!.id);
+      const m = team[team.length - 1]!;
+      m.status = "alumni";
+      m.alumniSince = "2026-09-30";
+      m.history = m.history.map(h => ({ ...h, to: "2026-09-30" }));
+    }
   }
 
   return {

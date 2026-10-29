@@ -2,6 +2,9 @@
 // network profile (contact, studies, OneAIM programs and team history).
 import { useEffect, useMemo, useState } from "preact/hooks";
 import { fetchDirectory } from "../../lib/members";
+import { fetchPublicTagLists } from "../../lib/store";
+import { isDemo } from "../../lib/demo";
+import { demoProfiles } from "../../lib/demoNetwork";
 import type { NetworkProfile } from "../network/Profile";
 import { ProfileDrawer } from "../network/Profile";
 import { MembersShell } from "./MembersShell";
@@ -24,7 +27,14 @@ function Directory() {
   const [uni, setUni] = useState("");
   const [open, setOpen] = useState<string | null>(null);
 
-  useEffect(() => { fetchDirectory().then(setAll).catch(e => setError(e instanceof Error ? e.message : String(e))); }, []);
+  useEffect(() => {
+    (async () => {
+      const real = await fetchDirectory();
+      // Demo data (test site only): made-up members from all cities, only in this browser
+      const demo = isDemo() ? demoProfiles(await fetchPublicTagLists(), real.some(r => r.team?.status === "active")) : [];
+      setAll([...real, ...demo].sort((a, b) => a.name.localeCompare(b.name)));
+    })().catch(e => setError(e instanceof Error ? e.message : String(e)));
+  }, []);
 
   const opts = useMemo(() => {
     const list = all ?? [];

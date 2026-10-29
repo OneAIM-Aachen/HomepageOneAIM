@@ -765,3 +765,6 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .post__body { white-space: pre-wrap; }
 .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; align-items: start; }
 @media (max-width: 640px) { .board { grid-template-columns: 1fr; } }
+.members__demo { margin-top: 0; padding: 6px 10px; font-size: 13px; }
+@media (max-width: 640px) { .members__demo span:last-child { display: none; } }
+.members__me.is-active span { color: var(--color-brand-blue); }

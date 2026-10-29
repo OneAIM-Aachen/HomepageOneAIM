@@ -3,6 +3,8 @@
 // that a team member approves.
 import { useEffect, useState } from "preact/hooks";
 import { fetchBoard, submitPost, withdrawPost, type Member } from "../../lib/members";
+import { isDemo } from "../../lib/demo";
+import { DEMO_POSTS } from "../../lib/demoNetwork";
 import { isPast, KIND_LABEL, PostCard, PostForm, type Post, type PostKind } from "../network/Board";
 import { MembersShell } from "./MembersShell";
 import { act, confirmDialog } from "../ui/Ui";
@@ -17,7 +19,7 @@ function Board({ me }: { me: Member }) {
   const [kind, setKind] = useState<PostKind | "">("");
   const [writing, setWriting] = useState(false);
   const [showPast, setShowPast] = useState(false);
-  const load = () => fetchBoard().then(setPosts).catch(() => setPosts([]));
+  const load = () => fetchBoard().then(p => setPosts([...p, ...(isDemo() ? DEMO_POSTS : [])])).catch(() => setPosts([]));
   useEffect(() => { load(); }, []);
   if (!posts) return <div class="loading" role="status" aria-label="Loading"><span /></div>;
 
