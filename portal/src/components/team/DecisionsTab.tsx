@@ -38,10 +38,10 @@ export function DecisionsTab({ app, subs, onOpen }: {
   const inStage = (x: Submission) => (app.pipeline === "interview" ? (stage === "screening" ? x.status === "new" : x.status === "invited") : x.status === "new");
   const options = stageOptions(app, stage);
   const positive = options[0]!;   // invite or accept
-  const stageScore = (x: Submission) => {
-    const sc = applicantScore(app, x);
-    return stage === "final" && app.pipeline === "interview" ? sc.interview ?? sc.screening : sc.screening;
-  };
+  // Only the score of this stage: interview score after interviews, screening score after screening
+  const scoreStage: "screening" | "interview" = stage === "final" && app.pipeline === "interview" ? "interview" : "screening";
+  const scoreLabel = scoreStage === "interview" ? "Interview score" : "Screening score";
+  const stageScore = (x: Submission) => applicantScore(app, x)[scoreStage];
   const person = (x: Submission) => people.find(p => p.id === x.personId)!;
 
   const rows = useMemo(() => subs.filter(inStage).sort((a, b) =>
@@ -99,7 +99,7 @@ export function DecisionsTab({ app, subs, onOpen }: {
             <span class="stat__label">Spots</span>
             <span class="muted small">{alreadyAccepted} accepted so far{positive === "accept" ? ` + ${count("accept")} planned` : ""}</span>
           </div>
-        ) : <div class="card stat"><span class="stat__num">{fmtScore(avg(takers.map(stageScore)))}</span><span class="stat__label">Avg. score of planned “{PLAN_LABEL[positive]}”</span></div>}
+        ) : <div class="card stat"><span class="stat__num">{fmtScore(avg(takers.map(stageScore)))}</span><span class="stat__label">Avg. {scoreLabel.toLowerCase()} of planned “{PLAN_LABEL[positive]}”</span></div>}
       </div>
 
       <div class="row" style="gap:6px" role="group" aria-label="View">
@@ -108,7 +108,7 @@ export function DecisionsTab({ app, subs, onOpen }: {
       </div>
 
       {view === "planner" ? (
-        <BatchPlanner rows={rows} positive={positive} person={person} score={stageScore} fieldOf={fieldOf} onOpen={id => onOpen(id, rows.map(r => r.id))}
+        <BatchPlanner rows={rows} positive={positive} person={person} score={stageScore} fieldOf={fieldOf} scoreLabel={scoreLabel} onOpen={id => onOpen(id, rows.map(r => r.id))}
           onPlan={(ids, d) => plan(ids, d)} spots={app.spots ? Math.max(0, app.spots - alreadyAccepted) : undefined} />
       ) : <>
       {takers.length > 0 && (
@@ -144,7 +144,7 @@ export function DecisionsTab({ app, subs, onOpen }: {
                 <thead>
                   <tr>
                     <th style="width:36px"><input type="checkbox" aria-label="Select all" checked={allSel} onChange={() => setSelected(allSel ? new Set() : new Set(rows.map(r => r.id)))} /></th>
-                    <th>#</th><th>Applicant</th><th>Study</th><th>Companies</th><th>Score</th><th>Planned decision</th>
+                    <th>#</th><th>Applicant</th><th>Study</th><th>Companies</th><th>{scoreLabel}</th><th>Planned decision</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,10 +265,10 @@ const semGroup = (sem?: string) => !sem || !/^\d/.test(sem) ? "Not applicable / 
  * Put people into the batch (= planned invite / accept) or take them out, and
  * see live how the batch is composed compared with all applicants of the stage.
  */
-function BatchPlanner({ rows, positive, person, score, fieldOf, onOpen, onPlan, spots }: {
+function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOpen, onPlan, spots }: {
   rows: Submission[]; positive: PlannedDecision;
   person: (x: Submission) => { name: string; studyPrograms: string[]; universities: string[]; degree?: string; semester?: string; companies: { company: string }[] };
-  score: (x: Submission) => number | undefined; fieldOf: (name: string) => string;
+  score: (x: Submission) => number | undefined; scoreLabel: string; fieldOf: (name: string) => string;
   onOpen: (id: string) => void; onPlan: (ids: string[], d: PlannedDecision | null) => Promise<unknown>; spots?: number;
 }) {
   const [q, setQ] = useState("");
@@ -298,7 +298,7 @@ function BatchPlanner({ rows, positive, person, score, fieldOf, onOpen, onPlan, 
           <strong>{p.name}</strong>
           <span class="muted small">{[p.studyPrograms[0], p.universities[0], p.degree].filter(Boolean).join(" · ")}</span>
         </button>
-        <span class="score-pill" title="Score in this stage">{sc !== undefined ? fmtScore(sc) : <small>–</small>}</span>
+        <span class="score-pill" title={scoreLabel}>{sc !== undefined ? fmtScore(sc) : <small>–</small>}</span>
         {!add && x.plannedDecision === "reject" && <span class="chip chip--red">Reject</span>}
         <button class={`icon-btn planner__move ${add ? "planner__move--add" : ""}`} aria-label={add ? `Add ${p.name} to the batch` : `Take ${p.name} out of the batch`}
           title={add ? "Add to the batch" : "Take out"} onClick={() => onPlan([x.id], add ? positive : null)}>{add ? "+" : "×"}</button>
@@ -313,7 +313,7 @@ function BatchPlanner({ rows, positive, person, score, fieldOf, onOpen, onPlan, 
           <h3>Batch composition</h3>
           <span class="small">
             <strong>{inBatch.length}</strong> in the batch{spots !== undefined ? ` · ${spots} spot${spots === 1 ? "" : "s"} left` : ""}
-            {" · "}avg. score <strong>{fmtScore(avg(inBatch.map(score)))}</strong> <span class="muted">(all: {fmtScore(avg(rows.map(score)))})</span>
+            {" · "}avg. {scoreLabel.toLowerCase()} <strong>{fmtScore(avg(inBatch.map(score)))}</strong> <span class="muted">(all: {fmtScore(avg(rows.map(score)))})</span>
           </span>
         </div>
         {spots !== undefined && inBatch.length > spots && positive === "accept" && <p class="small field__error">{inBatch.length - spots} more than the free spots.</p>}
