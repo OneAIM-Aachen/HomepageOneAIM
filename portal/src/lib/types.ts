@@ -90,10 +90,6 @@ export interface Application {
     interviewsTo?: string;
     decisionBy?: string;
     startsAt?: string;
-    /** Optional time on the deadline day, "12:00" */
-    deadlineTime?: string;
-    /** Free text instead of from/to, e.g. "Oct" */
-    interviewsLabel?: string;
   };
   spots?: number;
   fee?: string;

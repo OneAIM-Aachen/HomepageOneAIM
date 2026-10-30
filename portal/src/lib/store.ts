@@ -82,8 +82,6 @@ function mapApplication(r: any, slots: Slot[]): Application {
       opensAt: r.opens_at, deadline: r.deadline,
       interviewsFrom: r.interviews_from ?? undefined, interviewsTo: r.interviews_to ?? undefined,
       decisionBy: r.decision_by ?? undefined, startsAt: r.starts_at ?? undefined,
-      deadlineTime: r.deadline_time ? String(r.deadline_time).slice(0, 5) : undefined,
-      interviewsLabel: r.interviews_label ?? undefined,
     },
     spots: r.spots ?? undefined,
     fee: r.fee ?? undefined,
@@ -111,10 +109,10 @@ function applicationRow(a: Application) {
     published: a.published,
     opens_at: a.dates.opensAt,
     deadline: a.dates.deadline,
-    deadline_time: a.dates.deadlineTime || null,
+    deadline_time: null,      // always closes at the end of the deadline day
     interviews_from: a.dates.interviewsFrom || null,
     interviews_to: a.dates.interviewsTo || null,
-    interviews_label: a.dates.interviewsLabel?.trim() || null,
+    interviews_label: null,   // interview period comes from the from/to dates
     decision_by: a.dates.decisionBy || null,
     starts_at: a.dates.startsAt || null,
     spots: a.spots ?? null,
@@ -593,7 +591,7 @@ export async function fetchPublishedApplications(): Promise<PublicApplication[]>
     dates: {
       opensAt: r.opens_at, deadline: r.deadline, interviewsFrom: r.interviews_from ?? undefined,
       interviewsTo: r.interviews_to ?? undefined, decisionBy: r.decision_by ?? undefined, startsAt: r.starts_at ?? undefined,
-      deadlineTime: r.deadline_time ? String(r.deadline_time).slice(0, 5) : undefined, interviewsLabel: r.interviews_label ?? undefined,
+
     },
     spots: r.spots ?? undefined, fee: r.fee ?? undefined,
     intro: r.intro ?? "", image: r.image_path ?? undefined,

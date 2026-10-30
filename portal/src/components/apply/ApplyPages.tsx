@@ -41,7 +41,7 @@ function usePublished() {
 function Facts({ app }: { app: PublicApplication }) {
   return (
     <div class="facts">
-      <div class="fact">Deadline<strong>{fmtDate(app.dates.deadline)}{app.dates.deadlineTime ? `, ${app.dates.deadlineTime}` : ""}</strong></div>
+      <div class="fact">Deadline<strong>{fmtDate(app.dates.deadline)}, 23:59</strong></div>
       {app.dates.startsAt && <div class="fact">{app.pipeline === "instant" ? "Date" : "Program start"}<strong>{fmtDate(app.dates.startsAt)}</strong></div>}
       {app.spots && <div class="fact">Spots<strong>{app.spots}</strong></div>}
       {app.fee && <div class="fact">Participation fee<strong>{formatFee(app.fee)}</strong></div>}

@@ -479,18 +479,10 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
         <div class="stack-s"><h3>Dates</h3><p class="muted small">These fill the timeline and status card on one-aim.org.</p></div>
         <div class="grid-3">
           <Field label="Applications open" required>{date("opensAt")}</Field>
-          <Field label="Deadline" required error={d.dates.deadline && d.dates.opensAt && d.dates.deadline < d.dates.opensAt ? "Deadline is before the opening date." : undefined}>{date("deadline")}</Field>
+          <Field label="Deadline" required help="Applications close at 23:59 (German time) on this day." helpBelow error={d.dates.deadline && d.dates.opensAt && d.dates.deadline < d.dates.opensAt ? "Deadline is before the opening date." : undefined}>{date("deadline")}</Field>
           <Field label="Final decision by">{date("decisionBy")}</Field>
           {d.pipeline === "interview" && <Field label="Interviews from">{date("interviewsFrom")}</Field>}
           {d.pipeline === "interview" && <Field label="Interviews to">{date("interviewsTo")}</Field>}
-          {d.pipeline === "interview" && (
-            <Field label="Interview period as text" help='Instead of from/to, e.g. "Oct".' helpBelow>
-              <input class="input" value={d.dates.interviewsLabel ?? ""} onInput={e => setD({ ...d, dates: { ...d.dates, interviewsLabel: e.currentTarget.value || undefined } })} />
-            </Field>
-          )}
-          <Field label="Deadline time" help="Optional, German time. Empty = end of day." helpBelow>
-            <input class="input" type="time" value={d.dates.deadlineTime ?? ""} onInput={e => setD({ ...d, dates: { ...d.dates, deadlineTime: e.currentTarget.value || undefined } })} />
-          </Field>
           <Field label={d.pipeline === "instant" ? "Event date" : "Program start"}>{date("startsAt")}</Field>
         </div>
       </section>
