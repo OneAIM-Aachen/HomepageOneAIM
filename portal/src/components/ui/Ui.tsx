@@ -83,14 +83,17 @@ export function Toaster() {
   return text ? <div class="toast" role="status">{text}</div> : null;
 }
 
-export function Field({ label, required, help, error, children }: {
+export function Field({ label, required, help, helpBelow, error, children }: {
   label: string; required?: boolean; help?: string; error?: string; children: ComponentChildren;
+  /** Show the help text under the input instead of above it */
+  helpBelow?: boolean;
 }) {
   return (
     <label class="field">
       <span class="field__label">{label}{required && <span class="req">*</span>}</span>
-      {help && <span class="field__help">{help}</span>}
+      {help && !helpBelow && <span class="field__help">{help}</span>}
       {children}
+      {help && helpBelow && <span class="field__help">{help}</span>}
       {error && <span class="field__error">{error}</span>}
     </label>
   );

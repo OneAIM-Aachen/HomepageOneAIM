@@ -496,11 +496,11 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
           {d.pipeline === "interview" && <Field label="Interviews from">{date("interviewsFrom")}</Field>}
           {d.pipeline === "interview" && <Field label="Interviews to">{date("interviewsTo")}</Field>}
           {d.pipeline === "interview" && (
-            <Field label="Interview period as text" help='Instead of from/to, e.g. "Oct".'>
+            <Field label="Interview period as text" help='Instead of from/to, e.g. "Oct".' helpBelow>
               <input class="input" value={d.dates.interviewsLabel ?? ""} onInput={e => setD({ ...d, dates: { ...d.dates, interviewsLabel: e.currentTarget.value || undefined } })} />
             </Field>
           )}
-          <Field label="Deadline time" help="Optional, German time. Empty = end of day.">
+          <Field label="Deadline time" help="Optional, German time. Empty = end of day." helpBelow>
             <input class="input" type="time" value={d.dates.deadlineTime ?? ""} onInput={e => setD({ ...d, dates: { ...d.dates, deadlineTime: e.currentTarget.value || undefined } })} />
           </Field>
           <Field label={d.pipeline === "instant" ? "Event date" : "Program start"}>{date("startsAt")}</Field>
@@ -511,10 +511,9 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
         <h3>Spots & fee</h3>
         <div class="grid-3">
           <Field label="Spots"><input class="input" type="number" min={0} value={d.spots ?? ""} onInput={e => setD({ ...d, spots: Number(e.currentTarget.value) || undefined })} /></Field>
-          <Field label="Participation fee">
+          <Field label="Participation fee" help="Shown on the form. Leave empty if there's no fee; 0 shows “Free”." helpBelow>
             <input class="input" type="number" min={0} step="0.01" placeholder="e.g. 50" value={fee.amount}
               onInput={e => setD({ ...d, fee: feeValue(e.currentTarget.value, fee.currency) })} />
-            <span class="field__help">Shown on the form. Leave empty if there's no fee; 0 shows “Free”.</span>
           </Field>
           <Field label="Currency" required={!!fee.amount} error={feeBad ? "Please select the currency." : undefined}>
             <select class={`input ${feeBad ? "input--invalid" : ""}`} value={fee.currency} disabled={!fee.amount}
