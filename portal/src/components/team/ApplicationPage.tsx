@@ -58,7 +58,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
     ["applicants", "Applicants", subs.length],
     ...(app.pipeline !== "instant" ? [["decisions", "Decisions", subs.filter(x => x.plannedDecision).length || undefined] as [Tab, string, number?]] : []),
     ["setup", "Setup & dates"],
-    ["form", "Form", app.fields.length],
+    ["form", "Application form", app.fields.length],
     ...(app.pipeline !== "instant" ? [["scorecards", "Scorecards", Object.keys(app.scorecards).length] as [Tab, string, number]] : []),
     ["emails", "Emails"],
     ...(app.pipeline === "interview" ? [["slots", "Interview slots", app.slots.length] as [Tab, string, number]] : []),
