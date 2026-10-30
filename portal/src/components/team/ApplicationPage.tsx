@@ -43,6 +43,10 @@ function Detail({ acc, id, initialTab, openSub, created }: {
   const [preview, setPreview] = useState(false);
   // Profile to open once when the Applicants tab shows next (from the link or a click in Decisions)
   const [pendingOpen, setPendingOpen] = useState<string | null>(openSub);
+  // Decisions tab: profile opened next to the list
+  const [side, setSide] = useState<{ id: string; order: string[] } | null>(null);
+  const [sideReview, setSideReview] = useState(false);
+  const [sideConfirm, setSideConfirm] = useState<Decision | null>(null);
 
   if (!app) return <div class="empty">This application does not exist. <a href="/team/applications">Back to applications</a></div>;
 
@@ -97,7 +101,22 @@ function Detail({ acc, id, initialTab, openSub, created }: {
       </nav>
 
       {tab === "applicants" && <Applicants acc={acc} app={app} subs={subs} openSub={pendingOpen} onOpened={() => setPendingOpen(null)} />}
-      {tab === "decisions" && <DecisionsTab app={app} subs={subs} onOpen={id => { setPendingOpen(id); setTab("applicants"); }} />}
+      {tab === "decisions" && <>
+        <DecisionsTab app={app} subs={subs} onOpen={(id, order) => setSide({ id, order })} />
+        {/* The profile opens next to the planner; the tab stays */}
+        {side && !sideReview && subs.find(x => x.id === side.id) && (
+          <ApplicantDrawer acc={acc} app={app} sub={subs.find(x => x.id === side.id)!} onClose={() => setSide(null)}
+            onDecide={d => setSideConfirm(d)} onReview={() => setSideReview(true)} />
+        )}
+        {side && sideReview && (
+          <ReviewSplit acc={acc} app={app} subId={side.id} order={side.order}
+            onNavigate={id => setSide({ ...side, id })} onClose={() => setSideReview(false)} />
+        )}
+        {side && sideConfirm && (
+          <ConfirmDecision acc={acc} app={app} subs={subs.filter(x => x.id === side.id)} decision={sideConfirm}
+            onClose={() => setSideConfirm(null)} onDone={() => setSideConfirm(null)} />
+        )}
+      </>}
       {tab === "setup" && <Setup app={app} hasSubs={subs.length > 0} />}
       {tab === "form" && <FormTab app={app} hasSubs={subs.length > 0} />}
       {tab === "scorecards" && <ScorecardsTab app={app} />}

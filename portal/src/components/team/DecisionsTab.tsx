@@ -21,7 +21,11 @@ export function stageOptions(app: Application, stage: Stage): PlannedDecision[] 
   return ["accept", "reject"];
 }
 
-export function DecisionsTab({ app, subs, onOpen }: { app: Application; subs: Submission[]; onOpen: (subId: string) => void }) {
+export function DecisionsTab({ app, subs, onOpen }: {
+  app: Application; subs: Submission[];
+  /** Opens the profile next to the list; `order` = the list for previous / next */
+  onOpen: (subId: string, order: string[]) => void;
+}) {
   const people = useStore(s => s.people);
   const programs = useStore(s => s.studyPrograms);
   const [stage, setStage] = useState<Stage>(app.pipeline === "interview" && !subs.some(x => x.status === "new") ? "final" : "screening");
@@ -104,7 +108,7 @@ export function DecisionsTab({ app, subs, onOpen }: { app: Application; subs: Su
       </div>
 
       {view === "planner" ? (
-        <BatchPlanner rows={rows} positive={positive} person={person} score={stageScore} fieldOf={fieldOf} onOpen={onOpen}
+        <BatchPlanner rows={rows} positive={positive} person={person} score={stageScore} fieldOf={fieldOf} onOpen={id => onOpen(id, rows.map(r => r.id))}
           onPlan={(ids, d) => plan(ids, d)} spots={app.spots ? Math.max(0, app.spots - alreadyAccepted) : undefined} />
       ) : <>
       {takers.length > 0 && (
@@ -152,7 +156,7 @@ export function DecisionsTab({ app, subs, onOpen }: { app: Application; subs: Su
                       <tr class={selected.has(x.id) ? "is-selected" : ""}>
                         <td><input type="checkbox" aria-label={`Select ${p.name}`} checked={selected.has(x.id)} onChange={() => toggle(x.id)} /></td>
                         <td class="muted small">{i + 1}</td>
-                        <td><button class="link-btn cell-person" onClick={() => onOpen(x.id)}><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.semester && /^\d/.test(p.semester) ? `${p.semester}. sem. · ` : ""}{p.degree ?? ""}</span></div></button></td>
+                        <td><button class="link-btn cell-person" onClick={() => onOpen(x.id, rows.map(r => r.id))}><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.semester && /^\d/.test(p.semester) ? `${p.semester}. sem. · ` : ""}{p.degree ?? ""}</span></div></button></td>
                         <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}</span></td>
                         <td class="small">{p.companies.length ? <>{p.companies[0]!.company}{p.companies.length > 1 && <span class="muted"> +{p.companies.length - 1}</span>}</> : <span class="muted">–</span>}</td>
                         <td>{sc !== undefined ? <span class="score-pill">{fmtScore(sc)}<small>({sheets})</small></span> : <span class="muted small">not rated</span>}</td>
