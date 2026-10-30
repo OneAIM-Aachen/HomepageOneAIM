@@ -676,8 +676,38 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
     }).then(ok => { if (ok) act(() => removeSlot(id), "Slot removed"); });
   };
 
+  // Overview numbers: slots, places (a slot can hold several people), bookings
+  const upcoming = app.slots.filter(sl => !slotIsPast(sl));
+  const places = app.slots.reduce((n, sl) => n + sl.capacity, 0);
+  const booked = app.slots.reduce((n, sl) => n + subs.filter(x => x.slotId === sl.id).length, 0);
+  const freeUpcoming = upcoming.reduce((n, sl) => n + Math.max(0, sl.capacity - subs.filter(x => x.slotId === sl.id).length), 0);
+  const invitedNoSlot = subs.filter(x => x.status === "invited" && !x.slotId).length;
+  const noInterviewer = upcoming.filter(sl => !sl.interviewerIds.length).length;
+
   return (
     <div class="stack" style="gap:20px">
+      <div class="stats">
+        <div class="card stat">
+          <span class="stat__num">{app.slots.length}</span><span class="stat__label">Interview slots</span>
+          <span class="muted small">{upcoming.length} upcoming · {app.slots.length - upcoming.length} past{places !== app.slots.length ? ` · ${places} places` : ""}</span>
+        </div>
+        <div class="card stat">
+          <span class="stat__num">{booked} / {places}</span><span class="stat__label">Booked</span>
+          <span class="muted small">{places ? `${Math.round((booked / places) * 100)}% of all places` : "no slots yet"}</span>
+        </div>
+        <div class="card stat">
+          <span class="stat__num">{freeUpcoming}</span><span class="stat__label">Free places</span>
+          <span class="muted small">{invitedNoSlot ? `${invitedNoSlot} invited, not booked yet` : "in upcoming slots"}</span>
+        </div>
+        <div class="card stat">
+          <span class="stat__num">{noInterviewer}</span><span class="stat__label">Without interviewer</span>
+          <span class="muted small">upcoming slots nobody is assigned to</span>
+        </div>
+      </div>
+      {invitedNoSlot > freeUpcoming && (
+        <p class="small field__error">{invitedNoSlot} invited applicants haven't booked yet, but only {freeUpcoming} free place{freeUpcoming === 1 ? " is" : "s are"} left. Add more slots.</p>
+      )}
+
       <div class={`card row ${blocker ? "" : "card--tint"}`} style={blocker ? "border-color:#F3D19C;background:var(--p-amber-tint)" : ""}>
         <span style="flex:1">{blocker
           ? <><strong>Invitations are blocked.</strong> {blocker}</>
