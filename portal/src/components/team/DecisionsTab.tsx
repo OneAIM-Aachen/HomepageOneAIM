@@ -272,12 +272,19 @@ function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOp
   onOpen: (id: string) => void; onPlan: (ids: string[], d: PlannedDecision | null) => Promise<unknown>; spots?: number;
 }) {
   const [q, setQ] = useState("");
+  const [topN, setTopN] = useState("");
   const inBatch = rows.filter(x => x.plannedDecision === positive);
   const out = rows.filter(x => x.plannedDecision !== positive);
   const ql = q.trim().toLowerCase();
   const match = (x: Submission) => { const p = person(x); return !ql || `${p.name} ${p.studyPrograms.join(" ")} ${p.universities.join(" ")}`.toLowerCase().includes(ql); };
   const byScore = (a: Submission, b: Submission) => (score(b) ?? -1) - (score(a) ?? -1);
   const verb = positive === "invite" ? "invite" : "accept";
+  // Rated candidates, best first (unrated ones are never added automatically)
+  const ranked = out.filter(x => score(x) !== undefined).sort(byScore);
+  const addTop = (n: number) => {
+    const pick = ranked.slice(0, Math.max(0, n));
+    if (pick.length) onPlan(pick.map(x => x.id), positive);
+  };
 
   // Values per person for each dimension (a person can count in several, e.g. two study programs)
   const dims: { title: string; of: (x: Submission) => string[] }[] = [
@@ -312,11 +319,26 @@ function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOp
         <div class="row row--between">
           <h3>Batch composition</h3>
           <span class="small">
-            <strong>{inBatch.length}</strong> in the batch{spots !== undefined ? ` · ${spots} spot${spots === 1 ? "" : "s"} left` : ""}
+            <strong>{inBatch.length}</strong> in the batch{spots !== undefined && positive === "accept" ? ` · ${Math.max(0, spots - inBatch.length)} of ${spots} free spot${spots === 1 ? "" : "s"} left` : ""}
             {" · "}avg. {scoreLabel.toLowerCase()} <strong>{fmtScore(avg(inBatch.map(score)))}</strong> <span class="muted">(all: {fmtScore(avg(rows.map(score)))})</span>
           </span>
         </div>
         {spots !== undefined && inBatch.length > spots && positive === "accept" && <p class="small field__error">{inBatch.length - spots} more than the free spots.</p>}
+        <div class="row" style="gap:8px">
+          {positive === "accept" && spots !== undefined && spots - inBatch.length > 0 && (
+            <button class="btn btn--primary btn--sm" disabled={inBatch.length >= spots || !ranked.length}
+              title="Adds the highest-scored candidates until all free spots are taken (unrated ones are skipped)"
+              onClick={() => addTop(spots - inBatch.length)}>
+              Fill {Math.max(0, spots - inBatch.length)} free spot{spots - inBatch.length === 1 ? "" : "s"} with the top scores
+            </button>
+          )}
+          <span class="row small" style="gap:6px">
+            Add top
+            <input class="input input--sm" style="width:64px" type="number" min={1} value={topN} onInput={e => setTopN(e.currentTarget.value)} aria-label="Number of top candidates to add" />
+            by score
+            <button class="btn btn--secondary btn--sm" disabled={!Number(topN) || !ranked.length} onClick={() => addTop(Math.floor(Number(topN)))}>Add</button>
+          </span>
+        </div>
         <p class="muted small">Bars: share in the batch. The line marks the share among all {rows.length} applicants of this stage.</p>
         <div class="grid-3" style="gap:22px">
           {dims.map(d => <Composition title={d.title} batch={inBatch.flatMap(d.of)} pool={rows.flatMap(d.of)} batchSize={inBatch.length} poolSize={rows.length} />)}
