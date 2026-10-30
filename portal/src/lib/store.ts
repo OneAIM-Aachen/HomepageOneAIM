@@ -542,10 +542,6 @@ export async function decide(subIds: string[], decision: Decision, _by: string, 
   return result;
 }
 
-export async function setScore(subId: string, score: number | undefined) {
-  check(await supabase.from("submissions").update({ score: score ?? null }).eq("id", subId));
-  await loadAll();
-}
 
 export async function addComment(subId: string, _author: string, text: string) {
   if (!text.trim()) return;

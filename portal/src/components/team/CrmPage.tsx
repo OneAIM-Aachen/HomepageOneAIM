@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account, Application, FileRef, Person, Submission, SubmissionStatus } from "../../lib/types";
-import { actorLabel, inviteToNetworkSite, loadEmailSettings, personalize, ROLE_LABEL, sendGroupEmail, useStore, type EmailSettings } from "../../lib/store";
+import { actorLabel, applicantScore, inviteToNetworkSite, loadEmailSettings, personalize, ROLE_LABEL, sendGroupEmail, useStore, type EmailSettings } from "../../lib/store";
 import { appTitle, DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS, STATUS_LABEL, TEMPLATE_LABEL } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, Avatar, confirmDialog, Drawer, Field, Modal, StatusChip, useParam } from "../ui/Ui";
@@ -253,7 +253,7 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
             <summary>
               <div style="flex:1;min-width:0">
                 <strong style="color:var(--color-text-heading)">{appTitle(app)}</strong>
-                <div class="muted small">Applied {fmtDate(sub.submittedAt)}{sub.score ? ` · ${"★".repeat(sub.score)}` : ""}{sub.comments.length ? ` · ${sub.comments.length} comment${sub.comments.length > 1 ? "s" : ""}` : ""}</div>
+                <div class="muted small">Applied {fmtDate(sub.submittedAt)}{applicantScore(app, sub).overall !== undefined ? ` · score ${applicantScore(app, sub).overall!.toFixed(1)} / 5` : ""}{sub.comments.length ? ` · ${sub.comments.length} comment${sub.comments.length > 1 ? "s" : ""}` : ""}</div>
               </div>
               <StatusChip status={sub.status} />
             </summary>

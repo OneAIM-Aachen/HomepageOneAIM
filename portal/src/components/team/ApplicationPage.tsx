@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Account, Application, PlannedDecision, ReviewStage, Scorecard, Slot, Submission, SubmissionStatus, TemplateKey } from "../../lib/types";
 import {
   addComment, addSlots, decide, deleteApplication, inviteBlocker, removeSlot, renderTemplate, saveApplication,
-  sendInterviewDetails, setScore, slotComplete, slotIsPast, slotTaken, updateSlot, uploadImage, useStore, type Decision,
+  sendInterviewDetails, slotComplete, slotIsPast, slotTaken, updateSlot, uploadImage, useStore, type Decision,
   formOptionsFromState, getState, applicantScore, planDecision, assignReviewers, unassignReviewer, setInterviewers, saveScoreSheet,
   deleteScoreSheet, sheetScore,
 } from "../../lib/store";
@@ -15,7 +15,7 @@ import {
 import { TeamShell, PageHead } from "./TeamShell";
 import { FormBuilder } from "./FormBuilder";
 import { Answers } from "./Answers";
-import { act, Avatar, confirmDialog, Drawer, Field, Modal, PhaseChip, Stars, StatusChip, toast, useParam } from "../ui/Ui";
+import { act, Avatar, confirmDialog, Drawer, Field, Modal, PhaseChip, StatusChip, toast, useParam } from "../ui/Ui";
 import { FormRenderer } from "../apply/FormRenderer";
 import { isDemoId } from "../../lib/demo";
 import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash, IconX } from "../ui/Icons";
@@ -150,7 +150,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
         || !!app.slots.find(s => s.id === x.slotId)?.interviewerIds.includes(acc.memberId))))
       .filter(x => { const p = person(x); return !ql || `${p.name} ${p.email} ${p.universities.join(" ")} ${p.studyPrograms.join(" ")}`.toLowerCase().includes(ql); })
       .sort((a, b) =>
-        sort === "score" ? (applicantScore(app, b).overall ?? b.score ?? 0) - (applicantScore(app, a).overall ?? a.score ?? 0)
+        sort === "score" ? (applicantScore(app, b).overall ?? 0) - (applicantScore(app, a).overall ?? 0)
         : sort === "name" ? person(a).name.localeCompare(person(b).name)
         : b.submittedAt.localeCompare(a.submittedAt));
   }, [subs, people, status, q, sort, mine]);
@@ -201,7 +201,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
                   <tr>
                     <th style="width:36px"><input type="checkbox" aria-label="Select all" checked={allSel}
                       onChange={() => setSelected(allSel ? new Set() : new Set(rows.map(r => r.id)))} /></th>
-                    <th>Applicant</th><th>Study</th><th>Status</th><th>Score</th><th>Reviewers</th>
+                    <th>Applicant</th><th>Study</th><th>Status</th>{app.pipeline !== "instant" && <><th>Score</th><th>Reviewers</th></>}
                     {app.pipeline === "interview" && <th>Interview</th>}
                     <th>Submitted</th>
                   </tr>
@@ -216,12 +216,10 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
                         <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.email}</span></div></div></td>
                         <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}{p.semester && /^\d/.test(p.semester) ? ` · ${p.semester}. sem.` : ""}{p.degree ? ` · ${p.degree}` : ""}</span></td>
                         <td><StatusChip status={x.status} />{x.plannedDecision && <div style="margin-top:4px"><span class={`chip ${x.plannedDecision === "accept" ? "chip--green" : x.plannedDecision === "reject" ? "chip--red" : "chip--purple"}`} title={`Planned by ${x.plannedBy ?? "?"}, not sent yet`}>Planned: {DECISION_TEXT[x.plannedDecision].verb}</span></div>}</td>
-                        <td onClick={e => { if (!applicantScore(app, x).sheets) e.stopPropagation(); }}>
-                          {applicantScore(app, x).sheets
-                            ? <ScoreCell app={app} sub={x} />
-                            : <Stars value={x.score} onChange={isDemoId(x.id) ? undefined : v => act(() => setScore(x.id, v))} />}
-                        </td>
-                        <td><ReviewerAvatars ids={x.reviewerIds} /></td>
+                        {app.pipeline !== "instant" && <>
+                          <td>{applicantScore(app, x).sheets ? <ScoreCell app={app} sub={x} /> : <span class="muted small">Not rated</span>}</td>
+                          <td><ReviewerAvatars ids={x.reviewerIds} /></td>
+                        </>}
                         {app.pipeline === "interview" && (
                           <td class="small">{slot ? fmtSlot(slot.start) : x.status === "invited" ? <span class="chip chip--amber">No slot yet</span> : <span class="muted">–</span>}</td>
                         )}
@@ -366,12 +364,14 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide, onReview }: {
       </>}>
 
       <div class="grid-2">
-        <div class="card stack-s" style="padding:14px 16px">
-          <span class="overline">Score</span>
-          {applicantScore(app, sub).sheets
-            ? <ScoreCell app={app} sub={sub} detailed />
-            : <Stars value={sub.score} onChange={isDemoId(sub.id) ? undefined : v => act(() => setScore(sub.id, v))} />}
-        </div>
+        {app.pipeline !== "instant" && (
+          <div class="card stack-s" style="padding:14px 16px">
+            <span class="overline">Score</span>
+            {applicantScore(app, sub).sheets
+              ? <ScoreCell app={app} sub={sub} detailed />
+              : <span class="muted small">Not rated yet: fill in the scorecard below.</span>}
+          </div>
+        )}
         {app.pipeline === "interview" && (
           <div class="card stack-s" style="padding:14px 16px">
             <span class="overline">Interview</span>

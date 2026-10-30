@@ -26,21 +26,6 @@ export function Avatar({ name, large, src }: { name: string; large?: boolean; sr
   return <span class={`avatar ${large ? "avatar--lg" : ""}`} aria-hidden="true">{initials(name)}</span>;
 }
 
-export function Stars({ value, onChange }: { value?: number; onChange?: (v: number | undefined) => void }) {
-  if (!onChange) {
-    return value ? <span class="stars--static" aria-label={`${value} of 5`}>{"★".repeat(value)}<span style="color:#D3D9E6">{"★".repeat(5 - value)}</span></span>
-                 : <span class="muted small">–</span>;
-  }
-  return (
-    <span class="stars" role="radiogroup" aria-label="Score">
-      {[1, 2, 3, 4, 5].map(n => (
-        <button type="button" class={value && n <= value ? "is-on" : ""} aria-label={`${n} star${n > 1 ? "s" : ""}`}
-          onClick={() => onChange(value === n ? undefined : n)}>★</button>
-      ))}
-    </span>
-  );
-}
-
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ComponentChildren; wide?: boolean }) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
