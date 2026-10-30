@@ -394,6 +394,10 @@ select.input { appearance: none; padding-right: 36px;
 .icon-btn svg { width: 17px; height: 17px; }
 .palette { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 14px; }
 .palette__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* Form builder inside the "Set up new feedback" window: question types below the list */
+.feedback-setup__form .fb { grid-template-columns: minmax(0, 1fr); }
+.feedback-setup__form .palette { position: static; }
+.feedback-setup__form .palette__grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
 .palette__btn {
   border: 1.5px dashed #CBD2E1; background: var(--p-surface); border-radius: 12px;
   padding: 9px 10px; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left;

@@ -118,15 +118,28 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
   const [when, setWhen] = useState<When>("scheduled");
   const [sendAt, setSendAt] = useState(app.dates.startsAt ? `${app.dates.startsAt}T18:00` : "");
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(false);
   const pick = blueprints.find(b => b.id === bp);
+  // The copy of the chosen form, edited right here before it's set up
+  const [intro, setIntro] = useState(pick?.description ?? "");
+  const [fields, setFields] = useState(structuredClone(pick?.fields ?? []));
+  const edited = !!pick && (intro !== pick.description || JSON.stringify(fields) !== JSON.stringify(pick.fields));
+  const choose = async (id: string) => {
+    const b = blueprints.find(x => x.id === id);
+    if (!b || id === bp) return;
+    if (edited && !(await confirmDialog({ title: "Use another form?", confirmLabel: "Use other form",
+      message: `Your changes to “${pick!.name}” are discarded.` }))) return;
+    setBp(id); setIntro(b.description); setFields(structuredClone(b.fields));
+  };
   const past = when === "scheduled" && !!sendAt && sendAt <= nowLocal();
-  const valid = name.trim() && pick && (when !== "scheduled" || (sendAt && !past)) && (when !== "now" || participants > 0);
+  const valid = name.trim() && pick && fields.length > 0 && fields.every(f => f.label.trim())
+    && (when !== "scheduled" || (sendAt && !past)) && (when !== "now" || participants > 0);
 
   const create = async () => {
     if (!pick) return;
     setBusy(true);
     const id = await act(() => createFeedback({
-      applicationId: app.id, name, blueprintName: pick.name, intro: pick.description, fields: structuredClone(pick.fields),
+      applicationId: app.id, name, blueprintName: pick.name, intro, fields,
       subject: app.templates.feedback.subject, body: app.templates.feedback.body,
       sendAt: when === "scheduled" ? sendAt : undefined,
     }), when === "now" ? undefined : "Feedback set up");
@@ -145,18 +158,32 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
       </Field>
       <div class="stack-s">
         <span class="field__label">Form<span class="req">*</span></span>
-        <span class="field__help">Copied from the feedback forms under Blueprints. You can edit the copy afterwards.</span>
+        <span class="field__help">Pick a feedback form from Blueprints and adjust it below. Changes only affect this feedback, not the blueprint.</span>
         {blueprints.length === 0
           ? <p class="muted small">No feedback forms yet. <a href="/team/blueprints">Create one under Blueprints</a>.</p>
           : <div class="grid-2">
               {blueprints.map(b => (
-                <button type="button" class={`slot ${bp === b.id ? "is-active" : ""}`} onClick={() => setBp(b.id)}>
+                <button type="button" class={`slot ${bp === b.id ? "is-active" : ""}`} onClick={() => choose(b.id)}>
                   <strong>{b.name}</strong>
                   <span class="muted small">{b.fields.length} questions · {b.description || "No intro text"}</span>
                 </button>
               ))}
             </div>}
       </div>
+      {pick && (
+        <div class="stack-s feedback-setup__form">
+          <div class="row">
+            <span class="field__label" style="flex:1">Questions{edited && <span class="muted small" style="font-weight:400"> · changed</span>}</span>
+            <button type="button" class="btn btn--secondary btn--sm" onClick={() => setPreview(true)}>Preview</button>
+            {edited && <button type="button" class="btn btn--ghost btn--sm" onClick={() => { setIntro(pick.description); setFields(structuredClone(pick.fields)); }}>Reset to “{pick.name}”</button>}
+          </div>
+          <Field label="Intro text" help="Shown above the questions.">
+            <textarea class="input" style="min-height:60px" value={intro} onInput={e => setIntro(e.currentTarget.value)} />
+          </Field>
+          <FormBuilder fields={fields} onChange={setFields} feedback />
+          {!fields.length && <span class="field__error">Add at least one question.</span>}
+        </div>
+      )}
       <div class="stack-s">
         <span class="field__label">When to send</span>
         <label class="check"><input type="radio" name="when" checked={when === "scheduled"} onChange={() => setWhen("scheduled")} />
@@ -169,15 +196,21 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
           </div>
         )}
         <label class="check"><input type="radio" name="when" checked={when === "now"} onChange={() => setWhen("now")} />
-          <span><strong>Send now</strong> <span class="muted small">to the {participants} accepted participant{participants === 1 ? "" : "s"}, with the form as it is</span></span></label>
+          <span><strong>Send now</strong> <span class="muted small">to the {participants} accepted participant{participants === 1 ? "" : "s"}, with the questions above</span></span></label>
         <label class="check"><input type="radio" name="when" checked={when === "later"} onChange={() => setWhen("later")} />
-          <span><strong>Not yet</strong> <span class="muted small">edit the form first, set a time or send it later</span></span></label>
+          <span><strong>Not yet</strong> <span class="muted small">set a time or send it later</span></span></label>
       </div>
       <p class="muted small">Only the accepted participants of this application get the link.</p>
       <div class="row" style="justify-content:flex-end">
         <button class="btn btn--ghost" onClick={onClose}>Cancel</button>
         <button class="btn btn--primary" disabled={!valid || busy} onClick={create}>{when === "now" ? `Set up & send to ${participants}` : "Set up feedback"}</button>
       </div>
+      {preview && (
+        <Modal title="Feedback form preview" onClose={() => setPreview(false)} wide>
+          {intro && <p style="white-space:pre-line">{intro}</p>}
+          <FormRenderer fields={fields} preview consent={false} submitLabel="Send feedback" />
+        </Modal>
+      )}
     </Modal>
   );
 }
