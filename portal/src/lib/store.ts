@@ -142,8 +142,9 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 // ── Live updates ─────────────────────────────────────────────────────────
 // Supabase Realtime tells the browser when a table changes (someone saved a
 // scorecard, an applicant booked a slot, …); the data is then reloaded in the
-// background. Several changes in a row lead to one reload. Coming back to the
-// tab also reloads, in case the connection was asleep.
+// background. Several changes in a row lead to one reload. Tabs in the
+// background wait and reload once when they're shown again (also after a
+// longer break, in case the connection was asleep).
 
 const LIVE_TABLES = [
   "applications", "interview_slots", "submissions", "submission_scores", "submission_reviewers", "submission_comments",
@@ -156,15 +157,22 @@ let reloadTimer: number | undefined;
 export function startLive() {
   if (live || typeof window === "undefined") return;
   live = true;
+  let missed = false;   // a change arrived while the tab was in the background
   const schedule = () => {
     clearTimeout(reloadTimer);
     reloadTimer = window.setTimeout(() => { loadAll().catch(() => undefined); }, 800);
   };
+  const onChange = () => {
+    // Tabs in the background don't reload on every change, only once when they're shown again
+    if (document.visibilityState === "hidden") { missed = true; return; }
+    schedule();
+  };
   const channel = supabase.channel("team-live");
-  for (const table of LIVE_TABLES) channel.on("postgres_changes", { event: "*", schema: "public", table }, schedule);
+  for (const table of LIVE_TABLES) channel.on("postgres_changes", { event: "*", schema: "public", table }, onChange);
   channel.subscribe();
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && Date.now() - lastLoad > 30_000) schedule();
+    if (document.visibilityState !== "visible") return;
+    if (missed || Date.now() - lastLoad > 30_000) { missed = false; schedule(); }
   });
 }
 
