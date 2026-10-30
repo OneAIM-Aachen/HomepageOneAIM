@@ -209,7 +209,7 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
       <div class="row">
         <div style="position:relative;flex:1;min-width:220px">
           <IconSearch width={17} style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted)" />
-          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, email, university, study program…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search applicants" />
+          <input class="input input--sm" style="padding-left:36px" placeholder="Search name, university, study program…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search applicants" />
         </div>
         <select class="input input--sm" style="width:auto" value={sort} onChange={e => setSort(e.currentTarget.value as typeof sort)} aria-label="Sort">
           <option value="date">Newest first</option><option value="score">Highest score</option><option value="name">Name A–Z</option>
@@ -238,7 +238,7 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
                     return (
                       <tr class={`is-clickable ${selected.has(x.id) ? "is-selected" : ""}`} onClick={() => setOpen(x.id)}>
                         <td onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.name}`} disabled={isDemoId(x.id)} checked={selected.has(x.id)} onChange={() => toggle(x.id)} /></td>
-                        <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.email}</span></div></div></td>
+                        <td><div class="cell-person"><Avatar name={p.name} /><strong>{p.name}</strong></div></td>
                         <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}{p.semester && /^\d/.test(p.semester) ? ` · ${p.semester}. sem.` : ""}{p.degree ? ` · ${p.degree}` : ""}</span></td>
                         <td><StatusChip status={x.status} />{x.plannedDecision && <div style="margin-top:4px"><span class={`chip ${x.plannedDecision === "accept" ? "chip--green" : x.plannedDecision === "reject" ? "chip--red" : "chip--purple"}`} title={`Planned by ${x.plannedBy ?? "?"}, not sent yet`}>Planned: {DECISION_TEXT[x.plannedDecision].verb}</span></div>}</td>
                         {app.pipeline !== "instant" && <>
