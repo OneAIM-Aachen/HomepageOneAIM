@@ -5,6 +5,7 @@ import { useEffect, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import { currentAccount, fixEmailLinkBase, loadAll, logout, useStore } from "../../lib/store";
 import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
+import { fmtDate, setSimDate, simDate } from "../../lib/fields";
 import { Avatar, ConfirmHost, Modal, Toaster, toast } from "../ui/Ui";
 import { MemberDrawer } from "./MemberDrawer";
 import {
@@ -91,6 +92,12 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           <a class="nav__item" href="/members" target="_blank" rel="noopener"><IconExternal />Network site</a>
         </nav>
         {demoAvailable() && (
+          <label class="sim-date" title="Test only: the portal behaves as if it were this day (in this browser)">
+            <span>Simulated date</span>
+            <input class="input input--sm" type="date" value={simDate() ?? ""} onChange={e => setSimDate(e.currentTarget.value || null)} />
+          </label>
+        )}
+        {demoAvailable() && (
           <label class="demo-switch" title="Adds made-up applications from all cities, programs and rounds, only in this browser">
             <input type="checkbox" role="switch" checked={isDemo()} onChange={e => setDemo(e.currentTarget.checked)} />
             <span class="demo-switch__track" aria-hidden="true"><span /></span>
@@ -110,6 +117,12 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
         </div>
       </aside>
       <main class="main">
+        {simDate() && (
+          <div class="demo-banner" role="status" style="background:#EDF2FF;border-color:#C9D8FF;color:var(--color-brand-blue-dark)">
+            <strong>Simulated date: {fmtDate(simDate()!)}.</strong> The portal behaves as if it were this day (process status, interviews, to-dos), only in this browser. Your data doesn't change.
+            <button class="btn btn--secondary btn--sm" onClick={() => setSimDate(null)}>Back to today</button>
+          </div>
+        )}
         {isDemo() && (
           <div class="demo-banner" role="status">
             <strong>Demo data is on:</strong> made-up applications from all cities, programs and rounds are shown in addition to the real ones, only in this browser. Nothing is saved.

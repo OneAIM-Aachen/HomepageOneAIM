@@ -1,6 +1,6 @@
 import type { Account, Application, State } from "../../lib/types";
 import { useStore } from "../../lib/store";
-import { appPhase, appTitle, fmtDate, fmtShort, fmtSlot, PIPELINES, today } from "../../lib/fields";
+import { appPhase, appTitle, fmtDate, fmtShort, fmtSlot, nowLocal, PIPELINES, today } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { Avatar, PhaseChip, StatusChip } from "../ui/Ui";
 import { IconPlus } from "../ui/Icons";
@@ -10,7 +10,7 @@ export default function OverviewPage() {
   const live = s.applications.filter(a => appPhase(a) === "open");
   const toScreen = s.submissions.filter(x => x.status === "new");
   const invitedNoSlot = s.submissions.filter(x => x.status === "invited" && !x.slotId);
-  const now = new Date().toISOString().slice(0, 16);
+  const now = nowLocal();
   const upcomingInterviews = s.submissions
     .filter(x => x.status === "invited" && x.slotId)
     .map(x => {
@@ -125,7 +125,7 @@ function screeningDue(app: Application): string | undefined {
 }
 
 function myTasks(s: State, memberId: string): Task[] {
-  const now = new Date().toISOString().slice(0, 16);
+  const now = nowLocal();
   const tasks: Task[] = [];
   for (const app of s.applications) {
     const subs = s.submissions.filter(x => x.applicationId === app.id);

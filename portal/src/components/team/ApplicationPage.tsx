@@ -9,7 +9,7 @@ import {
 import { DecisionsTab } from "./DecisionsTab";
 import { AddMember, fmtScore, MemberChips, ScorecardEditor, scorecardValid, ScoreSheetForm, STAGE_LABEL } from "./Review";
 import {
-  appPhase, appTitle, CURRENCIES, feeValue, fmtDate, parseFee, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL, today,
+  appPhase, appTitle, CURRENCIES, feeValue, fmtDate, parseFee, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL, today, nowLocal,
   templatesFor,
 } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
@@ -1176,7 +1176,7 @@ function processStep(app: Application, subs: Submission[]): { step: StepKey | "u
     return { step: "screening", text: `${fresh} of ${subs.length} applicants still to screen${due ? ` · ${app.pipeline === "interview" ? "interviews start" : "decisions due"} ${fmtDate(due)}` : ""}.` };
   }
   if (app.pipeline === "interview" && invited) {
-    const now = new Date().toISOString().slice(0, 16);
+    const now = nowLocal();
     const upcoming = subs.filter(x => x.status === "invited" && app.slots.find(sl => sl.id === x.slotId && sl.start >= now)).length;
     const unbooked = subs.filter(x => x.status === "invited" && !x.slotId).length;
     const interviewsLeft = upcoming > 0 || unbooked > 0 || (!!app.dates.interviewsTo && t <= app.dates.interviewsTo);

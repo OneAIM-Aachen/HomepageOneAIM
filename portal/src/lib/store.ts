@@ -15,7 +15,7 @@ import type {
   Account, Answer, Application, Blueprint, Department, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
   SubmissionStatus, Tags, TemplateKey, Pipeline, RoleEntry, TeamMember, ReviewStage, ScoreSheet, Scorecard, PlannedDecision,
 } from "./types";
-import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, today } from "./fields";
+import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, nowLocal, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
 import { isDemo, withDemo } from "./demo";
 import { mapPost } from "./members";
@@ -444,11 +444,11 @@ export async function updateSlot(slotId: string, patch: Partial<Pick<Slot, "loca
 
 export const slotComplete = (s: Slot) => (s.mode === "online" ? !!s.meetingLink : s.location.trim().length > 0);
 
-export const slotIsPast = (s: Slot) => s.start <= toLocal(new Date().toISOString());
+export const slotIsPast = (s: Slot) => s.start <= nowLocal();
 
 /** Why this application can't invite yet (same rule as the database), or null. */
 export function inviteBlocker(app: Application): string | null {
-  const now = toLocal(new Date().toISOString());
+  const now = nowLocal();
   const future = app.slots.filter(s => s.start > now);
   if (app.slots.length && !future.length) return friendlyError({ message: "slots_in_past" });
   if (!future.some(s => slotTaken(app, s.id) < s.capacity)) return friendlyError({ message: "no_free_slots" });

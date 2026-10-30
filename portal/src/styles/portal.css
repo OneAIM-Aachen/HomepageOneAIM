@@ -882,3 +882,6 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .th-sort__arrow { font-size: 9px; opacity: .45; }
 .th-sort.is-active { color: var(--color-brand-blue); }
 .th-sort.is-active .th-sort__arrow { opacity: 1; }
+.sim-date { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px 0; font-size: 12.5px; font-weight: 700; color: var(--color-text-muted); margin-top: auto; }
+.sim-date + .demo-switch { margin-top: 0; }
+.sim-date .input { padding: 5px 8px; font-size: 13px; }

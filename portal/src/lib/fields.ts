@@ -238,8 +238,43 @@ export function appTitle(app: Pick<Application, "title" | "tags">): string {
 
 export type AppPhase = "draft" | "upcoming" | "open" | "closed";
 
+// ── Clock (with a simulated date for testing) ────────────────────────────
+// On the test site (where demo data is available) a date can be simulated
+// in this browser: the portal then behaves as if it were that day (12:00),
+// e.g. to see the process after the interviews. Nothing is saved; writes
+// to the database always use the real time.
+
+const SIM_KEY = "oneaim-sim-date";
+const simAllowed = () => import.meta.env.DEV || import.meta.env.PUBLIC_DEMO_MODE === "true";
+
+export function simDate(): string | null {
+  if (typeof window === "undefined" || !simAllowed()) return null;
+  try { const v = localStorage.getItem(SIM_KEY); return v && validSimDate(v) ? v : null; } catch { return null; }
+}
+
+/** A complete, realistic date (date fields report e.g. "0026-11-10" while the year is being typed) */
+const validSimDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number(v.slice(0, 4)) >= 2020 && Number(v.slice(0, 4)) <= 2100;
+
+export function setSimDate(day: string | null) {
+  if (day && !validSimDate(day)) return;   // half-typed: wait for the full date
+  try { day ? localStorage.setItem(SIM_KEY, day) : localStorage.removeItem(SIM_KEY); } catch { /* ignore */ }
+  location.reload();
+}
+
+/** Now – real, or noon of the simulated day */
+export function now(): Date {
+  const s = simDate();
+  return s ? new Date(`${s}T12:00:00`) : new Date();
+}
+
+/** Now as local "YYYY-MM-DDTHH:mm" (same format as slot times) */
+export function nowLocal(): string {
+  const d = now(), p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 export function today(): string {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date());
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(now());
 }
 
 export function appPhase(app: Application, now = today()): AppPhase {
