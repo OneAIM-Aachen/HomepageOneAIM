@@ -156,7 +156,11 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
   const [status, setStatus] = useState<SubmissionStatus | "all">("all");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"date" | "score" | "name">("date");
-  const [mine, setMine] = useState(false);
+  // "Assigned to me" = my reviews in screening; "My interviews" = interviews I lead
+  const [mine, setMine] = useState<"" | "review" | "interviews">("");
+  const me = acc.memberId;
+  const isMyReview = (x: Submission) => !!me && x.status === "new" && x.reviewerIds.includes(me);
+  const isMyInterview = (x: Submission) => !!me && x.status === "invited" && !!app.slots.find(sl => sl.id === x.slotId)?.interviewerIds.includes(me);
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openSub);
@@ -171,8 +175,7 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
     const ql = q.toLowerCase();
     return subs
       .filter(x => status === "all" || x.status === status)
-      .filter(x => !mine || (!!acc.memberId && (x.reviewerIds.includes(acc.memberId)
-        || !!app.slots.find(s => s.id === x.slotId)?.interviewerIds.includes(acc.memberId))))
+      .filter(x => !mine || (mine === "review" ? isMyReview(x) : isMyInterview(x)))
       .filter(x => { const p = person(x); return !ql || `${p.name} ${p.email} ${p.universities.join(" ")} ${p.studyPrograms.join(" ")}`.toLowerCase().includes(ql); })
       .sort((a, b) =>
         sort === "score" ? (applicantScore(app, b).overall ?? 0) - (applicantScore(app, a).overall ?? 0)
@@ -192,15 +195,23 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
     <div class="stack">
       <div class="row">
         {(["all", ...statuses] as const).map(st => (
-          <button class={`chip-btn ${status === st ? "is-active" : ""}`} onClick={() => setStatus(st)}>
+          <button class={`chip-btn ${status === st ? "is-active" : ""}`} onClick={() => {
+            setStatus(st);
+            if ((mine === "review" && st !== "all" && st !== "new") || (mine === "interviews" && st !== "all" && st !== "invited")) setMine("");
+          }}>
             {st === "all" ? "All" : STATUS_LABEL[st]}
             <span style="opacity:.7;margin-left:6px">{st === "all" ? subs.length : subs.filter(x => x.status === st).length}</span>
           </button>
         ))}
         <span class="spacer" />
-        {acc.memberId && (
-          <button class={`chip-btn ${mine ? "is-active" : ""}`} onClick={() => setMine(!mine)} title="Applicants you review or interview">
-            Assigned to me <span style="opacity:.7;margin-left:6px">{subs.filter(x => x.reviewerIds.includes(acc.memberId!) || !!app.slots.find(s => s.id === x.slotId)?.interviewerIds.includes(acc.memberId!)).length}</span>
+        {me && (status === "all" || status === "new") && subs.some(x => x.status === "new") && (
+          <button class={`chip-btn ${mine === "review" ? "is-active" : ""}`} onClick={() => setMine(mine === "review" ? "" : "review")} title="Applicants in screening you're assigned to review">
+            Assigned to me <span style="opacity:.7;margin-left:6px">{subs.filter(isMyReview).length}</span>
+          </button>
+        )}
+        {me && app.pipeline === "interview" && (status === "all" || status === "invited") && subs.some(x => x.status === "invited") && (
+          <button class={`chip-btn ${mine === "interviews" ? "is-active" : ""}`} onClick={() => setMine(mine === "interviews" ? "" : "interviews")} title="Interviews you lead">
+            My interviews <span style="opacity:.7;margin-left:6px">{subs.filter(isMyInterview).length}</span>
           </button>
         )}
         {app.spots && <span class="chip chip--green">{accepted} / {app.spots} spots filled</span>}
