@@ -147,13 +147,22 @@ function decisionsFor(app: Application, status: SubmissionStatus): Decision[] {
   return ["reset"];
 }
 
+type SortKey = "name" | "study" | "status" | "screening" | "reviewers" | "interview" | "interviewers" | "interviewScore" | "submitted";
+/** First click: scores and dates newest/highest first, text A–Z */
+const DEFAULT_DIR: Record<SortKey, 1 | -1> = {
+  name: 1, study: 1, status: 1, screening: -1, reviewers: 1, interview: 1, interviewers: 1, interviewScore: -1, submitted: -1,
+};
+const STATUS_ORDER: SubmissionStatus[] = ["new", "invited", "accepted", "confirmed", "rejected"];
+
 function Applicants({ acc, app, subs, openSub, onOpened }: {
   acc: Account; app: Application; subs: Submission[]; openSub: string | null; onOpened: () => void;
 }) {
   const people = useStore(s => s.people);
   const [status, setStatus] = useState<SubmissionStatus | "all">("all");
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<"date" | "score" | "interview" | "name">("date");
+  // Sorting by clicking a column header; clicking again reverses
+  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "submitted", dir: -1 });
+  const sortBy = (key: SortKey) => setSort(s => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: DEFAULT_DIR[key] }));
   // "Assigned to me" = my reviews in screening; "My interviews" = interviews I lead
   const [mine, setMine] = useState<"" | "review" | "interviews">("");
   const me = acc.memberId;
@@ -166,6 +175,29 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
   const [confirm, setConfirm] = useState<{ ids: string[]; decision: Decision } | null>(null);
 
   const person = (x: Submission) => people.find(p => p.id === x.personId)!;
+  const team = useStore(st => st.team);
+  const slotOf = (x: Submission) => app.slots.find(sl => sl.id === x.slotId);
+  const sortValue = (key: SortKey, x: Submission): string | number | undefined => {
+    const p = person(x);
+    switch (key) {
+      case "name": return p.name.toLowerCase();
+      case "study": return (p.studyPrograms[0] ?? "").toLowerCase() || undefined;
+      case "status": return STATUS_ORDER.indexOf(x.status);
+      case "screening": return applicantScore(app, x).screening;
+      case "reviewers": return x.reviewerIds.map(id => team.find(m => m.id === id)?.name ?? "").sort()[0]?.toLowerCase() || undefined;
+      case "interview": return slotOf(x)?.start;
+      case "interviewers": return slotOf(x)?.interviewerIds.map(id => team.find(m => m.id === id)?.name ?? "").sort()[0]?.toLowerCase() || undefined;
+      case "interviewScore": return applicantScore(app, x).interview;
+      case "submitted": return x.submittedAt;
+    }
+  };
+  const th = (key: SortKey, label: string, title?: string) => (
+    <th aria-sort={sort.key === key ? (sort.dir === 1 ? "ascending" : "descending") : "none"} title={title}>
+      <button type="button" class={`th-sort ${sort.key === key ? "is-active" : ""}`} onClick={() => sortBy(key)}>
+        {label}<span class="th-sort__arrow" aria-hidden="true">{sort.key === key ? (sort.dir === 1 ? "▲" : "▼") : "↕"}</span>
+      </button>
+    </th>
+  );
   const statuses: SubmissionStatus[] = app.pipeline === "instant" ? ["confirmed"]
     : app.pipeline === "screening" ? ["new", "accepted", "rejected"] : ["new", "invited", "accepted", "rejected"];
 
@@ -175,11 +207,13 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
       .filter(x => status === "all" || x.status === status)
       .filter(x => !mine || (mine === "review" ? isMyReview(x) : isMyInterview(x)))
       .filter(x => { const p = person(x); return !ql || `${p.name} ${p.email} ${p.universities.join(" ")} ${p.studyPrograms.join(" ")}`.toLowerCase().includes(ql); })
-      .sort((a, b) =>
-        sort === "score" ? (applicantScore(app, b).screening ?? 0) - (applicantScore(app, a).screening ?? 0)
-        : sort === "interview" ? (applicantScore(app, b).interview ?? 0) - (applicantScore(app, a).interview ?? 0)
-        : sort === "name" ? person(a).name.localeCompare(person(b).name)
-        : b.submittedAt.localeCompare(a.submittedAt));
+      .sort((a, b) => {
+        const va = sortValue(sort.key, a), vb = sortValue(sort.key, b);
+        // Empty values (not rated, no slot…) always go last
+        if (va === undefined || vb === undefined) return va === vb ? 0 : va === undefined ? 1 : -1;
+        const c = typeof va === "number" && typeof vb === "number" ? va - vb : String(va).localeCompare(String(vb));
+        return c * sort.dir || a.submittedAt.localeCompare(b.submittedAt);
+      });
   }, [subs, people, status, q, sort, mine]);
 
   const toggle = (id: string) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -221,12 +255,6 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
           <IconSearch width={17} style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-text-muted)" />
           <input class="input input--sm" style="padding-left:36px" placeholder="Search name, university, study program…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search applicants" />
         </div>
-        <select class="input input--sm" style="width:auto" value={sort} onChange={e => setSort(e.currentTarget.value as typeof sort)} aria-label="Sort">
-          <option value="date">Newest first</option>
-          {app.pipeline !== "instant" && <option value="score">Highest screening score</option>}
-          {app.pipeline === "interview" && <option value="interview">Highest interview score</option>}
-          <option value="name">Name A–Z</option>
-        </select>
       </div>
 
       {subs.length === 0
@@ -239,10 +267,10 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
                   <tr>
                     <th style="width:36px"><input type="checkbox" aria-label="Select all" checked={allSel}
                       onChange={() => setSelected(allSel ? new Set() : new Set(rows.map(r => r.id)))} /></th>
-                    <th>Applicant</th><th>Study</th><th>Status</th>
-                    {app.pipeline !== "instant" && <><th title="Average of the screening scorecards">Screening score</th><th>Reviewers</th></>}
-                    {app.pipeline === "interview" && <><th>Interview</th><th>Interviewers</th><th title="Average of the interview scorecards">Interview score</th></>}
-                    <th>Submitted</th>
+                    {th("name", "Applicant")}{th("study", "Study")}{th("status", "Status")}
+                    {app.pipeline !== "instant" && <>{th("screening", "Screening score", "Average of the screening scorecards")}{th("reviewers", "Reviewers")}</>}
+                    {app.pipeline === "interview" && <>{th("interview", "Interview")}{th("interviewers", "Interviewers")}{th("interviewScore", "Interview score", "Average of the interview scorecards")}</>}
+                    {th("submitted", "Submitted")}
                   </tr>
                 </thead>
                 <tbody>

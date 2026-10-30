@@ -876,3 +876,9 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .process__step.is-current .process__dot { background: var(--color-brand-blue); color: #fff; }
 .cell-study { min-width: 210px; max-width: 280px; }
 .score-pill { white-space: nowrap; }
+.th-sort { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; white-space: nowrap; }
+.th-sort:hover { color: var(--color-text-heading); }
+.th-sort:focus-visible { outline: 2px solid var(--color-brand-blue); outline-offset: 2px; border-radius: 4px; }
+.th-sort__arrow { font-size: 9px; opacity: .45; }
+.th-sort.is-active { color: var(--color-brand-blue); }
+.th-sort.is-active .th-sort__arrow { opacity: 1; }
