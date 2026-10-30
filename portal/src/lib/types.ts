@@ -102,26 +102,31 @@ export interface Application {
   slots: Slot[];
   /** Rating forms per stage (copies of scorecard templates) */
   scorecards: Partial<Record<ReviewStage, Scorecard>>;
-  /** Feedback form for the participants (copy of a feedback blueprint) */
-  feedback?: FeedbackForm;
   createdAt: string;
   createdBy: string;
 }
 
+/** A feedback round of an application: its own form (copy of a feedback blueprint), email and send time */
 export interface FeedbackForm {
+  id: string;
+  applicationId: string;
+  name: string;
   blueprintName: string;
   intro: string;
   fields: Field[];
-  /** When the link goes out, local date-time "YYYY-MM-DDTHH:mm"; empty = not scheduled */
+  subject: string;
+  body: string;
+  /** When the link goes out, local date-time "YYYY-MM-DDTHH:mm"; empty = not scheduled (send by hand) */
   sendAt?: string;
   /** First sending (ISO) */
   sentAt?: string;
+  createdAt: string;
 }
 
-/** One participant's answers to the feedback form */
+/** One participant's answers to a feedback form */
 export interface FeedbackResponse {
   id: string;
-  applicationId: string;
+  feedbackId: string;
   submissionId: string;
   answers: Record<string, Answer>;
   submittedAt: string;
@@ -283,6 +288,8 @@ export interface SentEmail {
   queuedBy: string;
   applicationId?: string;
   submissionId?: string;
+  /** Feedback emails: which feedback */
+  feedbackId?: string;
   at: string;
 }
 
@@ -343,6 +350,7 @@ export interface State {
   blueprints: Blueprint[];
   applications: Application[];
   submissions: Submission[];
+  feedbacks: FeedbackForm[];
   feedbackResponses: FeedbackResponse[];
   people: Person[];
   outbox: SentEmail[];

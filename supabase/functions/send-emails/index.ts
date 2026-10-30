@@ -135,6 +135,11 @@ Deno.serve(async req => {
         { starts_at: string; duration_min: number; location: string; meeting_link: string | null } | null;
       if (mail.template === "interview_booked" && !slot) throw new Error("no interview slot booked");
       if (mail.template === "feedback" && !sub) throw new Error("no participant for the feedback link");
+      // Feedback: text and link of that feedback
+      const { data: fb } = mail.template === "feedback" && mail.feedback_id
+        ? await db.from("feedback_forms").select("id, subject, body").eq("id", mail.feedback_id).single()
+        : { data: null };
+      if (mail.template === "feedback" && !fb) throw new Error("feedback not found");
 
       // deno-lint-ignore no-explicit-any
       const a = app as any;
@@ -143,6 +148,8 @@ Deno.serve(async req => {
       // Team replies: the text written in the portal, sent as is
       const tpl: Tpl = mail.template === "reply"
         ? { subject: mail.subject ?? "", body: mail.body ?? "" }
+        : fb
+        ? { subject: fb.subject || defaults(a.pipeline).feedback.subject, body: fb.body || defaults(a.pipeline).feedback.body }
         : { ...defaults(a.pipeline)[mail.template as Exclude<TemplateKey, "reply">], ...(a.templates?.[mail.template] ?? {}) };
       const vars: Record<string, string> = {
         "{first_name}": mail.to_name.trim().split(/\s+/)[0] ?? mail.to_name,
@@ -154,7 +161,7 @@ Deno.serve(async req => {
         "{deadline}": fmt(a?.deadline),
         "{start_date}": fmt(a?.starts_at),
         "{booking_link}": sub ? `${settings.apply_base_url.replace(/\/$/, "")}/apply/book?t=${sub.booking_token}` : "",
-        "{feedback_link}": sub ? `${settings.apply_base_url.replace(/\/$/, "")}/apply/feedback?t=${sub.feedback_token}` : "",
+        "{feedback_link}": sub ? `${settings.apply_base_url.replace(/\/$/, "")}/apply/feedback?t=${sub.feedback_token}${fb ? `&f=${fb.id}` : ""}` : "",
         "{interview_time}": slot ? `${slotFmt.format(new Date(slot.starts_at))} (${slot.duration_min} min, German time)` : "",
         "{interview_place}": slot?.location || "Online",
         "{meeting_link}": slot?.meeting_link || "follows in a separate email",

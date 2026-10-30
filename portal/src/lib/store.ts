@@ -25,7 +25,7 @@ import type { PostDraft } from "../components/network/Board";
 
 const EMPTY: State = {
   team: [], scorecards: [], posts: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
-  blueprints: [], applications: [], submissions: [], feedbackResponses: [], people: [], outbox: [], inbox: [], mailbox: null,
+  blueprints: [], applications: [], submissions: [], feedbacks: [], feedbackResponses: [], people: [], outbox: [], inbox: [], mailbox: null,
   universities: [], studyPrograms: [], companies: [],
 };
 
@@ -68,7 +68,7 @@ function toLocal(iso: string): string {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function mapApplication(r: any, slots: Slot[], fb?: any): Application {
+function mapApplication(r: any, slots: Slot[]): Application {
   return {
     id: r.id,
     slug: r.slug,
@@ -90,10 +90,6 @@ function mapApplication(r: any, slots: Slot[], fb?: any): Application {
     // Imported rounds have no templates yet → defaults
     templates: { ...defaultTemplates(r.pipeline), ...(r.templates ?? {}) },
     scorecards: r.scorecards ?? {},
-    feedback: fb ? {
-      blueprintName: fb.blueprint_name, intro: fb.intro ?? "", fields: fb.fields ?? [],
-      sendAt: fb.send_at ? toLocal(fb.send_at) : undefined, sentAt: fb.sent_at ?? undefined,
-    } : undefined,
     slots,
     createdAt: r.created_at,
     createdBy: r.created_by_city ?? "",
@@ -209,7 +205,7 @@ export async function loadAll(): Promise<void> {
       all(() => supabase.from("submission_reviewers").select("submission_id, member_id").order("assigned_at").order("member_id")),
       all(() => supabase.from("submission_scores").select("*").order("created_at").order("id")),
       supabase.from("scorecards").select("*").order("name"),
-      supabase.from("feedback_forms").select("*"),
+      supabase.from("feedback_forms").select("*").order("created_at"),
       all(() => supabase.from("feedback_responses").select("*").order("submitted_at").order("id")),
     ]);
 
@@ -267,12 +263,14 @@ export async function loadAll(): Promise<void> {
     blueprints: (check(blueprints) as any[]).map(b => ({
       id: b.id, kind: b.kind ?? "application", name: b.name, description: b.description, fields: b.fields ?? [], updatedAt: b.updated_at,
     })),
-    applications: (() => {
-      const fb = new Map((check(feedbackForms) as any[]).map(f => [f.application_id, f]));
-      return (check(apps) as any[]).map(r => mapApplication(r, slotsByApp.get(r.id) ?? [], fb.get(r.id)));
-    })(),
+    applications: (check(apps) as any[]).map(r => mapApplication(r, slotsByApp.get(r.id) ?? [])),
+    feedbacks: (check(feedbackForms) as any[]).map(f => ({
+      id: f.id, applicationId: f.application_id, name: f.name, blueprintName: f.blueprint_name, intro: f.intro ?? "", fields: f.fields ?? [],
+      subject: f.subject ?? "", body: f.body ?? "", sendAt: f.send_at ? toLocal(f.send_at) : undefined, sentAt: f.sent_at ?? undefined,
+      createdAt: f.created_at,
+    }) as FeedbackForm),
     feedbackResponses: (check(feedbackRows) as any[]).map(f => ({
-      id: f.id, applicationId: f.application_id, submissionId: f.submission_id, answers: f.answers ?? {}, submittedAt: f.submitted_at,
+      id: f.id, feedbackId: f.feedback_id, submissionId: f.submission_id, answers: f.answers ?? {}, submittedAt: f.submitted_at,
     }) as FeedbackResponse),
     people: (check(people) as any[]).map(p => ({
       id: p.id, email: p.email, name: p.name, phone: p.phone ?? undefined, linkedin: p.linkedin ?? undefined,
@@ -296,7 +294,7 @@ export async function loadAll(): Promise<void> {
     outbox: (check(mails) as any[]).map(m => ({
       id: m.id, to: m.to_email, toName: m.to_name, subject: m.subject ?? "", body: m.body ?? "", type: m.template,
       status: m.status, error: m.error ?? undefined, queuedBy: m.queued_by, applicationId: m.application_id ?? undefined,
-      submissionId: m.submission_id ?? undefined, at: m.created_at, personId: m.person_id ?? undefined,
+      submissionId: m.submission_id ?? undefined, feedbackId: m.feedback_id ?? undefined, at: m.created_at, personId: m.person_id ?? undefined,
       messageId: m.provider_message_id ?? undefined,
     }) as SentEmail),
     inbox: (check(inbox) as any[]).map(m => ({
@@ -529,9 +527,9 @@ export async function uploadImage(file: File, folder = "headers"): Promise<strin
 
 // ── Emails (preview only – sending happens in the database queue) ────────
 
-export function feedbackLink(sub: Pick<Submission, "feedbackToken">): string {
+export function feedbackLink(sub: Pick<Submission, "feedbackToken">, feedbackId: string): string {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/apply/feedback?t=${sub.feedbackToken}`;
+  return `${origin}/apply/feedback?t=${sub.feedbackToken}&f=${feedbackId}`;
 }
 
 export function bookingLink(sub: Pick<Submission, "bookingToken">): string {
@@ -562,7 +560,7 @@ export function renderTemplate(text: string, app: Application, person: Pick<Pers
     "{deadline}": fmtDate(app.dates.deadline),
     "{start_date}": fmtDate(app.dates.startsAt),
     "{booking_link}": sub ? bookingLink(sub) : "https://apply.one-aim.org/book/…",
-    "{feedback_link}": sub ? feedbackLink(sub) : "https://apply.one-aim.org/feedback/…",
+    "{feedback_link}": "https://apply.one-aim.org/feedback/…",
     ...interviewVars(app, sub),
   };
   return text.replace(/\{[a-z_]+\}/g, m => vars[m] ?? m);
@@ -710,23 +708,31 @@ export async function bookSlot(token: string, slotId: string): Promise<string | 
 
 // ── Participant feedback ─────────────────────────────────────────────────
 
-/** Creates or updates the feedback form of an application (send time as local date-time) */
-export async function saveFeedbackForm(appId: string, f: FeedbackForm) {
-  check(await supabase.from("feedback_forms").upsert({
-    application_id: appId, blueprint_name: f.blueprintName, intro: f.intro, fields: f.fields,
-    send_at: f.sendAt ? new Date(f.sendAt).toISOString() : null,
-  }, { onConflict: "application_id" }));
+const feedbackRow = (f: Omit<FeedbackForm, "id" | "sentAt" | "createdAt">) => ({
+  application_id: f.applicationId, name: f.name.trim(), blueprint_name: f.blueprintName, intro: f.intro, fields: f.fields,
+  subject: f.subject, body: f.body, send_at: f.sendAt ? new Date(f.sendAt).toISOString() : null,
+});
+
+/** New feedback of an application (send time as local date-time). Returns its id. */
+export async function createFeedback(f: Omit<FeedbackForm, "id" | "sentAt" | "createdAt">): Promise<string> {
+  const row = check(await supabase.from("feedback_forms").insert(feedbackRow(f)).select("id").single()) as { id: string };
+  await loadAll();
+  return row.id;
+}
+
+export async function saveFeedback(f: FeedbackForm) {
+  check(await supabase.from("feedback_forms").update(feedbackRow(f)).eq("id", f.id));
   await loadAll();
 }
 
-export async function deleteFeedbackForm(appId: string) {
-  check(await supabase.from("feedback_forms").delete().eq("application_id", appId));
+export async function deleteFeedback(id: string) {
+  check(await supabase.from("feedback_forms").delete().eq("id", id));
   await loadAll();
 }
 
-/** Sends the link right away to every participant who hasn't got it yet. Returns how many. */
-export async function sendFeedbackNow(appId: string): Promise<number> {
-  const n = check(await supabase.rpc("send_feedback_now", { p_application: appId })) as number;
+/** Sends the link right away to every accepted participant who hasn't got it yet. Returns how many. */
+export async function sendFeedbackNow(feedbackId: string): Promise<number> {
+  const n = check(await supabase.rpc("send_feedback_now", { p_feedback: feedbackId })) as number;
   await supabase.functions.invoke("send-emails", { body: {} }).catch(() => undefined);
   await loadAll();
   return n;
@@ -735,19 +741,20 @@ export async function sendFeedbackNow(appId: string): Promise<number> {
 export interface PublicFeedback {
   first_name: string;
   application: string;
+  name: string;
   intro: string;
   fields: Application["fields"];
   state: "open" | "done" | "closed";
 }
 
-export async function getFeedback(token: string): Promise<PublicFeedback | null> {
-  const { data, error } = await supabase.rpc("get_feedback", { p_token: token });
+export async function getFeedback(token: string, feedbackId: string): Promise<PublicFeedback | null> {
+  const { data, error } = await supabase.rpc("get_feedback", { p_token: token, p_feedback: feedbackId });
   if (error) return null;
   return data as PublicFeedback | null;
 }
 
-export async function submitFeedback(token: string, answers: Record<string, Answer>): Promise<string | null> {
-  const { error } = await supabase.rpc("submit_feedback", { p_token: token, p_answers: answers });
+export async function submitFeedback(token: string, feedbackId: string, answers: Record<string, Answer>): Promise<string | null> {
+  const { error } = await supabase.rpc("submit_feedback", { p_token: token, p_feedback: feedbackId, p_answers: answers });
   return error ? friendlyError(error) : null;
 }
 

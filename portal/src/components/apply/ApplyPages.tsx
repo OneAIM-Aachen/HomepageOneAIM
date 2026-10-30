@@ -293,17 +293,18 @@ export function BookSlot() {
 /** Feedback form for participants, opened with the personal link from the email */
 export function FeedbackPage() {
   const token = useParam("t");
+  const feedbackId = useParam("f");
   const [fb, setFb] = useState<PublicFeedback | null | undefined>(undefined);
   const [done, setDone] = useState(false);
-  useEffect(() => { (token ? getFeedback(token) : Promise.resolve(null)).then(setFb); }, []);
+  useEffect(() => { (token && feedbackId ? getFeedback(token, feedbackId) : Promise.resolve(null)).then(setFb); }, []);
 
   if (fb === undefined) return <Frame><Loading /></Frame>;
-  if (!fb || !token) return <Frame><div class="empty">This feedback link is not valid.</div></Frame>;
+  if (!fb || !token || !feedbackId) return <Frame><div class="empty">This feedback link is not valid.</div></Frame>;
   return (
     <Frame>
       <div class="apply-narrow stack" style="gap:20px">
         <div class="stack-s">
-          <p class="overline">Feedback · {fb.application}</p>
+          <p class="overline">{fb.name || "Feedback"} · {fb.application}</p>
           <h1>Hi {fb.first_name}, how was it?</h1>
           {fb.intro && fb.state === "open" && !done && <p class="muted" style="white-space:pre-line">{fb.intro}</p>}
         </div>
@@ -318,7 +319,7 @@ export function FeedbackPage() {
           <div class="card">
             <FormRenderer fields={fb.fields} consent={false} submitLabel="Send feedback"
               onSubmit={async answers => {
-                const err = await submitFeedback(token, answers);
+                const err = await submitFeedback(token, feedbackId, answers);
                 if (err) return err;
                 setDone(true);
                 window.scrollTo({ top: 0, behavior: "smooth" });

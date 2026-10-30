@@ -81,7 +81,9 @@ function BlueprintGrid({ kind }: { kind: Blueprint["kind"] }) {
   return (
       <div class="app-grid">
         {list.map(b => {
-          const used = s.applications.filter(a => (kind === "feedback" ? a.feedback?.blueprintName : a.blueprintName) === b.name).length;
+          const used = kind === "feedback"
+            ? s.feedbacks.filter(f => f.blueprintName === b.name).length
+            : s.applications.filter(a => a.blueprintName === b.name).length;
           return (
             <div class="card stack-s" style="gap:12px">
               <div class="row row--between" style="align-items:flex-start">

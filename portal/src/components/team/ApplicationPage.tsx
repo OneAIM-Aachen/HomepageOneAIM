@@ -40,7 +40,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
 }) {
   const app = useStore(s => s.applications.find(a => a.id === id));
   const subs = useStore(s => s.submissions.filter(x => x.applicationId === id));
-  const feedbackCount = useStore(s => s.feedbackResponses.filter(r => r.applicationId === id).length);
+  const feedbackCount = useStore(s => s.feedbacks.filter(f => f.applicationId === id).length);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [preview, setPreview] = useState(false);
   // Profile to open once when the Applicants tab shows next (from the link or a click in Decisions)
