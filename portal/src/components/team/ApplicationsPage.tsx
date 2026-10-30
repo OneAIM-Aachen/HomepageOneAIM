@@ -1,10 +1,11 @@
 import { useState } from "preact/hooks";
-import type { Account, Pipeline } from "../../lib/types";
+import type { Account, Application, Pipeline } from "../../lib/types";
 import { actorLabel, createApplication, useStore } from "../../lib/store";
 import { appPhase, appTitle, fmtShort, PIPELINES, type AppPhase } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, Field, Modal, PhaseChip, useParam } from "../ui/Ui";
 import { IconPlus } from "../ui/Icons";
+import { isDemoId } from "../../lib/demo";
 
 export default function ApplicationsPage() {
   const startNew = useParam("new") === "1";
@@ -31,8 +32,14 @@ function Applications({ acc, startNew }: { acc: Account; startNew: boolean }) {
     .filter(a => !prog || a.tags.program === prog)
     .filter(a => !sem || a.tags.semester === sem);
 
-  const order: Record<AppPhase, number> = { open: 0, upcoming: 1, draft: 2, closed: 3 };
-  list.sort((a, b) => order[appPhase(a)] - order[appPhase(b)] || b.dates.deadline.localeCompare(a.dates.deadline));
+  // Real applications before demo ones; within: open, closed but still in progress
+  // (screening / interviews / decisions pending), upcoming, drafts, finished
+  const inProgress = (id: string) => s.submissions.some(x => x.applicationId === id && (x.status === "new" || x.status === "invited"));
+  const rank = (a: Application) => {
+    const ph = appPhase(a);
+    return ph === "open" ? 0 : ph === "closed" && inProgress(a.id) ? 1 : ph === "upcoming" ? 2 : ph === "draft" ? 3 : 4;
+  };
+  list.sort((a, b) => Number(isDemoId(a.id)) - Number(isDemoId(b.id)) || rank(a) - rank(b) || b.dates.deadline.localeCompare(a.dates.deadline));
 
   return (
     <div class="stack" style="gap:22px">
