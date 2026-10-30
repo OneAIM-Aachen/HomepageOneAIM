@@ -33,6 +33,15 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
   const [loadError, setLoadError] = useState("");
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [offline, setOffline] = useState(typeof navigator !== "undefined" && !navigator.onLine);
+  useEffect(() => {
+    const down = () => setOffline(true);
+    // Back online: reload, so nothing missed in between is lost
+    const up = () => { setOffline(false); loadAll().catch(() => undefined); };
+    window.addEventListener("offline", down);
+    window.addEventListener("online", up);
+    return () => { window.removeEventListener("offline", down); window.removeEventListener("online", up); };
+  }, []);
   const newCount = useStore(s => s.submissions.filter(x => x.status === "new").length);
   const unreadMail = useStore(s => s.inbox.filter(m => !m.readAt).length);
   const pendingPosts = useStore(s => s.posts.filter(p => p.status === "pending").length);
@@ -115,6 +124,11 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
         </div>
       </aside>
       <main class="main">
+        {offline && (
+          <div class="demo-banner" role="alert" style="background:var(--p-red-tint);border-color:#F2B8C0;color:var(--p-red)">
+            <strong>You're offline.</strong> Changes can't be saved right now. The page updates by itself when the connection is back.
+          </div>
+        )}
         {simDate() && (
           <div class="demo-banner" role="status" style="background:#EDF2FF;border-color:#C9D8FF;color:var(--color-brand-blue-dark)">
             <strong>Simulated date: {fmtDate(simDate()!)}.</strong> The portal behaves as if it were this day (process status, interviews, to-dos), only in this browser. Your data doesn't change.

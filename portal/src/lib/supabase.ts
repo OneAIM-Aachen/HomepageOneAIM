@@ -47,6 +47,10 @@ const MESSAGES: Record<string, string> = {
 
 export function friendlyError(e: unknown): string {
   const msg = e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : String(e);
+  // The request never reached the server (offline, Wi-Fi gone, …)
+  if (/Failed to fetch|NetworkError|Load failed|ERR_INTERNET_DISCONNECTED/i.test(msg)) {
+    return "No connection to the server. Check your internet connection and try again.";
+  }
   const key = msg.split(":")[0]!.trim();
   if (MESSAGES[key]) return MESSAGES[key]!;
   if (key === "member_name_mismatch") {

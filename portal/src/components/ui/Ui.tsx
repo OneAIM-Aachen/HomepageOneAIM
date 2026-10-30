@@ -107,6 +107,14 @@ export function useParam(name: string): string | null {
   return v;
 }
 
+/** Readable text for errors that never reached the server */
+function errorText(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  return /Failed to fetch|NetworkError|Load failed/i.test(msg)
+    ? "No connection to the server. Check your internet connection and try again."
+    : msg;
+}
+
 /** Runs an async action; shows the success text or the error as a toast. */
 export async function act<T>(fn: () => Promise<T>, success?: string | ((r: T) => string)): Promise<T | undefined> {
   try {
@@ -114,7 +122,7 @@ export async function act<T>(fn: () => Promise<T>, success?: string | ((r: T) =>
     if (success) toast(typeof success === "function" ? success(r) : success);
     return r;
   } catch (e) {
-    toast(e instanceof Error ? e.message : String(e));
+    toast(errorText(e));
     return undefined;
   }
 }
