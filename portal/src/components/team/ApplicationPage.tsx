@@ -511,9 +511,10 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
         <h3>Spots & fee</h3>
         <div class="grid-3">
           <Field label="Spots"><input class="input" type="number" min={0} value={d.spots ?? ""} onInput={e => setD({ ...d, spots: Number(e.currentTarget.value) || undefined })} /></Field>
-          <Field label="Participation fee" help="Shown on the form. Leave empty if there's no fee; 0 shows “Free”.">
+          <Field label="Participation fee">
             <input class="input" type="number" min={0} step="0.01" placeholder="e.g. 50" value={fee.amount}
               onInput={e => setD({ ...d, fee: feeValue(e.currentTarget.value, fee.currency) })} />
+            <span class="field__help">Shown on the form. Leave empty if there's no fee; 0 shows “Free”.</span>
           </Field>
           <Field label="Currency" required={!!fee.amount} error={feeBad ? "Please select the currency." : undefined}>
             <select class={`input ${feeBad ? "input--invalid" : ""}`} value={fee.currency} disabled={!fee.amount}
