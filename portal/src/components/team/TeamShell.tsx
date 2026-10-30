@@ -93,10 +93,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           <a class="nav__item" href="/members" target="_blank" rel="noopener"><IconExternal />Network site</a>
         </nav>
         {demoAvailable() && (
-          <label class="sim-date" title="Test only: the portal behaves as if it were this day (in this browser)">
-            <span>Simulated date</span>
-            <input class="input input--sm" type="date" value={simDate() ?? ""} onChange={e => setSimDate(e.currentTarget.value || null)} />
-          </label>
+          <SimDateControl />
         )}
         {demoAvailable() && (
           <label class="demo-switch" title="Adds made-up applications from all cities, programs and rounds, only in this browser">
@@ -172,5 +169,23 @@ export function PageHead({ overline, title, sub, crumbs, actions }: {
       </div>
       {actions && <div class="row">{actions}</div>}
     </header>
+  );
+}
+
+/** Test only: pick a day, then "Set" (or Enter) – nothing reloads while typing */
+function SimDateControl() {
+  const [value, setValue] = useState(simDate() ?? "");
+  const valid = /^(20[2-9]\d|2100)-\d{2}-\d{2}$/.test(value);
+  const apply = () => { if (valid && value !== simDate()) setSimDate(value); };
+  return (
+    <form class="sim-date" title="Test only: the portal behaves as if it were this day (in this browser)"
+      onSubmit={e => { e.preventDefault(); apply(); }}>
+      <span>Simulated date</span>
+      <span class="row" style="gap:6px;flex-wrap:nowrap">
+        <input class="input input--sm" type="date" value={value} onInput={e => setValue(e.currentTarget.value)} aria-label="Simulated date" />
+        <button class="btn btn--secondary btn--sm" disabled={!valid || value === simDate()}>Set</button>
+      </span>
+      {simDate() && <button type="button" class="link-btn small" style="color:var(--color-brand-blue)" onClick={() => setSimDate(null)}>Back to today</button>}
+    </form>
   );
 }
