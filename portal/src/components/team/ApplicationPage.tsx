@@ -41,7 +41,8 @@ function Detail({ acc, id, initialTab, openSub, created }: {
   const subs = useStore(s => s.submissions.filter(x => x.applicationId === id));
   const [tab, setTab] = useState<Tab>(initialTab);
   const [preview, setPreview] = useState(false);
-  const [openFromDecisions, setOpenFromDecisions] = useState<string | null>(null);
+  // Profile to open once when the Applicants tab shows next (from the link or a click in Decisions)
+  const [pendingOpen, setPendingOpen] = useState<string | null>(openSub);
 
   if (!app) return <div class="empty">This application does not exist. <a href="/team/applications">Back to applications</a></div>;
 
@@ -93,8 +94,8 @@ function Detail({ acc, id, initialTab, openSub, created }: {
         ))}
       </nav>
 
-      {tab === "applicants" && <Applicants acc={acc} app={app} subs={subs} openSub={openSub ?? openFromDecisions} />}
-      {tab === "decisions" && <DecisionsTab app={app} subs={subs} onOpen={id => { setOpenFromDecisions(id); setTab("applicants"); }} />}
+      {tab === "applicants" && <Applicants acc={acc} app={app} subs={subs} openSub={pendingOpen} onOpened={() => setPendingOpen(null)} />}
+      {tab === "decisions" && <DecisionsTab app={app} subs={subs} onOpen={id => { setPendingOpen(id); setTab("applicants"); }} />}
       {tab === "setup" && <Setup app={app} hasSubs={subs.length > 0} />}
       {tab === "form" && <FormTab app={app} hasSubs={subs.length > 0} />}
       {tab === "scorecards" && <ScorecardsTab app={app} />}
@@ -127,7 +128,9 @@ function decisionsFor(app: Application, status: SubmissionStatus): Decision[] {
   return ["reset"];
 }
 
-function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Application; subs: Submission[]; openSub: string | null }) {
+function Applicants({ acc, app, subs, openSub, onOpened }: {
+  acc: Account; app: Application; subs: Submission[]; openSub: string | null; onOpened: () => void;
+}) {
   const people = useStore(s => s.people);
   const [status, setStatus] = useState<SubmissionStatus | "all">("all");
   const [q, setQ] = useState("");
@@ -136,6 +139,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openSub);
+  useEffect(() => { if (openSub) onOpened(); }, []);   // opened once; not again on the next visit
   const [confirm, setConfirm] = useState<{ ids: string[]; decision: Decision } | null>(null);
 
   const person = (x: Submission) => people.find(p => p.id === x.personId)!;
