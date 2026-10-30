@@ -218,9 +218,27 @@ export function BookSlot() {
   if (!booking || !token) return <Frame><div class="empty">This booking link is not valid.</div></Frame>;
   const booked = booking.slots.find(x => x.id === booking.slot_id);
 
+  // Parallel interviews (several slots at the same time and place) show as one option
+  const groups = [...booking.slots.reduce((m, sl) => {
+    const key = `${sl.starts_at}|${sl.location}`;
+    const g = m.get(key) ?? { key, starts_at: sl.starts_at, location: sl.location, ids: [] as string[], free: [] as string[] };
+    g.ids.push(sl.id);
+    if (sl.available) g.free.push(sl.id);
+    return m.set(key, g);
+  }, new Map<string, { key: string; starts_at: string; location: string; ids: string[]; free: string[] }>()).values()]
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const bookedKey = groups.find(g => g.ids.includes(booking.slot_id ?? ""))?.key ?? null;
+
   const book = async () => {
+    const g = groups.find(x => x.key === pick);
+    if (!g) return;
     setBusy(true);
-    const err = await bookSlot(token, pick!);
+    // Take a free slot of this time; if someone was faster, try the next one
+    let err: string | null = "This slot was just taken. Please pick another one.";
+    for (const id of g.free) {
+      err = await bookSlot(token, id);
+      if (!err || !/just taken/.test(err)) break;
+    }
     setBusy(false);
     if (err) { setError(err); await load(); return; }
     setPick(null);
@@ -246,20 +264,22 @@ export function BookSlot() {
               </div>
             )}
             <div class="slot-grid">
-              {booking.slots.map(sl => {
-                const active = (pick ?? booking.slot_id) === sl.id;
+              {groups.map(g => {
+                const mine = g.key === bookedKey;
+                const active = (pick ?? bookedKey) === g.key;
+                const taken = !g.free.length && !mine;
                 return (
-                  <button type="button" class={`slot ${active ? "is-active" : ""}`} disabled={!sl.available && sl.id !== booking.slot_id}
-                    onClick={() => { setPick(sl.id); setError(""); }}>
-                    <strong>{fmtSlot(sl.starts_at)}</strong>
-                    <span class="muted small">{sl.location}{!sl.available && sl.id !== booking.slot_id ? " · taken" : ""}</span>
+                  <button type="button" class={`slot ${active ? "is-active" : ""}`} disabled={taken}
+                    onClick={() => { setPick(g.key); setError(""); }}>
+                    <strong>{fmtSlot(g.starts_at)}</strong>
+                    <span class="muted small">{g.location}{taken ? " · taken" : ""}</span>
                   </button>
                 );
               })}
             </div>
             {booking.slots.length === 0 && <p class="muted">No slots available yet. We'll email you when there are.</p>}
             {error && <p class="field__error">{error}</p>}
-            <button class="btn btn--gradient btn--lg" style="align-self:flex-start" disabled={busy || !pick || pick === booking.slot_id} onClick={book}>
+            <button class="btn btn--gradient btn--lg" style="align-self:flex-start" disabled={busy || !pick || pick === bookedKey} onClick={book}>
               {busy ? "Booking…" : booked ? "Change slot" : "Book this slot"}
             </button>
           </div>

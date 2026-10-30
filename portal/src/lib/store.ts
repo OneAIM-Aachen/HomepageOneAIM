@@ -951,6 +951,24 @@ export async function applyPlannedDecisions(subs: Submission[], sendMail: boolea
 
 // ── Review workflow: interviewers, reviewers, scorecards ─────────────────
 
+/** Adds one interviewer to several slots at once */
+export async function addInterviewerToSlots(slotIds: string[], memberId: string) {
+  const slots = state.applications.flatMap(a => a.slots).filter(s => slotIds.includes(s.id) && !s.interviewerIds.includes(memberId));
+  for (const s of slots) check(await supabase.from("interview_slots").update({ interviewer_ids: [...s.interviewerIds, memberId] }).eq("id", s.id));
+  await loadAll();
+  return slots.length;
+}
+
+export async function clearInterviewers(slotIds: string[]) {
+  check(await supabase.from("interview_slots").update({ interviewer_ids: [] }).in("id", slotIds));
+  await loadAll();
+}
+
+export async function removeSlots(slotIds: string[]) {
+  check(await supabase.from("interview_slots").delete().in("id", slotIds));
+  await loadAll();
+}
+
 export async function setInterviewers(slotId: string, memberIds: string[]) {
   check(await supabase.from("interview_slots").update({ interviewer_ids: memberIds }).eq("id", slotId));
   await loadAll();

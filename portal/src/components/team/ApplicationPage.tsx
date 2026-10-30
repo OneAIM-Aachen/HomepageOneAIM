@@ -3,7 +3,7 @@ import type { Account, Application, PlannedDecision, ReviewStage, Scorecard, Slo
 import {
   addComment, addSlots, decide, deleteApplication, inviteBlocker, removeSlot, renderTemplate, saveApplication,
   sendInterviewDetails, slotComplete, slotIsPast, slotTaken, updateSlot, uploadImage, useStore, type Decision,
-  formOptionsFromState, getState, applicantScore, planDecision, assignReviewers, unassignReviewer, setInterviewers, saveScoreSheet,
+  formOptionsFromState, getState, applicantScore, planDecision, addInterviewerToSlots, clearInterviewers, removeSlots, assignReviewers, unassignReviewer, setInterviewers, saveScoreSheet,
   deleteScoreSheet, sheetScore,
 } from "../../lib/store";
 import { DecisionsTab } from "./DecisionsTab";
@@ -647,7 +647,10 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
   const [mode, setMode] = useState<Slot["mode"]>("online");
   const [location, setLocation] = useState("Online");
   const [meetingLink, setMeetingLink] = useState("");
-  const [capacity, setCapacity] = useState(1);
+  const [parallel, setParallel] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSel = (id: string) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allSel = app.slots.length > 0 && app.slots.every(sl => selected.has(sl.id));
   const [editing, setEditing] = useState<string | null>(null);
 
   const linkOk = /^https:\/\/\S+$/.test(meetingLink.trim());
@@ -659,11 +662,13 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
     if (!day || list.length === 0) { toast("Pick a date and at least one time like 17:00"); return; }
     const past = list.filter(tm => new Date(`${day}T${tm.padStart(5, "0")}`) <= new Date());
     if (past.length) { toast(`These times are in the past: ${past.join(", ")}. Please pick a future date or time.`); return; }
-    act(() => addSlots(app.id, list.map(tm => ({
-      start: `${day}T${tm.padStart(5, "0")}`, durationMin: 15, mode, capacity,
+    // Parallel interviews = separate slots at the same time, one applicant each, each with its own interviewers
+    const n = Math.max(1, parallel);
+    act(() => addSlots(app.id, list.flatMap(tm => Array.from({ length: n }, () => ({
+      start: `${day}T${tm.padStart(5, "0")}`, durationMin: 15, mode, capacity: 1,
       location: mode === "online" ? (location.trim() || "Online") : location.trim(),
       meetingLink: mode === "online" ? meetingLink.trim() : undefined,
-    }))), `${list.length} slot${list.length > 1 ? "s" : ""} added`);
+    })))), `${list.length * n} slot${list.length * n > 1 ? "s" : ""} added`);
   };
 
   const remove = (id: string) => {
@@ -724,17 +729,19 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
         </div>
         <div class="grid-2">
           <Field label="Date"><input class="input" type="date" min={new Date().toISOString().slice(0, 10)} value={day} onInput={e => setDay(e.currentTarget.value)} /></Field>
-          <Field label="Start times" help="Comma separated, e.g. 17:00, 17:20, 17:40"><input class="input" value={times} onInput={e => setTimes(e.currentTarget.value)} /></Field>
+          <Field label="Start times" help="Comma separated, e.g. 17:00, 17:20, 17:40" helpBelow><input class="input" value={times} onInput={e => setTimes(e.currentTarget.value)} /></Field>
           {mode === "online" ? (
-            <Field label="Meeting link" required help="Zoom, Teams or Meet. Only sent by email after booking." error={meetingLink && !linkOk ? "Paste the full link starting with https://" : undefined}>
+            <Field label="Meeting link" required help="Zoom, Teams or Meet. Only sent by email after booking." helpBelow error={meetingLink && !linkOk ? "Paste the full link starting with https://" : undefined}>
               <input class="input" type="url" placeholder="https://zoom.us/j/…" value={meetingLink} onInput={e => setMeetingLink(e.currentTarget.value)} />
             </Field>
           ) : (
-            <Field label="Place" required help="Shown on the booking page and in the confirmation email.">
+            <Field label="Place" required help="Shown on the booking page and in the confirmation email." helpBelow>
               <input class="input" placeholder="e.g. RWTH Collective Incubator, Room 2" value={location} onInput={e => setLocation(e.currentTarget.value)} />
             </Field>
           )}
-          <Field label="People per slot"><input class="input" type="number" min={1} value={capacity} onInput={e => setCapacity(Math.max(1, Number(e.currentTarget.value) || 1))} /></Field>
+          <Field label="Parallel interviews" help="Interviews at the same time. Each becomes its own slot with its own interviewers." helpBelow>
+            <input class="input" type="number" min={1} max={30} value={parallel} onInput={e => setParallel(Math.min(30, Math.max(1, Number(e.currentTarget.value) || 1)))} />
+          </Field>
         </div>
         <button class="btn btn--primary" style="align-self:flex-start" disabled={!canAdd} onClick={add}><IconPlus width={16} />Add slots</button>
       </section>
@@ -744,15 +751,23 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
         : (
           <div class="card card--flush">
             <table class="table">
-              <thead><tr><th>Time</th><th>Place / meeting link</th><th>Interviewers</th><th>Booked</th><th /></tr></thead>
+              <thead><tr>
+                <th style="width:36px"><input type="checkbox" aria-label="Select all slots" checked={allSel}
+                  onChange={() => setSelected(allSel ? new Set() : new Set(app.slots.map(sl => sl.id)))} /></th>
+                <th>Time</th><th>Place / meeting link</th><th>Interviewers</th><th>Booked</th><th />
+              </tr></thead>
               <tbody>
                 {app.slots.map(sl => {
                   const booked = subs.filter(x => x.slotId === sl.id);
                   const complete = slotComplete(sl);
                   const past = slotIsPast(sl);
+                  const same = app.slots.filter(x => x.start === sl.start);
                   return (
-                    <tr style={past ? "opacity:.55" : ""}>
-                      <td><span class="row" style="gap:8px"><IconCalendar width={17} /><strong>{fmtSlot(sl.start)}</strong>{past && <span class="chip chip--gray">Past</span>}</span></td>
+                    <tr style={past ? "opacity:.55" : ""} class={selected.has(sl.id) ? "is-selected" : ""}>
+                      <td><input type="checkbox" aria-label={`Select slot ${fmtSlot(sl.start)}`} checked={selected.has(sl.id)} onChange={() => toggleSel(sl.id)} /></td>
+                      <td><span class="row" style="gap:8px"><IconCalendar width={17} /><strong>{fmtSlot(sl.start)}</strong>
+                        {same.length > 1 && <span class="chip chip--outline" title="Parallel interviews at the same time">{same.indexOf(sl) + 1} of {same.length}</span>}
+                        {past && <span class="chip chip--gray">Past</span>}</span></td>
                       <td class="small">
                         {editing === sl.id ? (
                           <SlotEdit slot={sl} onDone={() => setEditing(null)} />
@@ -788,6 +803,23 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
             </table>
           </div>
         )}
+
+      {selected.size > 0 && (
+        <div class="bulkbar" role="toolbar" aria-label="Selected slots">
+          <strong>{selected.size} slot{selected.size > 1 ? "s" : ""} selected</strong>
+          <AddMember dropUp label="Add interviewer…" exclude={[]} city={app.tags.location}
+            onAdd={id => act(() => addInterviewerToSlots([...selected], id), n => `Interviewer added to ${n} slot${n === 1 ? "" : "s"}`)} />
+          <button class="btn btn--ghost btn--sm" onClick={() => act(() => clearInterviewers([...selected]), "Interviewers removed")}>Clear interviewers</button>
+          <button class="btn btn--ghost btn--sm" onClick={async () => {
+            const bookedN = subs.filter(x => x.slotId && selected.has(x.slotId)).length;
+            if (await confirmDialog({
+              title: `Delete ${selected.size} slot${selected.size > 1 ? "s" : ""}?`, danger: true, confirmLabel: "Delete",
+              message: bookedN ? `${bookedN} applicant${bookedN > 1 ? "s have" : " has"} booked one of them and will need to book again.` : "Nobody has booked them yet.",
+            })) act(() => removeSlots([...selected]), "Slots deleted").then(() => setSelected(new Set()));
+          }}>Delete</button>
+          <button class="btn btn--ghost btn--sm" onClick={() => setSelected(new Set())}>Cancel</button>
+        </div>
+      )}
     </div>
   );
 }
