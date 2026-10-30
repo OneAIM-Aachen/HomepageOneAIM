@@ -243,7 +243,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
           ))}
           {bulk.includes("reset") && <button class="btn btn--sm btn--ghost" onClick={() => setConfirm({ ids: [...selected], decision: "reset" })}>{DECISION_TEXT.reset.verb}</button>}
           {selSubs.every(x => !isDemoId(x.id)) && (
-            <AddMember label="Add reviewer…" exclude={[]} city={app.tags.location}
+            <AddMember dropUp label="Add reviewer…" exclude={[]} city={app.tags.location}
               onAdd={id => act(() => assignReviewers([...selected], [id]), `Reviewer assigned to ${selected.size} applicant${selected.size > 1 ? "s" : ""}`)} />
           )}
           <button class="btn btn--ghost btn--sm" onClick={() => setSelected(new Set())}>Clear</button>

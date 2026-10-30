@@ -41,13 +41,15 @@ export function MemberChips({ ids, onRemove, empty }: { ids: string[]; onRemove?
 }
 
 /** Type a name, pick a team member (own city first in the suggestions) */
-export function AddMember({ exclude, onAdd, label, city }: { exclude: string[]; onAdd: (id: string) => void; label: string; city?: string }) {
+export function AddMember({ exclude, onAdd, label, city, dropUp }: {
+  exclude: string[]; onAdd: (id: string) => void; label: string; city?: string; dropUp?: boolean;
+}) {
   const members = useActiveMembers(city).filter(m => !exclude.includes(m.id));
   // Names are the picker's keys; the city tells apart people with the same name
   const options = members.map(m => ({ name: `${m.name} · ${m.city}`, hint: m.email ? undefined : "no login yet", terms: [m.name] }));
   return (
     <div class="member-search">
-      <ListPicker small allowOther={false} label={label} placeholder={label} options={options} value={[]}
+      <ListPicker small allowOther={false} dropUp={dropUp} label={label} placeholder={label} options={options} value={[]}
         onChange={v => {
           const m = members.find(x => `${x.name} · ${x.city}` === v[v.length - 1]);
           if (m) onAdd(m.id);

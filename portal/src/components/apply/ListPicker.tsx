@@ -51,7 +51,7 @@ function score(x: Indexed, q: string): number | null {
   return null;
 }
 
-export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 1, maxResults = 12, single, small, allowOther = true }: {
+export function ListPicker({ options, value, onChange, invalid, placeholder, label, minChars = 1, maxResults = 12, single, small, allowOther = true, dropUp }: {
   options: PickerOption[];
   value: string[];
   onChange: (v: string[]) => void;
@@ -67,6 +67,8 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   small?: boolean;
   /** Offer "Use “typed text”" for names not in the list */
   allowOther?: boolean;
+  /** Suggestions open above the field (fields at the bottom of the screen) */
+  dropUp?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState(false);
@@ -148,7 +150,7 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
         onKeyDown={onKey} />
 
       {showMenu && (matches.length > 0 || canUseTyped) && (
-        <div class="picker__menu" role="listbox">
+        <div class={`picker__menu ${dropUp ? "picker__menu--up" : ""}`} role="listbox">
           {matches.map((o, i) => {
             const head = !query && o.group && o.group !== lastGroup ? o.group : null;
             lastGroup = o.group;

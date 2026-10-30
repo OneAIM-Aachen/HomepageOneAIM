@@ -842,3 +842,4 @@ ol.history { list-style: none; padding: 0; margin: 0; }
   .review-split__pane { overflow: visible; }
   .review-split__pane--side { border-left: none; border-top: 1px solid var(--p-line); }
 }
+.picker__menu--up { top: auto; bottom: calc(100% + 6px); }
