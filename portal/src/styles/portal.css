@@ -843,3 +843,18 @@ ol.history { list-style: none; padding: 0; margin: 0; }
   .review-split__pane--side { border-left: none; border-top: 1px solid var(--p-line); }
 }
 .picker__menu--up { top: auto; bottom: calc(100% + 6px); }
+
+/* ── Batch planner ───────────────────────────────────────────────────────── */
+.planner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .planner { grid-template-columns: 1fr; } }
+.planner__list { display: flex; flex-direction: column; gap: 2px; max-height: 60vh; overflow-y: auto; margin: 0 -6px; padding: 0 6px; }
+.planner__item { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid var(--p-line); }
+.planner__who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.planner__who strong { color: var(--color-text-heading); }
+.planner__who .small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.planner__move { font-size: 20px; font-weight: 700; color: var(--p-red); width: 32px; height: 32px; }
+.planner__move--add { color: var(--p-green); }
+.composition { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr 44px; gap: 8px; align-items: center; font-size: 13px; }
+.composition__bar { position: relative; height: 10px; background: var(--p-chip); border-radius: 999px; }
+.composition__fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--color-brand-blue); border-radius: 999px; }
+.composition__pool { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--color-text-heading); border-radius: 2px; }

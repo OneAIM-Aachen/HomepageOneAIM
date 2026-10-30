@@ -29,6 +29,7 @@ export function DecisionsTab({ app, subs, onOpen }: { app: Application; subs: Su
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [topN, setTopN] = useState("");
   const [confirm, setConfirm] = useState(false);
+  const [view, setView] = useState<"planner" | "table">("planner");
 
   const inStage = (x: Submission) => (app.pipeline === "interview" ? (stage === "screening" ? x.status === "new" : x.status === "invited") : x.status === "new");
   const options = stageOptions(app, stage);
@@ -97,6 +98,15 @@ export function DecisionsTab({ app, subs, onOpen }: { app: Application; subs: Su
         ) : <div class="card stat"><span class="stat__num">{fmtScore(avg(takers.map(stageScore)))}</span><span class="stat__label">Avg. score of planned “{PLAN_LABEL[positive]}”</span></div>}
       </div>
 
+      <div class="row" style="gap:6px" role="group" aria-label="View">
+        <button class={`chip-btn ${view === "planner" ? "is-active" : ""}`} onClick={() => setView("planner")}>Batch planner</button>
+        <button class={`chip-btn ${view === "table" ? "is-active" : ""}`} onClick={() => setView("table")}>Table</button>
+      </div>
+
+      {view === "planner" ? (
+        <BatchPlanner rows={rows} positive={positive} person={person} score={stageScore} fieldOf={fieldOf} onOpen={onOpen}
+          onPlan={(ids, d) => plan(ids, d)} spots={app.spots ? Math.max(0, app.spots - alreadyAccepted) : undefined} />
+      ) : <>
       {takers.length > 0 && (
         <section class="card stack-s">
           <h3>Who you'd {positive === "invite" ? "invite" : "accept"} ({takers.length})</h3>
@@ -162,6 +172,7 @@ export function DecisionsTab({ app, subs, onOpen }: { app: Application; subs: Su
             </div>
           </div>
         )}
+      </>}
 
       {selected.size > 0 && (
         <div class="bulkbar" role="toolbar" aria-label="Plan for selected">
@@ -238,5 +249,131 @@ function ApplyModal({ app, planned, options, blocker, onClose }: {
         </div>
       </div>
     </Modal>
+  );
+}
+
+// ── Batch planner ────────────────────────────────────────────────────────
+
+/** Semester ranges for the composition */
+const semGroup = (sem?: string) => !sem || !/^\d/.test(sem) ? "Not applicable / not given" : Number(sem) <= 3 ? "1st–3rd semester" : Number(sem) <= 6 ? "4th–6th semester" : Number(sem) <= 9 ? "7th–9th semester" : "10th semester or later";
+
+/**
+ * Put people into the batch (= planned invite / accept) or take them out, and
+ * see live how the batch is composed compared with all applicants of the stage.
+ */
+function BatchPlanner({ rows, positive, person, score, fieldOf, onOpen, onPlan, spots }: {
+  rows: Submission[]; positive: PlannedDecision;
+  person: (x: Submission) => { name: string; studyPrograms: string[]; universities: string[]; degree?: string; semester?: string; companies: { company: string }[] };
+  score: (x: Submission) => number | undefined; fieldOf: (name: string) => string;
+  onOpen: (id: string) => void; onPlan: (ids: string[], d: PlannedDecision | null) => Promise<unknown>; spots?: number;
+}) {
+  const [q, setQ] = useState("");
+  const inBatch = rows.filter(x => x.plannedDecision === positive);
+  const out = rows.filter(x => x.plannedDecision !== positive);
+  const ql = q.trim().toLowerCase();
+  const match = (x: Submission) => { const p = person(x); return !ql || `${p.name} ${p.studyPrograms.join(" ")} ${p.universities.join(" ")}`.toLowerCase().includes(ql); };
+  const byScore = (a: Submission, b: Submission) => (score(b) ?? -1) - (score(a) ?? -1);
+  const verb = positive === "invite" ? "invite" : "accept";
+
+  // Values per person for each dimension (a person can count in several, e.g. two study programs)
+  const dims: { title: string; of: (x: Submission) => string[] }[] = [
+    { title: "Field of study", of: x => [...new Set(person(x).studyPrograms.map(fieldOf))] },
+    { title: "Study program", of: x => person(x).studyPrograms },
+    { title: "University", of: x => person(x).universities },
+    { title: "Degree level", of: x => [person(x).degree ?? "Not given"] },
+    { title: "Semester", of: x => [semGroup(person(x).semester)] },
+    { title: "Work experience", of: x => [person(x).companies.length ? "Worked at a company" : "No company yet"] },
+  ];
+
+  const item = (x: Submission, add: boolean) => {
+    const p = person(x);
+    const sc = score(x);
+    return (
+      <div class="planner__item">
+        <button class="link-btn planner__who" onClick={() => onOpen(x.id)} title="Open profile">
+          <strong>{p.name}</strong>
+          <span class="muted small">{[p.studyPrograms[0], p.universities[0], p.degree].filter(Boolean).join(" · ")}</span>
+        </button>
+        <span class="score-pill" title="Score in this stage">{sc !== undefined ? fmtScore(sc) : <small>–</small>}</span>
+        {!add && x.plannedDecision === "reject" && <span class="chip chip--red">Reject</span>}
+        <button class={`icon-btn planner__move ${add ? "planner__move--add" : ""}`} aria-label={add ? `Add ${p.name} to the batch` : `Take ${p.name} out of the batch`}
+          title={add ? "Add to the batch" : "Take out"} onClick={() => onPlan([x.id], add ? positive : null)}>{add ? "+" : "×"}</button>
+      </div>
+    );
+  };
+
+  return (
+    <div class="stack">
+      <section class="card stack">
+        <div class="row row--between">
+          <h3>Batch composition</h3>
+          <span class="small">
+            <strong>{inBatch.length}</strong> in the batch{spots !== undefined ? ` · ${spots} spot${spots === 1 ? "" : "s"} left` : ""}
+            {" · "}avg. score <strong>{fmtScore(avg(inBatch.map(score)))}</strong> <span class="muted">(all: {fmtScore(avg(rows.map(score)))})</span>
+          </span>
+        </div>
+        {spots !== undefined && inBatch.length > spots && positive === "accept" && <p class="small field__error">{inBatch.length - spots} more than the free spots.</p>}
+        <p class="muted small">Bars: share in the batch. The line marks the share among all {rows.length} applicants of this stage.</p>
+        <div class="grid-3" style="gap:22px">
+          {dims.map(d => <Composition title={d.title} batch={inBatch.flatMap(d.of)} pool={rows.flatMap(d.of)} batchSize={inBatch.length} poolSize={rows.length} />)}
+        </div>
+      </section>
+
+      <div class="planner">
+        <section class="card stack-s planner__col">
+          <div class="row row--between">
+            <h3>In the batch ({inBatch.length})</h3>
+            {inBatch.length > 0 && <button class="btn btn--ghost btn--sm" onClick={() => onPlan(inBatch.map(x => x.id), null)}>Empty</button>}
+          </div>
+          <p class="muted small">Planned to {verb}.</p>
+          <div class="planner__list">
+            {inBatch.sort(byScore).map(x => item(x, false))}
+            {inBatch.length === 0 && <p class="muted small">Nobody yet. Add candidates with +.</p>}
+          </div>
+        </section>
+        <section class="card stack-s planner__col">
+          <div class="row row--between">
+            <h3>Candidates ({out.length})</h3>
+            {out.some(x => x.plannedDecision !== "reject") && (
+              <button class="btn btn--ghost btn--sm" title="Plans a rejection for everyone not in the batch"
+                onClick={() => onPlan(out.filter(x => x.plannedDecision !== "reject").map(x => x.id), "reject")}>Rest → Reject</button>
+            )}
+          </div>
+          <input class="input input--sm" placeholder="Search name, study program, university…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search candidates" />
+          <div class="planner__list">
+            {out.filter(match).sort(byScore).map(x => item(x, true))}
+            {out.length === 0 && <p class="muted small">Everyone of this stage is in the batch.</p>}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+/** Share per value in the batch vs. among all applicants of the stage */
+function Composition({ title, batch, pool, batchSize, poolSize }: { title: string; batch: string[]; pool: string[]; batchSize: number; poolSize: number }) {
+  const count = (list: string[]) => list.reduce((m, v) => m.set(v, (m.get(v) ?? 0) + 1), new Map<string, number>());
+  const b = count(batch), p = count(pool);
+  const keys = [...p.keys()].sort((x, y) => (b.get(y) ?? 0) - (b.get(x) ?? 0) || (p.get(y) ?? 0) - (p.get(x) ?? 0));
+  const shown = keys.slice(0, 6);
+  const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
+  return (
+    <div class="stack-s">
+      <span class="overline">{title}</span>
+      {shown.map(k => {
+        const bn = b.get(k) ?? 0, pn = p.get(k) ?? 0;
+        return (
+          <div class="composition" title={`${k}: ${bn} in the batch (${pct(bn, batchSize)}%), ${pn} of all (${pct(pn, poolSize)}%)`}>
+            <span class="breakdown__label">{k}</span>
+            <span class="composition__bar">
+              <span class="composition__fill" style={`width:${pct(bn, batchSize)}%`} />
+              <span class="composition__pool" style={`left:${pct(pn, poolSize)}%`} />
+            </span>
+            <span class="breakdown__num">{bn}<span class="muted">/{pn}</span></span>
+          </div>
+        );
+      })}
+      {keys.length > shown.length && <span class="muted small">+{keys.length - shown.length} more</span>}
+    </div>
   );
 }
