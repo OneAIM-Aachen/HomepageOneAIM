@@ -3,7 +3,7 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
-import { currentAccount, fixEmailLinkBase, loadAll, logout, useStore } from "../../lib/store";
+import { currentAccount, fixEmailLinkBase, loadAll, logout, startLive, useStore } from "../../lib/store";
 import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
 import { fmtDate, setSimDate, simDate } from "../../lib/fields";
 import { Avatar, ConfirmHost, Modal, Toaster, toast } from "../ui/Ui";
@@ -48,6 +48,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
       try {
         await loadAll();
         setAcc(a);
+        startLive();   // see changes by others without reloading the page
         // Email links still on localhost while running on the real site? Fix once.
         fixEmailLinkBase().then(url => { if (url) toast(`Email links now point to ${url}`); }).catch(() => undefined);
       } catch (e) {

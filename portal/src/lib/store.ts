@@ -139,6 +139,35 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
   }
 }
 
+// ── Live updates ─────────────────────────────────────────────────────────
+// Supabase Realtime tells the browser when a table changes (someone saved a
+// scorecard, an applicant booked a slot, …); the data is then reloaded in the
+// background. Several changes in a row lead to one reload. Coming back to the
+// tab also reloads, in case the connection was asleep.
+
+const LIVE_TABLES = [
+  "applications", "interview_slots", "submissions", "submission_scores", "submission_reviewers", "submission_comments",
+  "people", "email_log", "mailbox_messages", "team_members", "team_departments", "network_posts", "blueprints", "scorecards",
+];
+let lastLoad = 0;
+let live = false;
+let reloadTimer: number | undefined;
+
+export function startLive() {
+  if (live || typeof window === "undefined") return;
+  live = true;
+  const schedule = () => {
+    clearTimeout(reloadTimer);
+    reloadTimer = window.setTimeout(() => { loadAll().catch(() => undefined); }, 800);
+  };
+  const channel = supabase.channel("team-live");
+  for (const table of LIVE_TABLES) channel.on("postgres_changes", { event: "*", schema: "public", table }, schedule);
+  channel.subscribe();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && Date.now() - lastLoad > 30_000) schedule();
+  });
+}
+
 export async function loadAll(): Promise<void> {
   const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs, companyList, reviewers, scoreRows, scorecardRows] =
     await Promise.all([
@@ -266,6 +295,7 @@ export async function loadAll(): Promise<void> {
     })(),
   };
   if (isDemo()) state = withDemo(state);   // local development only, nothing is saved
+  lastLoad = Date.now();
   notify();
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
