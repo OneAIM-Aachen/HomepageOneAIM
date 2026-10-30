@@ -22,7 +22,9 @@ export function PhaseChip({ phase }: { phase: AppPhase }) {
 }
 
 export function Avatar({ name, large, src }: { name: string; large?: boolean; src?: string }) {
-  if (src) return <img class={`avatar ${large ? "avatar--lg" : ""}`} src={src} alt="" />;
+  // A photo that doesn't load falls back to the initials
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) return <img class={`avatar ${large ? "avatar--lg" : ""}`} src={src} alt="" onError={() => setBroken(true)} />;
   return <span class={`avatar ${large ? "avatar--lg" : ""}`} aria-hidden="true">{initials(name)}</span>;
 }
 

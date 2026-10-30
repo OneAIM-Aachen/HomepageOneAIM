@@ -9,7 +9,7 @@ import {
 import { DecisionsTab } from "./DecisionsTab";
 import { AddMember, fmtScore, MemberChips, ScorecardEditor, scorecardValid, ScoreSheetForm, STAGE_LABEL } from "./Review";
 import {
-  appPhase, appTitle, CURRENCIES, feeValue, fmtDate, parseFee, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL,
+  appPhase, appTitle, CURRENCIES, feeValue, fmtDate, parseFee, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL, today,
   templatesFor,
 } from "../../lib/fields";
 import { TeamShell, PageHead } from "./TeamShell";
@@ -78,12 +78,10 @@ function Detail({ acc, id, initialTab, openSub, created }: {
         <span class="chip chip--outline">{app.tags.program}</span>
         <span class="chip chip--outline">{app.tags.location}</span>
         <span class="chip chip--outline">{app.tags.semester}</span>
-        <span class="steps" title={PIPELINES[app.pipeline].description}>
-          {PIPELINES[app.pipeline].steps.map((st, i) => <>{i > 0 && <i>→</i>}<span>{st}</span></>)}
-        </span>
         <span class="muted small">Created by {app.createdBy} · from blueprint “{app.blueprintName}”</span>
       </div>
 
+      <ProcessBar app={app} subs={subs} />
       <PublishBar app={app} />
 
       {created && (
@@ -155,7 +153,7 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
   const people = useStore(s => s.people);
   const [status, setStatus] = useState<SubmissionStatus | "all">("all");
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<"date" | "score" | "name">("date");
+  const [sort, setSort] = useState<"date" | "score" | "interview" | "name">("date");
   // "Assigned to me" = my reviews in screening; "My interviews" = interviews I lead
   const [mine, setMine] = useState<"" | "review" | "interviews">("");
   const me = acc.memberId;
@@ -178,7 +176,8 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
       .filter(x => !mine || (mine === "review" ? isMyReview(x) : isMyInterview(x)))
       .filter(x => { const p = person(x); return !ql || `${p.name} ${p.email} ${p.universities.join(" ")} ${p.studyPrograms.join(" ")}`.toLowerCase().includes(ql); })
       .sort((a, b) =>
-        sort === "score" ? (applicantScore(app, b).overall ?? 0) - (applicantScore(app, a).overall ?? 0)
+        sort === "score" ? (applicantScore(app, b).screening ?? 0) - (applicantScore(app, a).screening ?? 0)
+        : sort === "interview" ? (applicantScore(app, b).interview ?? 0) - (applicantScore(app, a).interview ?? 0)
         : sort === "name" ? person(a).name.localeCompare(person(b).name)
         : b.submittedAt.localeCompare(a.submittedAt));
   }, [subs, people, status, q, sort, mine]);
@@ -223,7 +222,10 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
           <input class="input input--sm" style="padding-left:36px" placeholder="Search name, university, study program…" value={q} onInput={e => setQ(e.currentTarget.value)} aria-label="Search applicants" />
         </div>
         <select class="input input--sm" style="width:auto" value={sort} onChange={e => setSort(e.currentTarget.value as typeof sort)} aria-label="Sort">
-          <option value="date">Newest first</option><option value="score">Highest score</option><option value="name">Name A–Z</option>
+          <option value="date">Newest first</option>
+          {app.pipeline !== "instant" && <option value="score">Highest screening score</option>}
+          {app.pipeline === "interview" && <option value="interview">Highest interview score</option>}
+          <option value="name">Name A–Z</option>
         </select>
       </div>
 
@@ -237,8 +239,9 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
                   <tr>
                     <th style="width:36px"><input type="checkbox" aria-label="Select all" checked={allSel}
                       onChange={() => setSelected(allSel ? new Set() : new Set(rows.map(r => r.id)))} /></th>
-                    <th>Applicant</th><th>Study</th><th>Status</th>{app.pipeline !== "instant" && <><th>Score</th><th>Reviewers</th></>}
-                    {app.pipeline === "interview" && <th>Interview</th>}
+                    <th>Applicant</th><th>Study</th><th>Status</th>
+                    {app.pipeline !== "instant" && <><th title="Average of the screening scorecards">Screening score</th><th>Reviewers</th></>}
+                    {app.pipeline === "interview" && <><th>Interview</th><th>Interviewers</th><th title="Average of the interview scorecards">Interview score</th></>}
                     <th>Submitted</th>
                   </tr>
                 </thead>
@@ -250,15 +253,17 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
                       <tr class={`is-clickable ${selected.has(x.id) ? "is-selected" : ""}`} onClick={() => setOpen(x.id)}>
                         <td onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`Select ${p.name}`} disabled={isDemoId(x.id)} checked={selected.has(x.id)} onChange={() => toggle(x.id)} /></td>
                         <td><div class="cell-person"><Avatar name={p.name} /><strong>{p.name}</strong></div></td>
-                        <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}{p.semester && /^\d/.test(p.semester) ? ` · ${p.semester}. sem.` : ""}{p.degree ? ` · ${p.degree}` : ""}</span></td>
+                        <td class="cell-study"><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}{p.semester && /^\d/.test(p.semester) ? ` · ${p.semester}. sem.` : ""}{p.degree ? ` · ${p.degree}` : ""}</span></td>
                         <td><StatusChip status={x.status} />{x.plannedDecision && <div style="margin-top:4px"><span class={`chip ${x.plannedDecision === "accept" ? "chip--green" : x.plannedDecision === "reject" ? "chip--red" : "chip--purple"}`} title={`Planned by ${x.plannedBy ?? "?"}, not sent yet`}>Planned: {DECISION_TEXT[x.plannedDecision].verb}</span></div>}</td>
                         {app.pipeline !== "instant" && <>
-                          <td>{applicantScore(app, x).sheets ? <ScoreCell app={app} sub={x} /> : <span class="muted small">Not rated</span>}</td>
+                          <td><StageScoreCell app={app} sub={x} stage="screening" /></td>
                           <td><ReviewerAvatars ids={x.reviewerIds} /></td>
                         </>}
-                        {app.pipeline === "interview" && (
-                          <td class="small">{slot ? fmtSlot(slot.start) : x.status === "invited" ? <span class="chip chip--amber">No slot yet</span> : <span class="muted">–</span>}</td>
-                        )}
+                        {app.pipeline === "interview" && <>
+                          <td class="small" style="white-space:nowrap">{slot ? fmtSlot(slot.start) : x.status === "invited" ? <span class="chip chip--amber">No slot yet</span> : <span class="muted">–</span>}</td>
+                          <td>{slot ? <ReviewerAvatars ids={slot.interviewerIds} /> : <span class="muted small">–</span>}</td>
+                          <td>{slot || x.scoreSheets.some(y => y.stage === "interview") ? <StageScoreCell app={app} sub={x} stage="interview" /> : <span class="muted small">–</span>}</td>
+                        </>}
                         <td class="muted small">{fmtShort(x.submittedAt)}</td>
                       </tr>
                     );
@@ -1122,4 +1127,65 @@ function PublishBar({ app }: { app: Application }) {
       </span>
     </div>
   );
+}
+
+// ── Where the process stands ─────────────────────────────────────────────
+
+type StepKey = "open" | "screening" | "interviews" | "final" | "finished";
+
+/** The current step, from the dates and the applicants' statuses */
+function processStep(app: Application, subs: Submission[]): { step: StepKey | "upcoming"; text: string } {
+  const t = today();
+  const n = (st: SubmissionStatus) => subs.filter(x => x.status === st).length;
+  if (t < app.dates.opensAt) return { step: "upcoming", text: `Applications open on ${fmtDate(app.dates.opensAt)}.` };
+  if (t <= app.dates.deadline) {
+    return { step: "open", text: `Applications open until ${fmtDate(app.dates.deadline)}, 23:59 · ${subs.length} so far.` };
+  }
+  if (app.pipeline === "instant") return { step: "finished", text: `Registration closed on ${fmtDate(app.dates.deadline)} · ${n("confirmed")} registered.` };
+  const fresh = n("new"), invited = n("invited");
+  if (fresh) {
+    const due = app.pipeline === "interview" ? app.dates.interviewsFrom : app.dates.decisionBy;
+    return { step: "screening", text: `${fresh} of ${subs.length} applicants still to screen${due ? ` · ${app.pipeline === "interview" ? "interviews start" : "decisions due"} ${fmtDate(due)}` : ""}.` };
+  }
+  if (app.pipeline === "interview" && invited) {
+    const now = new Date().toISOString().slice(0, 16);
+    const upcoming = subs.filter(x => x.status === "invited" && app.slots.find(sl => sl.id === x.slotId && sl.start >= now)).length;
+    const unbooked = subs.filter(x => x.status === "invited" && !x.slotId).length;
+    const interviewsLeft = upcoming > 0 || unbooked > 0 || (!!app.dates.interviewsTo && t <= app.dates.interviewsTo);
+    if (interviewsLeft) {
+      return { step: "interviews", text: `${invited} invited · ${upcoming} interviews ahead${unbooked ? ` · ${unbooked} not booked yet` : ""}${app.dates.interviewsTo ? ` · until ${fmtDate(app.dates.interviewsTo)}` : ""}.` };
+    }
+    return { step: "final", text: `Interviews done · ${invited} waiting for the final decision${app.dates.decisionBy ? ` · due ${fmtDate(app.dates.decisionBy)}` : ""}.` };
+  }
+  return { step: "finished", text: `Process finished · ${n("accepted")} accepted, ${n("rejected")} rejected.` };
+}
+
+function ProcessBar({ app, subs }: { app: Application; subs: Submission[] }) {
+  const steps: [StepKey, string][] = app.pipeline === "instant"
+    ? [["open", "Registration open"], ["finished", "Closed"]]
+    : app.pipeline === "screening"
+      ? [["open", "Applications open"], ["screening", "Screening"], ["finished", "Finished"]]
+      : [["open", "Applications open"], ["screening", "Screening"], ["interviews", "Interviews"], ["final", "Final decisions"], ["finished", "Finished"]];
+  const { step, text } = processStep(app, subs);
+  const at = step === "upcoming" ? -1 : steps.findIndex(([k]) => k === step);
+  return (
+    <div class="process" aria-label="Process status">
+      <ol class="process__steps">
+        {steps.map(([k, label], i) => (
+          <li class={`process__step ${i < at ? "is-done" : i === at ? "is-current" : ""}`} aria-current={i === at ? "step" : undefined}>
+            <span class="process__dot">{i < at ? "✓" : i + 1}</span>{label}
+          </li>
+        ))}
+      </ol>
+      <span class="small"><strong>{step === "upcoming" ? "Not open yet" : steps[at]?.[1]}:</strong> {text}</span>
+    </div>
+  );
+}
+
+/** Average of one stage's scorecards, with the number of sheets */
+function StageScoreCell({ app, sub, stage }: { app: Application; sub: Submission; stage: ReviewStage }) {
+  const v = applicantScore(app, sub)[stage];
+  const n = sub.scoreSheets.filter(x => x.stage === stage).length;
+  if (v === undefined) return <span class="muted small">Not rated</span>;
+  return <span class="score-pill" title={`${n} scorecard${n > 1 ? "s" : ""}`}>{fmtScore(v)}<small>/ 5 · {n}</small></span>;
 }
