@@ -80,6 +80,8 @@ function Detail({ acc, id, initialTab, openSub, created }: {
         <span class="muted small">Created by {app.createdBy} · from blueprint “{app.blueprintName}”</span>
       </div>
 
+      <PublishBar app={app} />
+
       {created && (
         <div class="card card--tint row">
           <span style="flex:1"><strong>Application created as a draft.</strong> Check dates, form and emails, then publish it under Setup. It goes live on one-aim.org on the opening date.</span>
@@ -437,7 +439,8 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
   const subCount = useStore(s => s.submissions.filter(x => x.applicationId === app.id).length);
   const tagLists = useStore(s => s.tagLists);
   const [d, setD] = useState<Application>(structuredClone(app));
-  const dirty = JSON.stringify(d) !== JSON.stringify(app);
+  // "Published" is switched in the header; Setup never overwrites it
+  const dirty = JSON.stringify({ ...d, published: app.published }) !== JSON.stringify(app);
   const date = (k: keyof Application["dates"]) => (
     <input class="input" type="date" value={d.dates[k] ?? ""} onInput={e => setD({ ...d, dates: { ...d.dates, [k]: e.currentTarget.value || undefined } })} />
   );
@@ -445,7 +448,7 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
   const feeBad = !!fee.amount && !fee.currency;
   const bad = !d.dates.opensAt || !d.dates.deadline || d.dates.deadline < d.dates.opensAt || feeBad;
   const [busy, setBusy] = useState(false);
-  const save = async () => { setBusy(true); await act(() => saveApplication(d), "Application saved"); setBusy(false); };
+  const save = async () => { setBusy(true); await act(() => saveApplication({ ...d, published: app.published }), "Application saved"); setBusy(false); };
   const upload = (e: Event) => {
     const file = (e.currentTarget as HTMLInputElement).files?.[0];
     if (file) act(async () => setD({ ...d, image: await uploadImage(file) }), "Image uploaded: save to keep it");
@@ -453,21 +456,6 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
 
   return (
     <div class="stack" style="gap:20px">
-      <section class={`card row ${d.published ? "" : "card--tint"}`} style="align-items:flex-start">
-        <div style="flex:1;min-width:260px" class="stack-s">
-          <h3>{d.published ? "Published" : "Draft: not visible to applicants"}</h3>
-          <p class="muted small">
-            {d.published
-              ? <>Visible on apply.one-aim.org from <strong>{fmtDate(d.dates.opensAt)}</strong> to <strong>{fmtDate(d.dates.deadline)}</strong>. one-aim.org shows it on the {d.tags.location} and {d.tags.program} pages automatically and takes it down after the deadline.</>
-              : "Publish when the form, dates and emails are ready. Nothing is shown before the opening date."}
-          </p>
-        </div>
-        <label class="check" style="align-items:center">
-          <input type="checkbox" checked={d.published} onChange={e => setD({ ...d, published: e.currentTarget.checked })} />
-          <strong>Published</strong>
-        </label>
-      </section>
-
       <section class="card stack">
         <h3>Title & tags</h3>
         <div class="grid-2">
@@ -1019,4 +1007,35 @@ function ReviewSplit({ acc, app, subId, order, onNavigate, onClose }: {
 function reviewStages(app: Application, sub: Submission): ReviewStage[] {
   return (["screening", "interview"] as ReviewStage[])
     .filter(st => app.scorecards[st] && (st === "screening" || sub.status !== "new" || sub.scoreSheets.some(x => x.stage === st)));
+}
+
+/** Public or not: switched right at the top of the application, saved immediately */
+function PublishBar({ app }: { app: Application }) {
+  const [busy, setBusy] = useState(false);
+  const toggle = async (on: boolean) => {
+    if (!(await confirmDialog(on
+      ? { title: "Publish this application?", confirmLabel: "Publish",
+          message: `It becomes visible on the apply site and one-aim.org from ${fmtDate(app.dates.opensAt)} (opening date) until the deadline ${fmtDate(app.dates.deadline)}. Check form, dates and emails first.` }
+      : { title: "Take it offline?", confirmLabel: "Unpublish", danger: true,
+          message: "The form disappears from the apply site and one-aim.org. Applications already submitted stay." }))) return;
+    setBusy(true);
+    await act(() => saveApplication({ ...app, published: on }), on ? "Published" : "Taken offline");
+    setBusy(false);
+  };
+  return (
+    <div class={`publish-bar ${app.published ? "is-on" : ""}`}>
+      <label class="demo-switch publish-switch" style="margin:0">
+        {/* The switch only moves once the change is confirmed and saved */}
+        <input type="checkbox" role="switch" checked={app.published} disabled={busy || isDemoId(app.id)}
+          onClick={e => { e.preventDefault(); toggle(!app.published); }} />
+        <span class="demo-switch__track" aria-hidden="true"><span /></span>
+        <strong>{app.published ? "Public" : "Not public (draft)"}</strong>
+      </label>
+      <span class="muted small">
+        {app.published
+          ? <>Visible on the apply site and one-aim.org from {fmtDate(app.dates.opensAt)} to {fmtDate(app.dates.deadline)}.</>
+          : "Only the team can see it. Publish when form, dates and emails are ready."}
+      </span>
+    </div>
+  );
 }

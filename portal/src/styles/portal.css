@@ -858,3 +858,8 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .composition__bar { position: relative; height: 10px; background: var(--p-chip); border-radius: 999px; }
 .composition__fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--color-brand-blue); border-radius: 999px; }
 .composition__pool { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--color-text-heading); border-radius: 2px; }
+
+/* Public / draft switch at the top of an application */
+.publish-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--radius-md); background: var(--p-amber-tint); border: 1px solid #F3D19C; margin-top: -8px; }
+.publish-bar.is-on { background: var(--p-green-tint); border-color: #B5E3C8; }
+.publish-switch input:checked + .demo-switch__track { background: var(--p-green); }
