@@ -81,6 +81,11 @@ function Detail({ acc, id, initialTab, openSub, created }: {
         <span class="muted small">Created by {app.createdBy} · from blueprint “{app.blueprintName}”</span>
       </div>
 
+      {isDemoId(app.id) && (
+        <div class="demo-banner" role="status">
+          <strong>Demo application: made up, view only.</strong> Reviewers, scorecards, notes and decisions can't be changed here, since these applicants don't exist in the database. Use a real application to try the workflow.
+        </div>
+      )}
       <ProcessBar app={app} subs={subs} />
       <PublishBar app={app} />
 

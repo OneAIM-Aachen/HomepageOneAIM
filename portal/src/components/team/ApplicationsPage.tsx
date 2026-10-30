@@ -70,6 +70,7 @@ function Applications({ acc, startNew }: { acc: Account; startNew: boolean }) {
                 <a class="app-card" href={`/team/application?id=${a.id}`}>
                   <div class="app-card__img" style={a.image ? `background-image:url(${a.image})` : ""}>
                     <PhaseChip phase={appPhase(a)} />
+                    {a.id.startsWith("demo-") && <span class="chip chip--amber" title="Made up, view only">Demo</span>}
                   </div>
                   <div class="app-card__body">
                     <span class="app-card__title">{appTitle(a)}</span>
