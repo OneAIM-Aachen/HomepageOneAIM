@@ -21,22 +21,22 @@ export function stageOptions(app: Application, stage: Stage): PlannedDecision[] 
   return ["accept", "reject"];
 }
 
-interface PastDecision { label: string; chip: string; at?: string }
+interface PastDecision { label: string; chip: string; at?: string; /** invited / accepted: part of the batch */ positive: boolean }
 
 /** The decision already made for someone in this stage (null = still open or not in this stage) */
 export function pastDecision(app: Application, stage: Stage, x: Submission): PastDecision | null {
   const at = (st: Submission["status"]) => [...x.history].reverse().find(h => h.status === st)?.at;
   const final = (): PastDecision | null =>
-    x.status === "accepted" ? { label: "Accepted", chip: "chip--green", at: at("accepted") }
-    : x.status === "withdrawn" ? { label: STATUS_LABEL.withdrawn, chip: "chip--gray", at: at("withdrawn") }
-    : x.status === "rejected" ? { label: "Rejected", chip: "chip--red", at: at("rejected") }
+    x.status === "accepted" ? { label: "Accepted", chip: "chip--green", at: at("accepted"), positive: true }
+    : x.status === "withdrawn" ? { label: STATUS_LABEL.withdrawn, chip: "chip--gray", at: at("withdrawn"), positive: false }
+    : x.status === "rejected" ? { label: "Rejected", chip: "chip--red", at: at("rejected"), positive: false }
     : null;
   if (app.pipeline !== "interview") return final();
   const wasInvited = x.status === "invited" || !!x.slotId || x.history.some(h => h.status === "invited")
     || (x.status !== "rejected" && x.status !== "new");
   if (stage === "screening") {
-    if (wasInvited) return { label: "Invited to interview", chip: "chip--purple", at: at("invited") };
-    return x.status === "rejected" ? { label: "Rejected", chip: "chip--red", at: at("rejected") } : null;
+    if (wasInvited) return { label: "Invited to interview", chip: "chip--purple", at: at("invited"), positive: true };
+    return x.status === "rejected" ? { label: "Rejected", chip: "chip--red", at: at("rejected"), positive: false } : null;
   }
   return wasInvited ? final() : null;
 }
@@ -134,7 +134,7 @@ export function DecisionsTab({ app, subs, onOpen }: {
       </div>
 
       {view === "planner" ? (
-        <BatchPlanner rows={rows} positive={positive} person={person} score={stageScore} fieldOf={fieldOf} scoreLabel={scoreLabel} onOpen={id => onOpen(id, rows.map(r => r.id))}
+        <BatchPlanner rows={rows} fixed={decided.filter(x => pastDecision(app, stage, x)!.positive)} decided={decided} positive={positive} person={person} score={stageScore} fieldOf={fieldOf} scoreLabel={scoreLabel} onOpen={id => onOpen(id, rows.map(r => r.id))}
           onPlan={(ids, d) => plan(ids, d)} spots={app.spots ? Math.max(0, app.spots - alreadyAccepted) : undefined} />
       ) : <>
       {takers.length > 0 && (
@@ -321,8 +321,13 @@ const semGroup = (sem?: string) => !sem || !/^\d/.test(sem) ? "Not applicable / 
  * Put people into the batch (= planned invite / accept) or take them out, and
  * see live how the batch is composed compared with all applicants of the stage.
  */
-function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOpen, onPlan, spots }: {
-  rows: Submission[]; positive: PlannedDecision;
+function BatchPlanner({ rows, fixed, decided, positive, person, score, scoreLabel, fieldOf, onOpen, onPlan, spots }: {
+  rows: Submission[];
+  /** Already invited / accepted in this stage: part of the batch, can't be planned any more */
+  fixed: Submission[];
+  /** Everyone already decided in this stage (part of the pool) */
+  decided: Submission[];
+  positive: PlannedDecision;
   person: (x: Submission) => { name: string; studyPrograms: string[]; universities: string[]; degree?: string; semester?: string; companies: { company: string }[] };
   score: (x: Submission) => number | undefined; scoreLabel: string; fieldOf: (name: string) => string;
   onOpen: (id: string) => void; onPlan: (ids: string[], d: PlannedDecision | null) => Promise<unknown>; spots?: number;
@@ -331,6 +336,9 @@ function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOp
   const [topN, setTopN] = useState("");
   const inBatch = rows.filter(x => x.plannedDecision === positive);
   const out = rows.filter(x => x.plannedDecision !== positive);
+  // Whole batch = already decided + planned now; pool = everyone of this stage, decided or not
+  const batch = [...fixed, ...inBatch];
+  const pool = [...rows, ...decided];
   const ql = q.trim().toLowerCase();
   const match = (x: Submission) => { const p = person(x); return !ql || `${p.name} ${p.studyPrograms.join(" ")} ${p.universities.join(" ")}`.toLowerCase().includes(ql); };
   const byScore = (a: Submission, b: Submission) => (score(b) ?? -1) - (score(a) ?? -1);
@@ -375,8 +383,9 @@ function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOp
         <div class="row row--between">
           <h3>Batch composition</h3>
           <span class="small">
-            <strong>{inBatch.length}</strong> in the batch{spots !== undefined && positive === "accept" ? ` · ${Math.max(0, spots - inBatch.length)} of ${spots} free spot${spots === 1 ? "" : "s"} left` : ""}
-            {" · "}avg. {scoreLabel.toLowerCase()} <strong>{fmtScore(avg(inBatch.map(score)))}</strong> <span class="muted">(all: {fmtScore(avg(rows.map(score)))})</span>
+            <strong>{batch.length}</strong> in the batch{fixed.length ? <span class="muted"> ({fixed.length} decided + {inBatch.length} planned)</span> : ""}
+            {spots !== undefined && positive === "accept" ? ` · ${Math.max(0, spots - inBatch.length)} of ${spots} free spot${spots === 1 ? "" : "s"} left` : ""}
+            {" · "}avg. {scoreLabel.toLowerCase()} <strong>{fmtScore(avg(batch.map(score)))}</strong> <span class="muted">(all: {fmtScore(avg(pool.map(score)))})</span>
           </span>
         </div>
         {spots !== undefined && inBatch.length > spots && positive === "accept" && <p class="small field__error">{inBatch.length - spots} more than the free spots.</p>}
@@ -395,9 +404,13 @@ function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOp
             <button class="btn btn--secondary btn--sm" disabled={!Number(topN) || !ranked.length} onClick={() => addTop(Math.floor(Number(topN)))}>Add</button>
           </span>
         </div>
-        <p class="muted small">Bars: share in the batch. The line marks the share among all {rows.length} applicants of this stage.</p>
+        <p class="muted small composition__legend">
+          Bars: share in the whole batch
+          {fixed.length > 0 && <> · <span class="composition__key composition__key--fixed" /> already decided · <span class="composition__key composition__key--planned" /> planned now</>}
+          . The line marks the share among all {pool.length} applicants of this stage.
+        </p>
         <div class="grid-3" style="gap:22px">
-          {dims.map(d => <Composition title={d.title} batch={inBatch.flatMap(d.of)} pool={rows.flatMap(d.of)} batchSize={inBatch.length} poolSize={rows.length} />)}
+          {dims.map(d => <Composition title={d.title} fixed={fixed.flatMap(d.of)} planned={inBatch.flatMap(d.of)} pool={pool.flatMap(d.of)} batchSize={batch.length} poolSize={pool.length} />)}
         </div>
       </section>
 
@@ -410,7 +423,23 @@ function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOp
           <p class="muted small">Planned to {verb}.</p>
           <div class="planner__list">
             {inBatch.sort(byScore).map(x => item(x, false))}
-            {inBatch.length === 0 && <p class="muted small">Nobody yet. Add candidates with +.</p>}
+            {inBatch.length === 0 && <p class="muted small">Nobody planned yet. Add candidates with +.</p>}
+            {fixed.length > 0 && <>
+              <p class="overline" style="margin-top:10px">Already {positive === "invite" ? "invited" : "accepted"} ({fixed.length})</p>
+              {[...fixed].sort(byScore).map(x => {
+                const p = person(x), sc = score(x);
+                return (
+                  <div class="planner__item planner__item--fixed">
+                    <button class="link-btn planner__who" onClick={() => onOpen(x.id)} title="Open profile">
+                      <strong>{p.name}</strong>
+                      <span class="muted small">{[p.studyPrograms[0], p.universities[0], p.degree].filter(Boolean).join(" · ")}</span>
+                    </button>
+                    <span class="score-pill" title={scoreLabel}>{sc !== undefined ? fmtScore(sc) : <small>–</small>}</span>
+                    <span class="chip chip--outline" title="Decision already applied">Decided</span>
+                  </div>
+                );
+              })}
+            </>}
           </div>
         </section>
         <section class="card stack-s planner__col">
@@ -432,10 +461,13 @@ function BatchPlanner({ rows, positive, person, score, scoreLabel, fieldOf, onOp
   );
 }
 
-/** Share per value in the batch vs. among all applicants of the stage */
-function Composition({ title, batch, pool, batchSize, poolSize }: { title: string; batch: string[]; pool: string[]; batchSize: number; poolSize: number }) {
+/** Share per value in the whole batch (decided + planned) vs. among all applicants of the stage */
+function Composition({ title, fixed, planned, pool, batchSize, poolSize }: {
+  title: string; fixed: string[]; planned: string[]; pool: string[]; batchSize: number; poolSize: number;
+}) {
   const count = (list: string[]) => list.reduce((m, v) => m.set(v, (m.get(v) ?? 0) + 1), new Map<string, number>());
-  const b = count(batch), p = count(pool);
+  const f = count(fixed), pl = count(planned), p = count(pool);
+  const b = count([...fixed, ...planned]);
   const keys = [...p.keys()].sort((x, y) => (b.get(y) ?? 0) - (b.get(x) ?? 0) || (p.get(y) ?? 0) - (p.get(x) ?? 0));
   const shown = keys.slice(0, 6);
   const pct = (n: number, of: number) => (of ? Math.round((n / of) * 100) : 0);
@@ -443,12 +475,15 @@ function Composition({ title, batch, pool, batchSize, poolSize }: { title: strin
     <div class="stack-s">
       <span class="overline">{title}</span>
       {shown.map(k => {
-        const bn = b.get(k) ?? 0, pn = p.get(k) ?? 0;
+        const bn = b.get(k) ?? 0, pn = p.get(k) ?? 0, fn = f.get(k) ?? 0, ln = pl.get(k) ?? 0;
         return (
-          <div class="composition" title={`${k}: ${bn} in the batch (${pct(bn, batchSize)}%), ${pn} of all (${pct(pn, poolSize)}%)`}>
+          <div class="composition" title={`${k}: ${bn} in the batch (${pct(bn, batchSize)}%${fn ? `; ${fn} decided, ${ln} planned` : ""}), ${pn} of all (${pct(pn, poolSize)}%)`}>
             <span class="breakdown__label">{k}</span>
             <span class="composition__bar">
-              <span class="composition__fill" style={`width:${pct(bn, batchSize)}%`} />
+              <span class="composition__fills">
+                <span class="composition__fill" style={`width:${batchSize ? (fn / batchSize) * 100 : 0}%`} />
+                <span class="composition__fill composition__fill--planned" style={`width:${batchSize ? (ln / batchSize) * 100 : 0}%`} />
+              </span>
               <span class="composition__pool" style={`left:${pct(pn, poolSize)}%`} />
             </span>
             <span class="breakdown__num">{bn}<span class="muted">/{pn}</span></span>

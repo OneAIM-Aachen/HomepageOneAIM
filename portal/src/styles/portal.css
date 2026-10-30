@@ -860,7 +860,16 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .planner__move--add { color: var(--p-green); }
 .composition { display: grid; grid-template-columns: minmax(0, 1.3fr) 1fr 44px; gap: 8px; align-items: center; font-size: 13px; }
 .composition__bar { position: relative; height: 10px; background: var(--p-chip); border-radius: 999px; }
-.composition__fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--color-brand-blue); border-radius: 999px; }
+.composition__fills { position: absolute; inset: 0; display: flex; border-radius: 999px; overflow: hidden; }
+.composition__fill { height: 100%; background: var(--color-brand-blue); }
+/* Planned now (not applied yet): lighter, striped – the solid part is already decided */
+.composition__fill--planned {
+  background: repeating-linear-gradient(-45deg, #7FA6F5 0 4px, #A9C3F8 4px 8px);
+}
+.composition__key { display: inline-block; width: 18px; height: 8px; border-radius: 4px; vertical-align: middle; margin-right: 2px; }
+.composition__key--fixed { background: var(--color-brand-blue); }
+.composition__key--planned { background: repeating-linear-gradient(-45deg, #7FA6F5 0 4px, #A9C3F8 4px 8px); }
+.planner__item--fixed { opacity: .75; }
 .composition__pool { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--color-text-heading); border-radius: 2px; }
 
 /* Public / draft switch at the top of an application */
