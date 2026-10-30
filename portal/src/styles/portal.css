@@ -826,3 +826,19 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .member-search { min-width: 200px; max-width: 260px; flex: 1 1 200px; }
 .member-search .picker__menu { min-width: 260px; }
 .bulkbar .member-search .input { background: #fff; color: var(--color-text-heading); }
+
+/* ── Side-by-side review ─────────────────────────────────────────────────── */
+.review-split { position: fixed; inset: 0; z-index: 95; background: var(--p-bg); display: flex; flex-direction: column; }
+.review-split__head {
+  display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--p-surface);
+  border-bottom: 1px solid var(--p-line); flex-wrap: wrap;
+}
+.review-split__body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.review-split__pane { overflow-y: auto; padding: 24px clamp(16px, 2.5vw, 36px) 48px; display: flex; flex-direction: column; gap: 22px; }
+.review-split__pane--side { background: var(--p-surface); border-left: 1px solid var(--p-line); }
+@media (max-width: 900px) {
+  /* Narrow screens: one column, application first */
+  .review-split__body { grid-template-columns: 1fr; overflow-y: auto; }
+  .review-split__pane { overflow: visible; }
+  .review-split__pane--side { border-left: none; border-top: 1px solid var(--p-line); }
+}

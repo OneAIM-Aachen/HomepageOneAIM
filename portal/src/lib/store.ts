@@ -35,15 +35,16 @@ const notify = () => listeners.forEach(l => l());
 
 export function getState(): State { return state; }
 
+/** Reads from the state; re-renders on every change. The selector runs on each
+ *  render, so selectors that depend on props (e.g. an id) always stay current. */
 export function useStore<T>(select: (s: State) => T): T {
-  const [value, setValue] = useState(() => select(state));
+  const [, rerender] = useState(0);
   useEffect(() => {
-    const l = () => setValue(select(state));
+    const l = () => rerender(n => n + 1);
     listeners.add(l);
-    l();
     return () => { listeners.delete(l); };
   }, []);
-  return value;
+  return select(state);
 }
 
 /** Throws a readable Error when a Supabase call failed. */

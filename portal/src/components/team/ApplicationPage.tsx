@@ -1,4 +1,4 @@
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { Account, Application, PlannedDecision, ReviewStage, Scorecard, Slot, Submission, SubmissionStatus, TemplateKey } from "../../lib/types";
 import {
   addComment, addSlots, decide, deleteApplication, inviteBlocker, removeSlot, renderTemplate, saveApplication,
@@ -18,7 +18,7 @@ import { Answers } from "./Answers";
 import { act, Avatar, confirmDialog, Drawer, Field, Modal, PhaseChip, Stars, StatusChip, toast, useParam } from "../ui/Ui";
 import { FormRenderer } from "../apply/FormRenderer";
 import { isDemoId } from "../../lib/demo";
-import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash } from "../ui/Icons";
+import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash, IconX } from "../ui/Icons";
 
 type Tab = "applicants" | "decisions" | "setup" | "form" | "scorecards" | "emails" | "slots";
 
@@ -133,6 +133,7 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"date" | "score" | "name">("date");
   const [mine, setMine] = useState(false);
+  const [reviewing, setReviewing] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(openSub);
   const [confirm, setConfirm] = useState<{ ids: string[]; decision: Decision } | null>(null);
@@ -251,9 +252,14 @@ function Applicants({ acc, app, subs, openSub }: { acc: Account; app: Applicatio
         </div>
       )}
 
-      {openSubObj && (
+      {openSubObj && !reviewing && (
         <ApplicantDrawer acc={acc} app={app} sub={openSubObj} onClose={() => setOpen(null)}
-          onDecide={d => setConfirm({ ids: [openSubObj.id], decision: d })} />
+          onDecide={d => setConfirm({ ids: [openSubObj.id], decision: d })} onReview={() => setReviewing(openSubObj.id)} />
+      )}
+
+      {reviewing && (
+        <ReviewSplit acc={acc} app={app} subId={reviewing} order={rows.map(x => x.id)}
+          onNavigate={id => { setReviewing(id); setOpen(id); }} onClose={() => setReviewing(null)} />
       )}
 
       {confirm && (
@@ -317,12 +323,11 @@ function ConfirmDecision({ acc, app, subs, decision, onClose, onDone }: {
   );
 }
 
-function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
-  acc: Account; app: Application; sub: Submission; onClose: () => void; onDecide: (d: Decision) => void;
+function ApplicantDrawer({ acc, app, sub, onClose, onDecide, onReview }: {
+  acc: Account; app: Application; sub: Submission; onClose: () => void; onDecide: (d: Decision) => void; onReview: () => void;
 }) {
   const person = useStore(s => s.people.find(p => p.id === sub.personId)!);
   const others = useStore(s => s.submissions.filter(x => x.personId === sub.personId && x.id !== sub.id).length);
-  const [comment, setComment] = useState("");
   const slot = app.slots.find(s => s.id === sub.slotId);
   const decisions = decisionsFor(app, sub.status);
 
@@ -388,8 +393,13 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
         </div>
       </section>
 
-      {(["screening", "interview"] as ReviewStage[]).filter(st => app.scorecards[st]).map(st => (
-        <StageScores app={app} sub={sub} stage={st} acc={acc} />
+      {Object.keys(app.scorecards).length > 0 && (
+        <button class="btn btn--primary btn--sm" style="align-self:flex-start" onClick={onReview}>
+          Review side by side: application + scorecard
+        </button>
+      )}
+      {reviewStages(app, sub).map(st => (
+        <StageScores key={`${sub.id}-${st}`} app={app} sub={sub} stage={st} acc={acc} />
       ))}
       {app.pipeline !== "instant" && !Object.keys(app.scorecards).length && (
         <p class="muted small">No scorecard for this application yet. Add one in the tab “Scorecards”.</p>
@@ -400,24 +410,7 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide }: {
         <Answers app={app} sub={sub} />
       </section>
 
-      <section class="stack-s">
-        <h3>Notes</h3>
-        <p class="muted small">Only visible to the team. Each note is marked with the stage of the process and the time it was written.</p>
-        {[...sub.comments].reverse().map(c => (
-          <div class="note">
-            <div class="row small" style="gap:8px">
-              {c.stage && <span class="chip chip--outline">{STAGE_LABEL[c.stage]}</span>}
-              <strong style="color:var(--color-text-heading)">{c.author}</strong>
-              <span class="spacer" />
-              <span class="muted">{fmtDateTime(c.at)}</span>
-            </div>
-            <p style="margin-top:6px;white-space:pre-wrap">{c.text}</p>
-          </div>
-        ))}
-        <textarea class="input" style="min-height:70px" placeholder={`Add a note (stage: ${STAGE_LABEL[sub.status]})…`} value={comment} disabled={isDemoId(sub.id)} onInput={e => setComment(e.currentTarget.value)} />
-        <button class="btn btn--secondary btn--sm" style="align-self:flex-start" disabled={!comment.trim()}
-          onClick={async () => { await act(() => addComment(sub.id, acc.city, comment)); setComment(""); }}>Add note</button>
-      </section>
+      <NotesSection acc={acc} sub={sub} />
 
       <section class="stack-s">
         <h3>History</h3>
@@ -929,4 +922,97 @@ function ScorecardsTab({ app }: { app: Application }) {
       </div>
     </div>
   );
+}
+
+function NotesSection({ acc, sub }: { acc: Account; sub: Submission }) {
+  const [comment, setComment] = useState("");
+  return (
+    <section class="stack-s">
+      <h3>Notes</h3>
+      <p class="muted small">Only visible to the team. Each note is marked with the stage of the process and the time it was written.</p>
+      {[...sub.comments].reverse().map(c => (
+        <div class="note">
+          <div class="row small" style="gap:8px">
+            {c.stage && <span class="chip chip--outline">{STAGE_LABEL[c.stage]}</span>}
+            <strong style="color:var(--color-text-heading)">{c.author}</strong>
+            <span class="spacer" />
+            <span class="muted">{fmtDateTime(c.at)}</span>
+          </div>
+          <p style="margin-top:6px;white-space:pre-wrap">{c.text}</p>
+        </div>
+      ))}
+      <textarea class="input" style="min-height:70px" placeholder={`Add a note (stage: ${STAGE_LABEL[sub.status]})…`} value={comment} disabled={isDemoId(sub.id)} onInput={e => setComment(e.currentTarget.value)} />
+      <button class="btn btn--secondary btn--sm" style="align-self:flex-start" disabled={!comment.trim()}
+        onClick={async () => { await act(() => addComment(sub.id, acc.city, comment)); setComment(""); }}>Add note</button>
+    </section>
+  );
+}
+
+/**
+ * Full-screen review: the application on the left, scorecards and notes on the
+ * right; both sides scroll on their own. Previous / next follow the list order.
+ */
+function ReviewSplit({ acc, app, subId, order, onNavigate, onClose }: {
+  acc: Account; app: Application; subId: string; order: string[]; onNavigate: (id: string) => void; onClose: () => void;
+}) {
+  const sub = useStore(s => s.submissions.find(x => x.id === subId));
+  const person = useStore(s => s.people.find(p => p.id === sub?.personId));
+  const left = useRef<HTMLDivElement>(null);
+  const i = order.indexOf(subId);
+  const prev = i > 0 ? order[i - 1] : undefined;
+  const next = i >= 0 && i < order.length - 1 ? order[i + 1] : undefined;
+
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      // Alt + arrows: previous / next applicant (plain arrows stay for text fields)
+      if (e.altKey && e.key === "ArrowLeft" && prev) onNavigate(prev);
+      if (e.altKey && e.key === "ArrowRight" && next) onNavigate(next);
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [prev, next]);
+  useEffect(() => { left.current?.scrollTo(0, 0); }, [subId]);
+  if (!sub || !person) return null;
+  const stages = reviewStages(app, sub);
+
+  return (
+    <div class="review-split" role="dialog" aria-modal="true" aria-label={`Review ${person.name}`}>
+      <header class="review-split__head">
+        <Avatar name={person.name} />
+        <div style="min-width:0">
+          <strong style="color:var(--color-text-heading)">{person.name}</strong>
+          <div class="row small" style="gap:6px"><StatusChip status={sub.status} /><span class="muted">{appTitle(app)}</span></div>
+        </div>
+        <span class="spacer" />
+        {i >= 0 && <span class="muted small">{i + 1} of {order.length}</span>}
+        <button class="btn btn--secondary btn--sm" disabled={!prev} title="Previous applicant (Alt + ←)" onClick={() => prev && onNavigate(prev)}>← Previous</button>
+        <button class="btn btn--secondary btn--sm" disabled={!next} title="Next applicant (Alt + →)" onClick={() => next && onNavigate(next)}>Next →</button>
+        <button class="icon-btn" aria-label="Close" onClick={onClose}><IconX /></button>
+      </header>
+      <div class="review-split__body">
+        <div class="review-split__pane" ref={left}>
+          <section class="stack-s">
+            <span class="overline">Application</span>
+            <p class="muted small">
+              {person.studyPrograms.join(", ")}{person.universities.length ? ` · ${person.universities.join(", ")}` : ""}
+              {person.semester && /^\d/.test(person.semester) ? ` · ${person.semester}. semester` : ""}{person.degree ? ` · ${person.degree}` : ""}
+            </p>
+            <Answers app={app} sub={sub} />
+          </section>
+        </div>
+        <div class="review-split__pane review-split__pane--side">
+          {stages.length === 0 && <p class="muted small">No scorecard for this application yet (tab “Scorecards”).</p>}
+          {stages.map(st => <StageScores key={`${sub.id}-${st}`} app={app} sub={sub} stage={st} acc={acc} />)}
+          <NotesSection key={sub.id} acc={acc} sub={sub} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Scorecards that apply to this applicant now: screening always, the interview one once they're past screening */
+function reviewStages(app: Application, sub: Submission): ReviewStage[] {
+  return (["screening", "interview"] as ReviewStage[])
+    .filter(st => app.scorecards[st] && (st === "screening" || sub.status !== "new" || sub.scoreSheets.some(x => x.stage === st)));
 }
