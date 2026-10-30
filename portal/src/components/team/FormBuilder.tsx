@@ -100,7 +100,7 @@ export function FormBuilder({ fields, onChange, readOnly, note, feedback }: {
             </div>
           );
         })}
-        {feedback && fields.length === 0 && <div class="empty">No questions yet. Add some from the list on the right.</div>}
+        {feedback && fields.length === 0 && <div class="empty">No questions yet. Add some with the question types.</div>}
         {!feedback && <div class="fb__item" style="border-style:dashed;background:#FAFBFE">
           <div class="fb__item-head">
             <span class="fb__icon fb__icon--lock" aria-hidden="true">✓</span>

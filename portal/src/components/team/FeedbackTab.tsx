@@ -108,6 +108,8 @@ function Row({ fb, subs, demo, onOpen }: { fb: FeedbackForm; subs: Submission[];
 
 type When = "scheduled" | "now" | "later";
 
+const EMPTY_FORM = { id: "", name: "Empty form", description: "", fields: [] as FieldT[] };
+
 function NewFeedback({ app, participants, onClose, onCreated }: {
   app: Application; participants: number; onClose: () => void; onCreated: (openId: string | null) => void;
 }) {
@@ -119,13 +121,14 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
   const [sendAt, setSendAt] = useState(app.dates.startsAt ? `${app.dates.startsAt}T18:00` : "");
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
-  const pick = blueprints.find(b => b.id === bp);
+  // "" = empty form (always available)
+  const pick = bp === EMPTY_FORM.id ? EMPTY_FORM : blueprints.find(b => b.id === bp);
   // The copy of the chosen form, edited right here before it's set up
   const [intro, setIntro] = useState(pick?.description ?? "");
   const [fields, setFields] = useState(structuredClone(pick?.fields ?? []));
   const edited = !!pick && (intro !== pick.description || JSON.stringify(fields) !== JSON.stringify(pick.fields));
   const choose = async (id: string) => {
-    const b = blueprints.find(x => x.id === id);
+    const b = id === EMPTY_FORM.id ? EMPTY_FORM : blueprints.find(x => x.id === id);
     if (!b || id === bp) return;
     if (edited && !(await confirmDialog({ title: "Use another form?", confirmLabel: "Use other form",
       message: `Your changes to “${pick!.name}” are discarded.` }))) return;
@@ -159,29 +162,30 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
       <div class="stack-s">
         <span class="field__label">Form<span class="req">*</span></span>
         <span class="field__help">Pick a feedback form from Blueprints and adjust it below. Changes only affect this feedback, not the blueprint.</span>
-        {blueprints.length === 0
-          ? <p class="muted small">No feedback forms yet. <a href="/team/blueprints">Create one under Blueprints</a>.</p>
-          : <div class="grid-2">
-              {blueprints.map(b => (
-                <button type="button" class={`slot ${bp === b.id ? "is-active" : ""}`} onClick={() => choose(b.id)}>
-                  <strong>{b.name}</strong>
-                  <span class="muted small">{b.fields.length} questions · {b.description || "No intro text"}</span>
-                </button>
-              ))}
-            </div>}
+        <div class="grid-2">
+          <button type="button" class={`slot ${bp === EMPTY_FORM.id ? "is-active" : ""}`} onClick={() => choose(EMPTY_FORM.id)}>
+            <strong>Empty form</strong>
+            <span class="muted small">Start without questions and add your own</span>
+          </button>
+          {blueprints.map(b => (
+            <button type="button" class={`slot ${bp === b.id ? "is-active" : ""}`} onClick={() => choose(b.id)}>
+              <strong>{b.name}</strong>
+              <span class="muted small">{b.fields.length} questions · {b.description || "No intro text"}</span>
+            </button>
+          ))}
+        </div>
       </div>
       {pick && (
         <div class="stack-s feedback-setup__form">
           <div class="row">
             <span class="field__label" style="flex:1">Questions{edited && <span class="muted small" style="font-weight:400"> · changed</span>}</span>
             <button type="button" class="btn btn--secondary btn--sm" onClick={() => setPreview(true)}>Preview</button>
-            {edited && <button type="button" class="btn btn--ghost btn--sm" onClick={() => { setIntro(pick.description); setFields(structuredClone(pick.fields)); }}>Reset to “{pick.name}”</button>}
+            {edited && <button type="button" class="btn btn--ghost btn--sm" onClick={() => { setIntro(pick.description); setFields(structuredClone(pick.fields)); }}>{pick === EMPTY_FORM ? "Clear" : `Reset to “${pick.name}”`}</button>}
           </div>
           <Field label="Intro text" help="Shown above the questions.">
             <textarea class="input" style="min-height:60px" value={intro} onInput={e => setIntro(e.currentTarget.value)} />
           </Field>
           <FormBuilder fields={fields} onChange={setFields} feedback />
-          {!fields.length && <span class="field__error">Add at least one question.</span>}
         </div>
       )}
       <div class="stack-s">
@@ -325,7 +329,7 @@ function FormEditor({ fb, answered, demo }: { fb: FeedbackForm; answered: number
       <FormBuilder fields={fields} onChange={setFields} readOnly={demo} feedback
         note={answered
           ? `${answered} participant${answered === 1 ? " has" : "s have"} already answered. You can still fix typos or add optional questions, but avoid removing questions: their answers are hidden then.`
-          : `Copied from the feedback form “${fb.blueprintName}”. Changes here only affect this feedback.`} />
+          : fb.blueprintName === EMPTY_FORM.name ? "Started from an empty form." : `Copied from the feedback form “${fb.blueprintName}”. Changes here only affect this feedback.`} />
       <div class="row"><button class="btn btn--secondary btn--sm" onClick={() => setPreview(true)}>Preview form</button></div>
       <div class="bulkbar" style={dirty ? "" : "display:none"}>
         <strong>Unsaved form changes</strong>
