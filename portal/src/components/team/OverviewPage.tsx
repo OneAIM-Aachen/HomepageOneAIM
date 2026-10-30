@@ -42,7 +42,7 @@ export default function OverviewPage() {
             <div class="card stat"><span class="stat__num">{live.length}</span><span class="stat__label">Open applications</span><span class="muted small">accepting applicants right now</span></div>
             <div class="card stat"><span class="stat__num">{toScreen.length}</span><span class="stat__label">Waiting for screening</span><span class="muted small">new, not yet decided</span></div>
             <div class="card stat"><span class="stat__num">{upcomingInterviews.length}</span><span class="stat__label">Upcoming interviews</span><span class="muted small">{invitedNoSlot.length} invited without a slot yet</span></div>
-            <div class="card stat"><span class="stat__num">{s.people.length}</span><span class="stat__label">People in network</span><span class="muted small">every applicant, one profile each</span></div>
+            <div class="card stat"><span class="stat__num">{s.people.length}</span><span class="stat__label">People in CRM</span><span class="muted small">every applicant, one profile each</span></div>
           </div>
 
           <div class="grid-2" style="align-items:start">
