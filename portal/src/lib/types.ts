@@ -12,7 +12,8 @@ export type SubmissionStatus =
   | "invited"    // invited to interview (pipeline "interview" only)
   | "accepted"
   | "rejected"
-  | "confirmed"; // pipeline "instant": confirmed right away
+  | "confirmed"  // pipeline "instant": confirmed right away
+  | "withdrawn"; // accepted, but could not attend (spot freed, not counted as participant)
 
 export type FieldKind =
   // Profile fields: map onto the person in the network database

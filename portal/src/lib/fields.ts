@@ -143,6 +143,7 @@ export const STATUS_LABEL: Record<SubmissionStatus, string> = {
   accepted: "Accepted",
   rejected: "Rejected",
   confirmed: "Confirmed",
+  withdrawn: "Could not attend",
 };
 
 // ── Email templates ──────────────────────────────────────────────────────

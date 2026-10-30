@@ -12,6 +12,7 @@ import { ListPicker } from "../apply/ListPicker";
 /** Stage of the process, from the applicant's status at that time */
 export const STAGE_LABEL: Record<SubmissionStatus, string> = {
   new: "Screening", invited: "Interview", accepted: "Decision: accepted", rejected: "Decision: rejected", confirmed: "Registered",
+  withdrawn: "Accepted, could not attend",
 };
 
 export const fmtScore = (n?: number) => (n === undefined ? "–" : n.toFixed(1));

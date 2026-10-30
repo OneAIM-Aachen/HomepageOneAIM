@@ -6,7 +6,7 @@ import { PHASE_LABEL, STATUS_LABEL, initials, type AppPhase } from "../../lib/fi
 import { IconX } from "./Icons";
 
 const STATUS_CLASS: Record<SubmissionStatus, string> = {
-  new: "chip--blue", invited: "chip--purple", accepted: "chip--green", rejected: "chip--red", confirmed: "chip--green",
+  new: "chip--blue", invited: "chip--purple", accepted: "chip--green", rejected: "chip--red", confirmed: "chip--green", withdrawn: "chip--amber",
 };
 
 export function StatusChip({ status }: { status: SubmissionStatus }) {

@@ -137,10 +137,19 @@ const DECISION_TEXT: Record<Decision, { verb: string; mail?: TemplateKey; btn: s
   accept: { verb: "Accept", mail: "acceptance", btn: "btn--success" },
   reject: { verb: "Reject", mail: "rejection", btn: "btn--danger" },
   reset: { verb: "Move back to New", btn: "btn--ghost" },
+  withdraw: { verb: "Could not attend", btn: "btn--secondary" },
 };
+
+/** Decisions on applicants who already have a final decision are applied right away (not planned) */
+const DECIDED: SubmissionStatus[] = ["accepted", "rejected", "withdrawn"];
+const decidedVerb = (d: Decision, status: SubmissionStatus) =>
+  d === "accept" && status === "rejected" ? "Move to accepted" : d === "accept" && status === "withdrawn" ? "Accepted again" : DECISION_TEXT[d].verb;
 
 function decisionsFor(app: Application, status: SubmissionStatus): Decision[] {
   if (app.pipeline === "instant") return [];
+  // After the decision: accepted ones can drop out, rejected / dropped-out ones can still be accepted
+  if (status === "accepted") return ["withdraw", "reset"];
+  if (status === "rejected" || status === "withdrawn") return ["accept", "reset"];
   if (app.pipeline === "screening") return status === "new" ? ["accept", "reject"] : ["reset"];
   if (status === "new") return ["invite", "reject"];
   if (status === "invited") return ["accept", "reject"];
@@ -199,7 +208,7 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
     </th>
   );
   const statuses: SubmissionStatus[] = app.pipeline === "instant" ? ["confirmed"]
-    : app.pipeline === "screening" ? ["new", "accepted", "rejected"] : ["new", "invited", "accepted", "rejected"];
+    : app.pipeline === "screening" ? ["new", "accepted", "rejected", "withdrawn"] : ["new", "invited", "accepted", "rejected", "withdrawn"];
 
   const rows = useMemo(() => {
     const ql = q.toLowerCase();
@@ -306,7 +315,10 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
         <div class="bulkbar" role="toolbar" aria-label="Bulk actions">
           <strong>{selected.size} selected</strong>
           {bulk.length === 0 && <span class="small" style="opacity:.8">Selected applicants are in different stages: no common action.</span>}
-          {bulk.filter(d => d !== "reset").map(d => (
+          {selSubs.every(x => DECIDED.includes(x.status)) && bulk.filter(d => d !== "reset").map(d => (
+            <button class="btn btn--sm btn--secondary" onClick={() => setConfirm({ ids: [...selected], decision: d })}>{decidedVerb(d, selSubs[0]!.status)}</button>
+          ))}
+          {!selSubs.every(x => DECIDED.includes(x.status)) && bulk.filter(d => d !== "reset").map(d => (
             <button class="btn btn--sm btn--secondary"
               onClick={() => act(() => planDecision([...selected], d as PlannedDecision), `Planned for ${selected.size}: ${DECISION_TEXT[d].verb}`).then(() => setSelected(new Set()))}>Plan: {DECISION_TEXT[d].verb}</button>
           ))}
@@ -360,7 +372,12 @@ function ConfirmDecision({ acc, app, subs, decision, onClose, onDone }: {
   };
 
   return (
-    <Modal title={`${info.verb} ${subs.length === 1 ? first.name : `${subs.length} applicants`}?`} onClose={onClose} wide>
+    <Modal title={decision === "withdraw"
+      ? `Mark ${subs.length === 1 ? first.name : `${subs.length} participants`} as “could not attend”?`
+      : `${info.verb} ${subs.length === 1 ? first.name : `${subs.length} applicants`}?`} onClose={onClose} wide>
+      {decision === "withdraw" && (
+        <p class="small">For accepted participants who dropped out. Their spot becomes free again (e.g. for someone you move up from the rejected), and they no longer count as participants. You can accept them again later.</p>
+      )}
       {blocker && <div class="card small" style="background:var(--p-amber-tint);border-color:#F3D19C"><strong>Can't invite yet.</strong> {blocker}</div>}
       {tpl && (
         <>
@@ -409,7 +426,10 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide, onReview }: {
       </div>}
       foot={<>
         {isDemoId(sub.id) ? <span class="muted small">Demo applicant: view only.</span> : <>
-        {decisions.filter(d => d !== "reset").map(d => {
+        {DECIDED.includes(sub.status) && decisions.filter(d => d !== "reset").map(d => (
+          <button class={`btn btn--sm ${d === "accept" ? "btn--success" : "btn--secondary"}`} onClick={() => onDecide(d)}>{decidedVerb(d, sub.status)}</button>
+        ))}
+        {!DECIDED.includes(sub.status) && decisions.filter(d => d !== "reset").map(d => {
           const on = sub.plannedDecision === d;
           return (
             <button class={`btn btn--sm ${on ? DECISION_TEXT[d].btn : "btn--secondary"}`} title="Planned only: applied and sent together under “Decisions”"
@@ -1185,7 +1205,7 @@ function processStep(app: Application, subs: Submission[]): { step: StepKey | "u
     }
     return { step: "final", text: `Interviews done · ${invited} waiting for the final decision${app.dates.decisionBy ? ` · due ${fmtDate(app.dates.decisionBy)}` : ""}.` };
   }
-  return { step: "finished", text: `Process finished · ${n("accepted")} accepted, ${n("rejected")} rejected.` };
+  return { step: "finished", text: `Process finished · ${n("accepted")} accepted, ${n("rejected")} rejected${n("withdrawn") ? `, ${n("withdrawn")} could not attend` : ""}.` };
 }
 
 function ProcessBar({ app, subs }: { app: Application; subs: Submission[] }) {

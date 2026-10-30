@@ -551,7 +551,7 @@ export function renderTemplate(text: string, app: Application, person: Pick<Pers
 
 // ── Team decisions, scores, comments ─────────────────────────────────────
 
-export type Decision = "invite" | "accept" | "reject" | "reset";
+export type Decision = "invite" | "accept" | "reject" | "reset" | "withdraw";
 
 export interface DecideResult {
   changed: number;
