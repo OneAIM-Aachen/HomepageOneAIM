@@ -7,6 +7,7 @@ import {
   deleteScoreSheet, sheetScore,
 } from "../../lib/store";
 import { DecisionsTab } from "./DecisionsTab";
+import { FeedbackTab } from "./FeedbackTab";
 import { AddMember, fmtScore, MemberChips, ScorecardEditor, scorecardValid, ScoreSheetForm, STAGE_LABEL } from "./Review";
 import {
   appPhase, appTitle, CURRENCIES, feeValue, fmtDate, parseFee, fmtShort, fmtSlot, KINDS, PIPELINES, PLACEHOLDER_ONLY, PLACEHOLDERS, STATUS_LABEL, TEMPLATE_LABEL, today, nowLocal,
@@ -20,7 +21,7 @@ import { FormRenderer } from "../apply/FormRenderer";
 import { isDemoId } from "../../lib/demo";
 import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash, IconX } from "../ui/Icons";
 
-type Tab = "applicants" | "decisions" | "setup" | "form" | "scorecards" | "emails" | "slots";
+type Tab = "applicants" | "decisions" | "setup" | "form" | "scorecards" | "emails" | "slots" | "feedback";
 
 export default function ApplicationPage() {
   const id = useParam("id");
@@ -39,6 +40,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
 }) {
   const app = useStore(s => s.applications.find(a => a.id === id));
   const subs = useStore(s => s.submissions.filter(x => x.applicationId === id));
+  const feedbackCount = useStore(s => s.feedbackResponses.filter(r => r.applicationId === id).length);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [preview, setPreview] = useState(false);
   // Profile to open once when the Applicants tab shows next (from the link or a click in Decisions)
@@ -60,6 +62,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
     ...(app.pipeline !== "instant" ? [["scorecards", "Scorecards", Object.keys(app.scorecards).length] as [Tab, string, number]] : []),
     ["emails", "Emails"],
     ...(app.pipeline === "interview" ? [["slots", "Interview slots", app.slots.length] as [Tab, string, number]] : []),
+    ["feedback", "Participant feedback", feedbackCount || undefined],
   ];
 
   return (
@@ -125,6 +128,7 @@ function Detail({ acc, id, initialTab, openSub, created }: {
       {tab === "scorecards" && <ScorecardsTab app={app} />}
       {tab === "emails" && <Emails app={app} />}
       {tab === "slots" && <Slots app={app} subs={subs} />}
+      {tab === "feedback" && <FeedbackTab app={app} subs={subs} />}
 
       {preview && (
         <Modal title="Form preview" onClose={() => setPreview(false)} wide>

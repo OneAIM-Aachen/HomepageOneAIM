@@ -42,6 +42,8 @@ export const KINDS: Record<FieldKind, KindInfo> = {
 export const PROFILE_KINDS: FieldKind[] = ["cv", "phone", "linkedin"];
 export const CUSTOM_KINDS: FieldKind[] =
   ["shortText", "longText", "single", "multi", "dropdown", "file", "url", "number", "date", "yesno"];
+/** Feedback forms: questions only (participants are known, no file uploads) */
+export const FEEDBACK_KINDS: FieldKind[] = CUSTOM_KINDS.filter(k => k !== "file");
 
 // Same lists as the database (degree_options() / semester_options())
 export const DEGREE_OPTIONS = ["Bachelor", "Master", "State exam (Staatsexamen)", "Diploma", "PhD / Doctorate", "Graduated / working", "Not studying"];
@@ -151,7 +153,7 @@ export const STATUS_LABEL: Record<SubmissionStatus, string> = {
 export const PLACEHOLDERS = [
   "{first_name}", "{full_name}", "{application}", "{program}", "{location}",
   "{semester}", "{deadline}", "{start_date}", "{booking_link}",
-  "{interview_time}", "{interview_place}", "{meeting_link}",
+  "{interview_time}", "{interview_place}", "{meeting_link}", "{feedback_link}",
 ];
 
 /** Placeholders that only make sense in some templates */
@@ -160,6 +162,7 @@ export const PLACEHOLDER_ONLY: Record<string, TemplateKey[]> = {
   "{interview_time}": ["interview_booked"],
   "{interview_place}": ["interview_booked"],
   "{meeting_link}": ["interview_booked"],
+  "{feedback_link}": ["feedback"],
 };
 
 export function defaultTemplates(pipeline: Pipeline): Record<TemplateKey, EmailTemplate> {
@@ -204,6 +207,12 @@ export function defaultTemplates(pipeline: Pipeline): Record<TemplateKey, EmailT
         "Hi {first_name},\n\ncongratulations, you're in! We're excited to welcome you to {application}, " +
         "starting {start_date}.\n\nWe'll be in touch with all details shortly.\n\nBest,\nYour OneAIM {location} team",
     },
+    feedback: {
+      subject: "How was {application}? Your feedback",
+      body:
+        "Hi {first_name},\n\nthank you for taking part in {application}! We'd love to hear what you think, so we can make " +
+        "the next round even better. It only takes a few minutes:\n{feedback_link}\n\nThank you!\nYour OneAIM {location} team",
+    },
   };
 }
 
@@ -213,6 +222,7 @@ export const TEMPLATE_LABEL: Record<TemplateKey, string> = {
   interview_booked: "Interview confirmed (after booking)",
   rejection: "Rejection",
   acceptance: "Acceptance",
+  feedback: "Participant feedback",
 };
 
 export function templatesFor(pipeline: Pipeline): TemplateKey[] {

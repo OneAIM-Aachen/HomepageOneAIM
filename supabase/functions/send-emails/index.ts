@@ -13,7 +13,7 @@ const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
 const MAX_ATTEMPTS = 5;
 const BATCH = 50;
 
-type TemplateKey = "confirmation" | "invite" | "interview_booked" | "rejection" | "acceptance" | "reply";
+type TemplateKey = "confirmation" | "invite" | "interview_booked" | "rejection" | "acceptance" | "feedback" | "reply";
 type Tpl = { subject: string; body: string };
 
 // Same defaults as the team portal (portal/src/lib/fields.ts) – used when an
@@ -44,6 +44,10 @@ function defaults(pipeline: string): Record<TemplateKey, Tpl> {
     acceptance: {
       subject: "Welcome to {application}!",
       body: "Hi {first_name},\n\ncongratulations, you're in! We're excited to welcome you to {application}, starting {start_date}.\n\nWe'll be in touch with all details shortly.\n\nBest,\nYour OneAIM {location} team",
+    },
+    feedback: {
+      subject: "How was {application}? Your feedback",
+      body: "Hi {first_name},\n\nthank you for taking part in {application}! We'd love to hear what you think, so we can make the next round even better. It only takes a few minutes:\n{feedback_link}\n\nThank you!\nYour OneAIM {location} team",
     },
   };
 }
@@ -123,13 +127,14 @@ Deno.serve(async req => {
       if (!app && mail.template !== "reply") throw new Error("application not found");
       const { data: sub } = mail.submission_id
         ? await db.from("submissions")
-            .select("booking_token, interview_slots(starts_at, duration_min, location, meeting_link)")
+            .select("booking_token, feedback_token, interview_slots(starts_at, duration_min, location, meeting_link)")
             .eq("id", mail.submission_id).single()
         : { data: null };
       // deno-lint-ignore no-explicit-any
       const slot = (sub as any)?.interview_slots as
         { starts_at: string; duration_min: number; location: string; meeting_link: string | null } | null;
       if (mail.template === "interview_booked" && !slot) throw new Error("no interview slot booked");
+      if (mail.template === "feedback" && !sub) throw new Error("no participant for the feedback link");
 
       // deno-lint-ignore no-explicit-any
       const a = app as any;
@@ -149,6 +154,7 @@ Deno.serve(async req => {
         "{deadline}": fmt(a?.deadline),
         "{start_date}": fmt(a?.starts_at),
         "{booking_link}": sub ? `${settings.apply_base_url.replace(/\/$/, "")}/apply/book?t=${sub.booking_token}` : "",
+        "{feedback_link}": sub ? `${settings.apply_base_url.replace(/\/$/, "")}/apply/feedback?t=${sub.feedback_token}` : "",
         "{interview_time}": slot ? `${slotFmt.format(new Date(slot.starts_at))} (${slot.duration_min} min, German time)` : "",
         "{interview_place}": slot?.location || "Online",
         "{meeting_link}": slot?.meeting_link || "follows in a separate email",

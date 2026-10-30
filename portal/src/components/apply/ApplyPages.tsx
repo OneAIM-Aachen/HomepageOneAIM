@@ -4,7 +4,8 @@ import type { ComponentChildren } from "preact";
 import type { FormOptions } from "../../lib/types";
 import { useEffect, useState } from "preact/hooks";
 import {
-  bookSlot, fetchFormOptions, fetchPublicTagLists, fetchPublishedApplications, getBooking, submitApplication, type Booking, type PublicApplication,
+  bookSlot, fetchFormOptions, fetchPublicTagLists, fetchPublishedApplications, getBooking, getFeedback, submitApplication, submitFeedback,
+  type Booking, type PublicApplication, type PublicFeedback,
 } from "../../lib/store";
 import { appTitle, fmtDate, fmtSlot, firstName, formatFee } from "../../lib/fields";
 import { FormRenderer } from "./FormRenderer";
@@ -282,6 +283,46 @@ export function BookSlot() {
             <button class="btn btn--gradient btn--lg" style="align-self:flex-start" disabled={busy || !pick || pick === bookedKey} onClick={book}>
               {busy ? "Booking…" : booked ? "Change slot" : "Book this slot"}
             </button>
+          </div>
+        )}
+      </div>
+    </Frame>
+  );
+}
+
+/** Feedback form for participants, opened with the personal link from the email */
+export function FeedbackPage() {
+  const token = useParam("t");
+  const [fb, setFb] = useState<PublicFeedback | null | undefined>(undefined);
+  const [done, setDone] = useState(false);
+  useEffect(() => { (token ? getFeedback(token) : Promise.resolve(null)).then(setFb); }, []);
+
+  if (fb === undefined) return <Frame><Loading /></Frame>;
+  if (!fb || !token) return <Frame><div class="empty">This feedback link is not valid.</div></Frame>;
+  return (
+    <Frame>
+      <div class="apply-narrow stack" style="gap:20px">
+        <div class="stack-s">
+          <p class="overline">Feedback · {fb.application}</p>
+          <h1>Hi {fb.first_name}, how was it?</h1>
+          {fb.intro && fb.state === "open" && !done && <p class="muted" style="white-space:pre-line">{fb.intro}</p>}
+        </div>
+        {done || fb.state === "done" ? (
+          <div class="card card--tint stack-s">
+            <strong>Thank you for your feedback!</strong>
+            <span class="small">It helps us make the next round even better.</span>
+          </div>
+        ) : fb.state === "closed" ? (
+          <div class="empty">This feedback form is not open.</div>
+        ) : (
+          <div class="card">
+            <FormRenderer fields={fb.fields} consent={false} submitLabel="Send feedback"
+              onSubmit={async answers => {
+                const err = await submitFeedback(token, answers);
+                if (err) return err;
+                setDone(true);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }} />
           </div>
         )}
       </div>

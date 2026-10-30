@@ -13,9 +13,11 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function words(s: string) { return s.trim() ? s.trim().split(/\s+/).length : 0; }
 
-export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit application", options }: {
+export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit application", options, consent: askConsent = true }: {
   fields: FieldT[];
   preview?: boolean;
+  /** Data storage consent at the end (application forms); off for feedback forms */
+  consent?: boolean;
   /** Lists for university affiliations / study programs */
   options?: FormOptions;
   /** Returns an error text to show, or nothing on success. Gets the chosen files for upload. */
@@ -50,7 +52,7 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
       if (!empty && (f.kind === "url" || f.kind === "linkedin") && !/^https?:\/\/\S+\.\S+/.test(String(v))) e[f.id] = "Please enter a full link starting with https://";
       if (!empty && f.kind === "longText" && f.maxWords && words(String(v)) > f.maxWords) e[f.id] = `Please stay within ${f.maxWords} words.`;
     }
-    if (!consent) e.__consent = "Please agree to the data storage to submit.";
+    if (askConsent && !consent) e.__consent = "Please agree to the data storage to submit.";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -190,7 +192,7 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
           <Field label={f.label} required={f.required} help={f.help} error={errors[f.id]}>{input(f)}</Field>
         ),
       )}
-      <div class="consent">
+      {askConsent && <div class="consent">
         <label class="check">
           <input type="checkbox" checked={consent} onChange={e => { setConsent(e.currentTarget.checked); setErrors(x => { const n = { ...x }; delete n.__consent; return n; }); }} />
           <span>
@@ -201,7 +203,7 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
           </span>
         </label>
         {errors.__consent && <p class="field__error" style="margin-top:8px">{errors.__consent}</p>}
-      </div>
+      </div>}
       {formError && <p class="field__error" role="alert">{formError}</p>}
       {preview
         ? <p class="muted small">Preview: submitting is disabled.</p>

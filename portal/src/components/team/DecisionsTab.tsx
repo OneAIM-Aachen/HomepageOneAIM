@@ -5,7 +5,7 @@
 import { useMemo, useState } from "preact/hooks";
 import type { Application, PlannedDecision, Submission } from "../../lib/types";
 import { applicantScore, applyPlannedDecisions, inviteBlocker, planDecision, useStore } from "../../lib/store";
-import { STATUS_LABEL } from "../../lib/fields";
+import { fmtShort, STATUS_LABEL } from "../../lib/fields";
 import { isDemoId } from "../../lib/demo";
 import { act, Avatar, Modal, StatusChip } from "../ui/Ui";
 import { fmtScore } from "./Review";
@@ -19,6 +19,26 @@ const PLAN_CHIP: Record<PlannedDecision, string> = { invite: "chip--purple", acc
 export function stageOptions(app: Application, stage: Stage): PlannedDecision[] {
   if (app.pipeline === "interview" && stage === "screening") return ["invite", "reject"];
   return ["accept", "reject"];
+}
+
+interface PastDecision { label: string; chip: string; at?: string }
+
+/** The decision already made for someone in this stage (null = still open or not in this stage) */
+export function pastDecision(app: Application, stage: Stage, x: Submission): PastDecision | null {
+  const at = (st: Submission["status"]) => [...x.history].reverse().find(h => h.status === st)?.at;
+  const final = (): PastDecision | null =>
+    x.status === "accepted" ? { label: "Accepted", chip: "chip--green", at: at("accepted") }
+    : x.status === "withdrawn" ? { label: STATUS_LABEL.withdrawn, chip: "chip--gray", at: at("withdrawn") }
+    : x.status === "rejected" ? { label: "Rejected", chip: "chip--red", at: at("rejected") }
+    : null;
+  if (app.pipeline !== "interview") return final();
+  const wasInvited = x.status === "invited" || !!x.slotId || x.history.some(h => h.status === "invited")
+    || (x.status !== "rejected" && x.status !== "new");
+  if (stage === "screening") {
+    if (wasInvited) return { label: "Invited to interview", chip: "chip--purple", at: at("invited") };
+    return x.status === "rejected" ? { label: "Rejected", chip: "chip--red", at: at("rejected") } : null;
+  }
+  return wasInvited ? final() : null;
 }
 
 export function DecisionsTab({ app, subs, onOpen }: {
@@ -50,6 +70,10 @@ export function DecisionsTab({ app, subs, onOpen }: {
     : (stageScore(b) ?? -1) - (stageScore(a) ?? -1) || a.submittedAt.localeCompare(b.submittedAt)),
   [subs, people, stage, sort]);
 
+  const decided = useMemo(() => subs.filter(x => !inStage(x) && pastDecision(app, stage, x))
+    .sort((a, b) => person(a).name.localeCompare(person(b).name)), [subs, people, stage]);
+  const decidedIn = (st: Stage) => subs.filter(x => !(app.pipeline === "interview" ? (st === "screening" ? x.status === "new" : x.status === "invited") : x.status === "new") && pastDecision(app, st, x)).length;
+
   const planned = rows.filter(x => x.plannedDecision && options.includes(x.plannedDecision));
   const count = (d: PlannedDecision) => rows.filter(x => x.plannedDecision === d).length;
   const open = rows.length - planned.length;
@@ -80,9 +104,11 @@ export function DecisionsTab({ app, subs, onOpen }: {
         <div class="row" style="gap:6px" role="group" aria-label="Stage">
           <button class={`chip-btn ${stage === "screening" ? "is-active" : ""}`} onClick={() => { setStage("screening"); setSelected(new Set()); }}>
             After screening: who to invite <span class="chip-btn__count">{subs.filter(x => x.status === "new").length}</span>
+            {decidedIn("screening") > 0 && <span class="muted small"> · {decidedIn("screening")} decided</span>}
           </button>
           <button class={`chip-btn ${stage === "final" ? "is-active" : ""}`} onClick={() => { setStage("final"); setSelected(new Set()); }}>
             After interviews: final decision <span class="chip-btn__count">{subs.filter(x => x.status === "invited").length}</span>
+            {decidedIn("final") > 0 && <span class="muted small"> · {decidedIn("final")} decided</span>}
           </button>
         </div>
       )}
@@ -177,6 +203,36 @@ export function DecisionsTab({ app, subs, onOpen }: {
           </div>
         )}
       </>}
+
+      {decided.length > 0 && (
+        <section class="card card--flush">
+          <div class="card__head" style="padding:20px 24px 0">
+            <h2>Already decided <span class="muted small">({decided.length})</span></h2>
+            <span class="muted small">earlier decisions in this stage</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Applicant</th><th>Study</th><th>{scoreLabel}</th><th>Decision</th><th>Now</th></tr></thead>
+              <tbody>
+                {decided.map(x => {
+                  const p = person(x);
+                  const d = pastDecision(app, stage, x)!;
+                  const sc = stageScore(x);
+                  return (
+                    <tr>
+                      <td><button class="link-btn cell-person" onClick={() => onOpen(x.id, decided.map(r => r.id))}><Avatar name={p.name} /><strong>{p.name}</strong></button></td>
+                      <td><span style="color:var(--color-text-heading)">{p.studyPrograms.join(", ") || "–"}</span><br /><span class="muted small">{p.universities.join(", ")}</span></td>
+                      <td>{sc !== undefined ? <span class="score-pill">{fmtScore(sc)}</span> : <span class="muted small">not rated</span>}</td>
+                      <td><span class={`chip ${d.chip}`}>{d.label}</span>{d.at && <span class="muted small"> {fmtShort(d.at)}</span>}</td>
+                      <td><StatusChip status={x.status} /></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {selected.size > 0 && (
         <div class="bulkbar" role="toolbar" aria-label="Plan for selected">

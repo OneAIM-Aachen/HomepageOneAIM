@@ -44,7 +44,7 @@ export function profilesFromState(s: State): NetworkProfile[] {
 export function demoProfiles(tags: { locations: string[]; programs: string[] }, hasRealTeam: boolean): NetworkProfile[] {
   const empty: State = {
     team: [], scorecards: [], posts: [], networkAccounts: {}, departments: [], tagLists: { ...tags, semesters: [] },
-    blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
+    blueprints: [], applications: [], submissions: [], feedbackResponses: [], people: [], outbox: [], inbox: [], mailbox: null,
     universities: [], studyPrograms: [], companies: [],
   };
   return profilesFromState(withDemo(empty)).flatMap(p => {

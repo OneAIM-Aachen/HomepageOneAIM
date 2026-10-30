@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from "preact/hooks";
 import type {
-  Account, Answer, Application, Blueprint, Department, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
+  Account, Answer, Application, Blueprint, Department, FeedbackForm, FeedbackResponse, FileRef, FormOptions, InboxMessage, Person, SentEmail, Slot, State, Submission,
   SubmissionStatus, Tags, TemplateKey, Pipeline, RoleEntry, TeamMember, ReviewStage, ScoreSheet, Scorecard, PlannedDecision,
 } from "./types";
 import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, nowLocal, today } from "./fields";
@@ -25,7 +25,7 @@ import type { PostDraft } from "../components/network/Board";
 
 const EMPTY: State = {
   team: [], scorecards: [], posts: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
-  blueprints: [], applications: [], submissions: [], people: [], outbox: [], inbox: [], mailbox: null,
+  blueprints: [], applications: [], submissions: [], feedbackResponses: [], people: [], outbox: [], inbox: [], mailbox: null,
   universities: [], studyPrograms: [], companies: [],
 };
 
@@ -68,7 +68,7 @@ function toLocal(iso: string): string {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function mapApplication(r: any, slots: Slot[]): Application {
+function mapApplication(r: any, slots: Slot[], fb?: any): Application {
   return {
     id: r.id,
     slug: r.slug,
@@ -90,6 +90,10 @@ function mapApplication(r: any, slots: Slot[]): Application {
     // Imported rounds have no templates yet → defaults
     templates: { ...defaultTemplates(r.pipeline), ...(r.templates ?? {}) },
     scorecards: r.scorecards ?? {},
+    feedback: fb ? {
+      blueprintName: fb.blueprint_name, intro: fb.intro ?? "", fields: fb.fields ?? [],
+      sendAt: fb.send_at ? toLocal(fb.send_at) : undefined, sentAt: fb.sent_at ?? undefined,
+    } : undefined,
     slots,
     createdAt: r.created_at,
     createdBy: r.created_by_city ?? "",
@@ -149,6 +153,7 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 const LIVE_TABLES = [
   "applications", "interview_slots", "submissions", "submission_scores", "submission_reviewers", "submission_comments",
   "people", "email_log", "mailbox_messages", "team_members", "team_departments", "network_posts", "blueprints", "scorecards",
+  "feedback_forms", "feedback_responses",
 ];
 let lastLoad = 0;
 let live = false;
@@ -177,7 +182,7 @@ export function startLive() {
 }
 
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs, companyList, reviewers, scoreRows, scorecardRows] =
+  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs, companyList, reviewers, scoreRows, scorecardRows, feedbackForms, feedbackRows] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
@@ -204,6 +209,8 @@ export async function loadAll(): Promise<void> {
       all(() => supabase.from("submission_reviewers").select("submission_id, member_id").order("assigned_at").order("member_id")),
       all(() => supabase.from("submission_scores").select("*").order("created_at").order("id")),
       supabase.from("scorecards").select("*").order("name"),
+      supabase.from("feedback_forms").select("*"),
+      all(() => supabase.from("feedback_responses").select("*").order("submitted_at").order("id")),
     ]);
 
   const P = check(programs) as any[], L = check(locations) as any[], S = check(semesters) as any[];
@@ -258,9 +265,15 @@ export async function loadAll(): Promise<void> {
     }) as Department),
     tagLists: { programs: P.map(p => p.name), locations: L.map(l => l.name), semesters: S.map(s => s.label) },
     blueprints: (check(blueprints) as any[]).map(b => ({
-      id: b.id, name: b.name, description: b.description, fields: b.fields ?? [], updatedAt: b.updated_at,
+      id: b.id, kind: b.kind ?? "application", name: b.name, description: b.description, fields: b.fields ?? [], updatedAt: b.updated_at,
     })),
-    applications: (check(apps) as any[]).map(r => mapApplication(r, slotsByApp.get(r.id) ?? [])),
+    applications: (() => {
+      const fb = new Map((check(feedbackForms) as any[]).map(f => [f.application_id, f]));
+      return (check(apps) as any[]).map(r => mapApplication(r, slotsByApp.get(r.id) ?? [], fb.get(r.id)));
+    })(),
+    feedbackResponses: (check(feedbackRows) as any[]).map(f => ({
+      id: f.id, applicationId: f.application_id, submissionId: f.submission_id, answers: f.answers ?? {}, submittedAt: f.submitted_at,
+    }) as FeedbackResponse),
     people: (check(people) as any[]).map(p => ({
       id: p.id, email: p.email, name: p.name, phone: p.phone ?? undefined, linkedin: p.linkedin ?? undefined,
       universities: p.universities ?? [], studyPrograms: p.study_programs ?? [], companies: p.companies ?? [], semester: p.semester ?? undefined,
@@ -268,7 +281,7 @@ export async function loadAll(): Promise<void> {
     }) as Person),
     submissions: (check(subs) as any[]).map(x => ({
       id: x.id, applicationId: x.application_id, personId: x.person_id, answers: x.answers ?? {},
-      status: x.status, score: x.score ?? undefined, bookingToken: x.booking_token, slotId: x.slot_id ?? undefined,
+      status: x.status, score: x.score ?? undefined, bookingToken: x.booking_token, feedbackToken: x.feedback_token, slotId: x.slot_id ?? undefined,
       submittedAt: x.submitted_at,
       comments: commentRows.filter(c => c.submission_id === x.id).map(c => ({
         author: c.author_city, text: c.body, at: c.created_at, stage: c.stage ?? undefined, memberId: c.author_member_id ?? undefined,
@@ -400,13 +413,13 @@ export async function removeTag(list: TagListKey, value: string) {
 
 const newId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 
-export async function createBlueprint(name: string, from?: Blueprint): Promise<string> {
-  // Core fields keep their ids; the database adds any that are missing
+export async function createBlueprint(name: string, from?: Blueprint, kind: Blueprint["kind"] = from?.kind ?? "application"): Promise<string> {
+  // Core fields keep their ids; the database adds any that are missing (application forms only)
   const fields = from
     ? structuredClone(from.fields).map(f => ({ ...f, id: LOCKED_KINDS.includes(f.kind) ? f.id : `f_${newId()}` }))
-    : baseFields();
+    : kind === "feedback" ? [] : baseFields();
   const row = check(await supabase.from("blueprints")
-    .insert({ name: name.trim() || "Untitled blueprint", description: from?.description ?? "", fields })
+    .insert({ name: name.trim() || "Untitled blueprint", description: from?.description ?? "", fields, kind })
     .select("id").single()) as { id: string };
   await loadAll();
   return row.id;
@@ -516,6 +529,11 @@ export async function uploadImage(file: File, folder = "headers"): Promise<strin
 
 // ── Emails (preview only – sending happens in the database queue) ────────
 
+export function feedbackLink(sub: Pick<Submission, "feedbackToken">): string {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return `${origin}/apply/feedback?t=${sub.feedbackToken}`;
+}
+
 export function bookingLink(sub: Pick<Submission, "bookingToken">): string {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   return `${origin}/apply/book?t=${sub.bookingToken}`;
@@ -544,6 +562,7 @@ export function renderTemplate(text: string, app: Application, person: Pick<Pers
     "{deadline}": fmtDate(app.dates.deadline),
     "{start_date}": fmtDate(app.dates.startsAt),
     "{booking_link}": sub ? bookingLink(sub) : "https://apply.one-aim.org/book/…",
+    "{feedback_link}": sub ? feedbackLink(sub) : "https://apply.one-aim.org/feedback/…",
     ...interviewVars(app, sub),
   };
   return text.replace(/\{[a-z_]+\}/g, m => vars[m] ?? m);
@@ -687,6 +706,49 @@ export async function bookSlot(token: string, slotId: string): Promise<string | 
   // also starts the sender by itself; this just makes it immediate).
   await supabase.functions.invoke("send-emails", { body: {} }).catch(() => undefined);
   return null;
+}
+
+// ── Participant feedback ─────────────────────────────────────────────────
+
+/** Creates or updates the feedback form of an application (send time as local date-time) */
+export async function saveFeedbackForm(appId: string, f: FeedbackForm) {
+  check(await supabase.from("feedback_forms").upsert({
+    application_id: appId, blueprint_name: f.blueprintName, intro: f.intro, fields: f.fields,
+    send_at: f.sendAt ? new Date(f.sendAt).toISOString() : null,
+  }, { onConflict: "application_id" }));
+  await loadAll();
+}
+
+export async function deleteFeedbackForm(appId: string) {
+  check(await supabase.from("feedback_forms").delete().eq("application_id", appId));
+  await loadAll();
+}
+
+/** Sends the link right away to every participant who hasn't got it yet. Returns how many. */
+export async function sendFeedbackNow(appId: string): Promise<number> {
+  const n = check(await supabase.rpc("send_feedback_now", { p_application: appId })) as number;
+  await supabase.functions.invoke("send-emails", { body: {} }).catch(() => undefined);
+  await loadAll();
+  return n;
+}
+
+export interface PublicFeedback {
+  first_name: string;
+  application: string;
+  intro: string;
+  fields: Application["fields"];
+  state: "open" | "done" | "closed";
+}
+
+export async function getFeedback(token: string): Promise<PublicFeedback | null> {
+  const { data, error } = await supabase.rpc("get_feedback", { p_token: token });
+  if (error) return null;
+  return data as PublicFeedback | null;
+}
+
+export async function submitFeedback(token: string, answers: Record<string, Answer>): Promise<string | null> {
+  const { error } = await supabase.rpc("submit_feedback", { p_token: token, p_answers: answers });
+  return error ? friendlyError(error) : null;
 }
 
 export type { TemplateKey };

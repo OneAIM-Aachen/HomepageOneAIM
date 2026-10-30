@@ -37,6 +37,8 @@ export interface Field {
 
 export interface Blueprint {
   id: string;
+  /** Application form, or feedback form for participants */
+  kind: "application" | "feedback";
   name: string;
   description: string;
   fields: Field[];
@@ -58,7 +60,7 @@ export interface Slot {
   interviewerIds: string[];
 }
 
-export type TemplateKey = "confirmation" | "invite" | "interview_booked" | "rejection" | "acceptance";
+export type TemplateKey = "confirmation" | "invite" | "interview_booked" | "rejection" | "acceptance" | "feedback";
 /** Email kinds in the log: templates plus free-text team replies */
 export type MailKind = TemplateKey | "reply";
 
@@ -100,8 +102,29 @@ export interface Application {
   slots: Slot[];
   /** Rating forms per stage (copies of scorecard templates) */
   scorecards: Partial<Record<ReviewStage, Scorecard>>;
+  /** Feedback form for the participants (copy of a feedback blueprint) */
+  feedback?: FeedbackForm;
   createdAt: string;
   createdBy: string;
+}
+
+export interface FeedbackForm {
+  blueprintName: string;
+  intro: string;
+  fields: Field[];
+  /** When the link goes out, local date-time "YYYY-MM-DDTHH:mm"; empty = not scheduled */
+  sendAt?: string;
+  /** First sending (ISO) */
+  sentAt?: string;
+}
+
+/** One participant's answers to the feedback form */
+export interface FeedbackResponse {
+  id: string;
+  applicationId: string;
+  submissionId: string;
+  answers: Record<string, Answer>;
+  submittedAt: string;
 }
 
 export interface FileRef {
@@ -127,6 +150,8 @@ export interface Submission {
   status: SubmissionStatus;
   score?: number;
   bookingToken: string;
+  /** Secret for the personal feedback link */
+  feedbackToken: string;
   slotId?: string;
   comments: Comment[];
   history: { status: SubmissionStatus; at: string; by: string }[];
@@ -318,6 +343,7 @@ export interface State {
   blueprints: Blueprint[];
   applications: Application[];
   submissions: Submission[];
+  feedbackResponses: FeedbackResponse[];
   people: Person[];
   outbox: SentEmail[];
   inbox: InboxMessage[];

@@ -20,6 +20,7 @@ The database lives in `supabase/migrations/`:
 | `20261030120000_review_workflow.sql` | Interviewers per slot, reviewers per applicant, notes with stage, scorecards (templates + per application, one sheet per member and stage) |
 | `20261029220000_network_site.sql` | Network site (/members): logins for everyone in the network, directory/profile functions, welcome email when someone is accepted |
 | `20261029160000_team_history_alumni_checkins.sql` | Position history, alumni, yearly "still active?" check (pg_cron daily → team-accounts `checkins`) |
+| `20261030190100_participant_feedback.sql` | Feedback forms (blueprints of kind `feedback`), one form per application, personal link per participant (`submissions.feedback_token`), answers in `feedback_responses`; sent at the scheduled time by `send_due_feedback()` (pg_cron every 5 minutes) |
 
 ## Who can do what
 
@@ -29,6 +30,7 @@ The database lives in `supabase/migrations/`:
   - Only `status = 'active'` members have access. Alumni keep profile and position history (`team_member_roles`) but can't sign in.
   - Yearly check: one year after the email is added (and a year after every "yes"), team-accounts emails a link to `/team/checkin`; "no" makes the member alumni. One reminder after 14 days; without an answer within one month they become alumni anyway (`expire_team_checkins()`, pg_cron daily).
   - The old city logins (`team_accounts`) stop working once the first personal account has set its password, except logins marked `keep_active` (`aachen@one-aim.org`).
+- **Participants** (feedback): the public page `/apply/feedback?t=<token>` only calls `get_feedback()` and `submit_feedback()`. They work for accepted / confirmed participants of an application with a feedback form, once per person.
 - **Network members** (members site `/members`): everyone accepted after a selection (screening / interview), plus team and team alumni. Their logins (`network_accounts`) have no table access and are not team (`is_team()` is false). They only call `network_directory()`, `network_me()` and `network_update_me()`, which return the network profile fields (contact, studies, OneAIM programs/events, team history) and nothing else. Accepting someone queues a welcome email with a set-password link (`network_invites`, sent by team-accounts `network_queue`).
 - **Applicants / public** have no table access at all. They can only:
   - `published_applications()`: list published rounds (also used by one-aim.org)

@@ -1,6 +1,6 @@
 // Everything an applicant submitted, rendered field by field.
 // Used in the applicant drawer and in the network profile.
-import type { Answer, Application, CompanyEntry, FileRef, Submission } from "../../lib/types";
+import type { Answer, Application, CompanyEntry, Field, FileRef, Submission } from "../../lib/types";
 import { companyPeriod } from "../apply/CompanyInput";
 import { fmtDate, NO_COMPANY } from "../../lib/fields";
 import { act } from "../ui/Ui";
@@ -45,16 +45,21 @@ export function FileCard({ file, label, sub }: { file: FileRef; label?: string; 
 }
 
 export function Answers({ app, sub }: { app: Application; sub: Submission }) {
+  return <FieldAnswers fields={app.fields} answers={sub.answers} at={sub.submittedAt} />;
+}
+
+/** Answers to a list of questions (application form, feedback form) */
+export function FieldAnswers({ fields, answers, at }: { fields: Field[]; answers: Record<string, Answer>; at: string }) {
   return (
     <dl class="qa">
-      {app.fields.map(f => {
-        const v = sub.answers[f.id];
+      {fields.map(f => {
+        const v = answers[f.id];
         return (
           <div>
             <dt>{f.label}</dt>
             <dd>
               {isFile(v)
-                ? <FileCard file={v} sub={`uploaded ${fmtDate(sub.submittedAt)}`} />
+                ? <FileCard file={v} sub={`uploaded ${fmtDate(at)}`} />
                 : (f.kind === "url" || f.kind === "linkedin") && v ? <a href={String(v)} target="_blank" rel="noopener">{String(v)}</a>
                 : f.kind === "email" && v ? <a href={`mailto:${v}`}>{String(v)}</a>
                 : answerText(v)}

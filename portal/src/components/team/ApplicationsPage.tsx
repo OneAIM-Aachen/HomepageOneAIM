@@ -103,7 +103,8 @@ function Applications({ acc, startNew }: { acc: Account; startNew: boolean }) {
 
 function NewApplicationModal({ acc, onClose }: { acc: Account; onClose: () => void }) {
   const s = useStore(x => x);
-  const [bp, setBp] = useState(s.blueprints[0]?.id ?? "");
+  const forms = s.blueprints.filter(b => b.kind === "application");
+  const [bp, setBp] = useState(forms[0]?.id ?? "");
   const [semester, setSemester] = useState(s.tagLists.semesters.find(x => x.startsWith("SS 27")) ?? s.tagLists.semesters[0] ?? "");
   const [program, setProgram] = useState(s.tagLists.programs[0] ?? "");
   const [location, setLocation] = useState(s.tagLists.locations.includes(acc.city) ? acc.city : s.tagLists.locations[0] ?? "");
@@ -124,7 +125,7 @@ function NewApplicationModal({ acc, onClose }: { acc: Account; onClose: () => vo
         <span class="field__label">1. Start from a blueprint</span>
         <span class="field__help">The blueprint's form is copied. Later changes to the blueprint don't affect this application.</span>
         <div class="grid-2">
-          {s.blueprints.map(b => (
+          {forms.map(b => (
             <button type="button" class={`slot ${bp === b.id ? "is-active" : ""}`} onClick={() => setBp(b.id)}>
               <strong>{b.name}</strong>
               <span class="muted small">{b.fields.length} fields · {b.description || "No description"}</span>

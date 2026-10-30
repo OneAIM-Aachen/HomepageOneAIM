@@ -1,7 +1,7 @@
 // Form builder used by blueprints and by the form tab of an application.
 import { useState } from "preact/hooks";
 import type { Field as FieldT, FieldKind } from "../../lib/types";
-import { CUSTOM_KINDS, KINDS, LOCKED_KINDS, PROFILE_KINDS, newField } from "../../lib/fields";
+import { CUSTOM_KINDS, FEEDBACK_KINDS, KINDS, LOCKED_KINDS, PROFILE_KINDS, newField } from "../../lib/fields";
 import { Field } from "../ui/Ui";
 import { IconDown, IconTrash, IconUp } from "../ui/Icons";
 
@@ -11,8 +11,10 @@ const SHORT: Record<FieldKind, string> = {
   file: "⇪", url: "↗", number: "12", date: "📅", yesno: "Y/N",
 };
 
-export function FormBuilder({ fields, onChange, readOnly, note }: {
+export function FormBuilder({ fields, onChange, readOnly, note, feedback }: {
   fields: FieldT[]; onChange: (f: FieldT[]) => void; readOnly?: boolean; note?: string;
+  /** Feedback form: questions only, no profile fields, no data storage consent */
+  feedback?: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(null);
 
@@ -91,14 +93,15 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
                   )}
                   <label class="check">
                     <input type="checkbox" checked={f.required} disabled={locked} onChange={e => update(f.id, { required: e.currentTarget.checked })} />
-                    <span><strong>Mandatory</strong> <span class="muted small">{locked ? "(core profile fields are always mandatory)" : "applicants must answer this"}</span></span>
+                    <span><strong>Mandatory</strong> <span class="muted small">{locked ? "(core profile fields are always mandatory)" : feedback ? "participants must answer this" : "applicants must answer this"}</span></span>
                   </label>
                 </div>
               )}
             </div>
           );
         })}
-        <div class="fb__item" style="border-style:dashed;background:#FAFBFE">
+        {feedback && fields.length === 0 && <div class="empty">No questions yet. Add some from the list on the right.</div>}
+        {!feedback && <div class="fb__item" style="border-style:dashed;background:#FAFBFE">
           <div class="fb__item-head">
             <span class="fb__icon fb__icon--lock" aria-hidden="true">✓</span>
             <div style="flex:1">
@@ -106,12 +109,12 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
               <div class="muted small">Always at the end of every form, mandatory: "I agree that OneAIM stores my data … and keeps it in OneAIM's internal talent network, which the OneAIM teams in all cities can access …"</div>
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
       {!readOnly && (
         <aside class="palette">
-          <div class="card stack-s">
+          {!feedback && <div class="card stack-s">
             <h3>Optional profile fields</h3>
             <p class="muted small">Saved to the person's CRM profile. University, study program, semester and degree level are always included.</p>
             <div class="palette__grid">
@@ -119,11 +122,11 @@ export function FormBuilder({ fields, onChange, readOnly, note }: {
                 <button class="palette__btn" disabled={has(k)} onClick={() => add(k)}>+ {KINDS[k].label}</button>
               ))}
             </div>
-          </div>
+          </div>}
           <div class="card stack-s">
             <h3>Questions</h3>
             <div class="palette__grid">
-              {CUSTOM_KINDS.map(k => <button class="palette__btn" onClick={() => add(k)}>+ {KINDS[k].label}</button>)}
+              {(feedback ? FEEDBACK_KINDS : CUSTOM_KINDS).map(k => <button class="palette__btn" onClick={() => add(k)}>+ {KINDS[k].label}</button>)}
             </div>
           </div>
         </aside>

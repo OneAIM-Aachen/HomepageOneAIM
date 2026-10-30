@@ -210,7 +210,7 @@ export function withDemo(s: State): State {
         const { status, interviewed } = statusFor(r, o.pipeline, round === CURRENT);
         subs.push({
           id: `demo-s${subs.length}`, applicationId: app.id, personId: person.id, answers: {}, status,
-          score: status === "new" || o.pipeline === "instant" ? undefined : 1 + Math.floor(r() * 5), bookingToken: "", comments: [],
+          score: status === "new" || o.pipeline === "instant" ? undefined : 1 + Math.floor(r() * 5), bookingToken: "", feedbackToken: "", comments: [],
           reviewerIds: [], scoreSheets: [],
           history: interviewed ? [{ status: "invited", at: app.dates.deadline, by: o.city }] : [],
           submittedAt: `${month}-${String(2 + Math.floor(r() * 17)).padStart(2, "0")}T12:00:00Z`,
