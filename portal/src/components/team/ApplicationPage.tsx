@@ -534,7 +534,8 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
   );
   const fee = parseFee(d.fee);
   const feeBad = !!fee.amount && !fee.currency;
-  const bad = !d.dates.opensAt || !d.dates.deadline || d.dates.deadline < d.dates.opensAt || feeBad;
+  const dateErr = dateProblems(d);
+  const bad = !d.dates.opensAt || !d.dates.deadline || d.dates.deadline < d.dates.opensAt || feeBad || Object.keys(dateErr).length > 0;
   const [busy, setBusy] = useState(false);
   const save = async () => { setBusy(true); await act(() => saveApplication({ ...d, published: app.published }), "Application saved"); setBusy(false); };
   const upload = (e: Event) => {
@@ -568,10 +569,10 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
         <div class="grid-3">
           <Field label="Applications open" required>{date("opensAt")}</Field>
           <Field label="Deadline" required help="Applications close at 23:59 (German time) on this day." helpBelow error={d.dates.deadline && d.dates.opensAt && d.dates.deadline < d.dates.opensAt ? "Deadline is before the opening date." : undefined}>{date("deadline")}</Field>
-          <Field label="Final decision by">{date("decisionBy")}</Field>
-          {d.pipeline === "interview" && <Field label="Interviews from">{date("interviewsFrom")}</Field>}
-          {d.pipeline === "interview" && <Field label="Interviews to">{date("interviewsTo")}</Field>}
-          <Field label={d.pipeline === "instant" ? "Event date" : "Program start"}>{date("startsAt")}</Field>
+          {d.pipeline !== "instant" && <Field label="Final decision by" required error={dateErr.decisionBy}>{date("decisionBy")}</Field>}
+          {d.pipeline === "interview" && <Field label="Interviews from" required error={dateErr.interviewsFrom}>{date("interviewsFrom")}</Field>}
+          {d.pipeline === "interview" && <Field label="Interviews to" required error={dateErr.interviewsTo}>{date("interviewsTo")}</Field>}
+          <Field label={d.pipeline === "instant" ? "Event date" : "Program start"} required error={dateErr.startsAt}>{date("startsAt")}</Field>
         </div>
       </section>
 
@@ -1154,7 +1155,9 @@ function reviewStages(app: Application, sub: Submission): ReviewStage[] {
 /** Public or not: switched right at the top of the application, saved immediately */
 function PublishBar({ app }: { app: Application }) {
   const [busy, setBusy] = useState(false);
+  const missing = Object.keys(dateProblems(app)).length > 0;
   const toggle = async (on: boolean) => {
+    if (on && missing) { toast("Fill in all dates under “Setup & dates” first (final decision, interviews, program start)."); return; }
     if (!(await confirmDialog(on
       ? { title: "Publish this application?", confirmLabel: "Publish",
           message: `It becomes visible on the apply site and one-aim.org from ${fmtDate(app.dates.opensAt)} (opening date) until the deadline ${fmtDate(app.dates.deadline)}. Check form, dates and emails first.` }
@@ -1176,7 +1179,7 @@ function PublishBar({ app }: { app: Application }) {
       <span class="muted small">
         {app.published
           ? <>Visible on the apply site and one-aim.org from {fmtDate(app.dates.opensAt)} to {fmtDate(app.dates.deadline)}.</>
-          : "Only the team can see it. Publish when form, dates and emails are ready."}
+          : missing ? "Only the team can see it. Fill in all dates under “Setup & dates” before publishing." : "Only the team can see it. Publish when form, dates and emails are ready."}
       </span>
     </div>
   );
@@ -1241,4 +1244,25 @@ function StageScoreCell({ app, sub, stage }: { app: Application; sub: Submission
   const n = sub.scoreSheets.filter(x => x.stage === stage).length;
   if (v === undefined) return <span class="muted small">Not rated</span>;
   return <span class="score-pill" title={`${n} scorecard${n > 1 ? "s" : ""}`}>{fmtScore(v)}<small>/ 5 · {n}</small></span>;
+}
+
+/** Required dates per pipeline and their order; empty object = all fine */
+export function dateProblems(app: Pick<Application, "dates" | "pipeline">): Partial<Record<"decisionBy" | "interviewsFrom" | "interviewsTo" | "startsAt", string>> {
+  const d = app.dates, out: Partial<Record<"decisionBy" | "interviewsFrom" | "interviewsTo" | "startsAt", string>> = {};
+  const need = "Required.";
+  if (app.pipeline === "interview") {
+    if (!d.interviewsFrom) out.interviewsFrom = need;
+    else if (d.deadline && d.interviewsFrom < d.deadline) out.interviewsFrom = "Interviews start before the deadline.";
+    if (!d.interviewsTo) out.interviewsTo = need;
+    else if (d.interviewsFrom && d.interviewsTo < d.interviewsFrom) out.interviewsTo = "Ends before the interviews start.";
+  }
+  if (app.pipeline !== "instant") {
+    const after = app.pipeline === "interview" ? d.interviewsTo : d.deadline;
+    if (!d.decisionBy) out.decisionBy = need;
+    else if (after && d.decisionBy < after) out.decisionBy = app.pipeline === "interview" ? "Before the end of the interviews." : "Before the deadline.";
+  }
+  if (!d.startsAt) out.startsAt = need;
+  else if (app.pipeline !== "instant" && d.decisionBy && d.startsAt < d.decisionBy) out.startsAt = "Before the final decision.";
+  else if (app.pipeline === "instant" && d.deadline && d.startsAt < d.deadline) out.startsAt = "Before the registration deadline.";
+  return out;
 }
