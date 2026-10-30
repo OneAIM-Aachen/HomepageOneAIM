@@ -819,7 +819,7 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
         ? <div class="empty">No slots yet.</div>
         : (
           <div class="card card--flush">
-            <table class="table">
+            <table class="table table--slots">
               <thead><tr>
                 <th style="width:36px"><input type="checkbox" aria-label="Select all slots" checked={allSel}
                   onChange={() => setSelected(allSel ? new Set() : new Set(app.slots.map(sl => sl.id)))} /></th>
@@ -848,12 +848,12 @@ function Slots({ app, subs }: { app: Application; subs: Submission[] }) {
                               : <span class="chip chip--red">Meeting link missing</span>)}
                             {past && sl.meetingLink && <span class="muted small" style="word-break:break-all">{sl.meetingLink}</span>}
                             {!past && sl.mode === "in_person" && !complete && <span class="chip chip--red">Place missing</span>}
-                            {!past && <button class="btn btn--ghost btn--sm" style="align-self:flex-start;padding:2px 8px" onClick={() => setEditing(sl.id)}>Edit</button>}
+                            {!past && <button class="link-btn small slot-edit" onClick={() => setEditing(sl.id)}>Edit</button>}
                           </div>
                         )}
                       </td>
                       <td>
-                        <div class="stack-s">
+                        <div class="slot-interviewers">
                           <MemberChips ids={sl.interviewerIds} onRemove={past ? undefined : id => act(() => setInterviewers(sl.id, sl.interviewerIds.filter(x => x !== id)))} />
                           {!past && <AddMember label="Add interviewer…" exclude={sl.interviewerIds} city={app.tags.location}
                             onAdd={id => act(() => setInterviewers(sl.id, [...sl.interviewerIds, id]), "Interviewer assigned")} />}
