@@ -84,6 +84,11 @@ const toPanel = prog === "aim-connect" || (prog === "aim-code" && onOwnPage);
 const external = Boolean(
   app && status === "open" && app.applyUrl && (direct || !toPanel)
 );
+// Several buttons (applyLinks): only while the round is open, and not where
+// the button is meant to lead to the city page's panel (toPanel).
+const multiLinks = Boolean(
+  app && status === "open" && app.applyLinks?.length && !toPanel
+);
 
 const card = app
   ? {
@@ -145,7 +150,13 @@ const card = app
   )}
   {card.note && <p class="appc__note">{card.note}</p>}
   {card.deadlineLine && <p class="appc__deadline">{card.deadlineLine}</p>}
-  {!(hideEmptyCta && !app) && (
+  {multiLinks ? (
+    <div class="appc__actions">
+      {app!.applyLinks!.map(l => (
+        <a class="appc__btn" href={l.url} target="_blank" rel="noopener noreferrer">{l.label}</a>
+      ))}
+    </div>
+  ) : !(hideEmptyCta && !app) && (
     <a class="appc__btn" href={card.ctaHref}
       {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{card.ctaLabel}</a>
   )}
@@ -228,6 +239,18 @@ const card = app
     padding:         13px 28px;
     text-decoration: none;
     transition:      background var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .appc__actions {
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+    margin-top:     auto;
+  }
+
+  .appc__actions .appc__btn { 
+    margin-top: 0; 
+    white-space: normal; 
   }
 
   .appc__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }

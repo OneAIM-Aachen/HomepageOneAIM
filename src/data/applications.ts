@@ -80,6 +80,8 @@ export interface Application {
 
   /** Application link – required at the latest once the round is open */
   applyUrl?: string;
+  /** Optional: multiple buttons instead of the single applyUrl button. Shown while the round is open. */
+  applyLinks?: { label: string; url: string }[];  
   /** Optional extra line for the card */
   note?: string;
 }
@@ -168,6 +170,20 @@ export const applications: Application[] = [
     deadline:     "2026-11-06",
     deadlineTime: "12:00",
     applyUrl:     "https://tally.so/r/5XKBp6",
+  },
+  {
+    id:           "munich-aim-code-ws26",
+    city:         "munich",
+    program:      "aim-code",
+    semester:     "WS",
+    year:         2026,
+    opensAt:      "2026-10-21",
+    deadline:     "2026-11-22",
+    deadlineTime: "12:00",
+    applyLinks: [
+      { label: "Register here · DataLab", url: "https://tally.so/r/J19NQJ" },
+      { label: "Register here · CodeLab", url: "https://tally.so/r/BEzP9R" },
+      ],
   },
 ];
 
