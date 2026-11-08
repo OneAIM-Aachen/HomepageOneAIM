@@ -218,7 +218,10 @@ export const teamMembers: TeamMember[] = [
   // ── Munich – Community & Recruitment ───────────────────────────────────
   { name: "Sophie Ihrler",   team: "Community & Recruitment", teamLead: false, president: false, city: "munich" },
   { name: "Sidney Radsak",   team: "Community & Recruitment", teamLead: false, president: false, city: "munich" },
-  { name: "Laura Bauer",     team: "Community & Recruitment", teamLead: false, president: false, city: "munich" },
+  { name: "Laura Bauer",     team: "Community & Recruitment", teamLead: false, president: false, city: "munich",
+    linkedIn: "https://www.linkedin.com/in/laura-bauer-03863b279",
+    photo: "/images/team/laura-bauer.jpeg"
+  },
   { name: "Felix Möllmann",  team: "Community & Recruitment", teamLead: false, president: false, city: "munich", formerMember:true },
   { name: "Felix Gillhuber",  team: "Community & Recruitment", teamLead: false, president: false, city: "munich", 
     linkedIn: "https://www.linkedin.com/in/felix-gillhuber/",
