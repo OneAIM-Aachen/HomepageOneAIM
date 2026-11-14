@@ -937,3 +937,4 @@ img.receipt { max-height: 340px; background: #fff; }
 .city-switch button:hover { color: var(--color-text-heading); }
 .city-switch button.is-active { background: var(--p-surface); color: var(--color-brand-blue); box-shadow: 0 1px 4px rgba(16, 24, 64, .12); }
 .city-switch__dot { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent-pink); }
+.bank-connect { gap: 16px; border: 1.5px dashed #9DB8F2; background: #F7F9FF; }

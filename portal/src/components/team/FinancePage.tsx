@@ -462,6 +462,7 @@ ${list.map(c => `      <CdtTrfTxInf><PmtId><EndToEndId>${c.id}</EndToEndId></Pmt
 // ── City bank accounts ───────────────────────────────────────────────────
 
 function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: Claim[]; setTxs: (f: (t: Tx[]) => Tx[]) => void }) {
+  const [connecting, setConnecting] = useState(false);
   const team = useStore(s => s.team.filter(m => m.status === "active"));
   const [filter, setFilter] = useState<"all" | "missing">("missing");
   const [edit, setEdit] = useState<string | null>(null);
@@ -482,11 +483,15 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
           <span class="muted small" style="flex:1">Transactions come in automatically through the bank's interface (API), several times a day, and are matched with claims. Last sync today, 06:00.</span>
         </div>
       ) : (
-        <div class="row">
-          <span class="chip chip--gray">○ Not connected to the bank yet</span>
-          <span class="muted small" style="flex:1">Once connected, transactions of the {city} account come in automatically several times a day.</span>
-        </div>
+        <section class="card row bank-connect">
+          <div style="flex:1;min-width:0" class="stack-s">
+            <strong style="color:var(--color-text-heading)">No bank account connected for OneAIM {city}</strong>
+            <span class="muted small">Connect the {city} account once: transactions then come in automatically several times a day, and every payment shows up here to add its receipt.</span>
+          </div>
+          <button class="btn btn--primary" onClick={() => setConnecting(true)}><IconPlus width={18} />Connect bank account</button>
+        </section>
       )}
+      {connecting && <ConnectBank city={city} onClose={() => setConnecting(false)} />}
       <div class="stats">
         <div class="card stat"><span class="stat__num">{money(balance)}</span><span class="stat__label">Balance</span><span class="muted small">OneAIM {city} account{isDemo() ? " · synced today, 06:00" : ""}</span></div>
         <div class="card stat"><span class="stat__num">{list.filter(needsReceipt).length}</span><span class="stat__label">Payments without receipt</span><span class="muted small">card payments, transfers, debits</span></div>
@@ -800,5 +805,38 @@ function Overview({ city, year, txs }: { city: string; year: string; txs: Tx[] }
         ))}
       </div>
     </div>
+  );
+}
+
+// ── Connect a bank account (not available yet) ──────────────────────────
+
+const BANKS = ["Sparkasse Aachen", "Stadtsparkasse München", "Frankfurter Sparkasse", "Volksbank / Raiffeisenbank", "Deutsche Bank", "Commerzbank", "GLS Bank", "Qonto", "N26 Business", "Other bank"];
+
+function ConnectBank({ city, onClose }: { city: string; onClose: () => void }) {
+  const [q, setQ] = useState("");
+  const [bank, setBank] = useState("");
+  const list = BANKS.filter(b => b.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <Modal title={`Connect the bank account of OneAIM ${city}`} onClose={onClose}>
+      <ol class="stack-s small" style="margin:0;padding-left:18px">
+        <li>Pick the bank of the {city} account.</li>
+        <li>You're sent to the bank's own login page and confirm with your TAN or banking app. Your online-banking password never reaches this website.</li>
+        <li>Back here, transactions come in automatically several times a day. Read-only: no money can be moved from here.</li>
+      </ol>
+      <input class="input" placeholder="Search your bank…" value={q} onInput={e => setQ(e.currentTarget.value)} autoFocus />
+      <div class="stack-s" style="max-height:220px;overflow-y:auto">
+        {list.map(b => (
+          <button type="button" class={`slot ${bank === b ? "is-active" : ""}`} style="text-align:left" onClick={() => setBank(b)}><strong>{b}</strong></button>
+        ))}
+      </div>
+      <p class="muted small">The bank asks to confirm the access again about every 180 days; you get an email before it runs out.</p>
+      <div class="row" style="justify-content:flex-end">
+        <button class="btn btn--ghost" onClick={onClose}>Cancel</button>
+        <button class="btn btn--primary" disabled={!bank}
+          onClick={() => { toast("Connecting banks isn't available yet: the bank access provider still needs to be set up."); onClose(); }}>
+          Continue to {bank || "your bank"} →
+        </button>
+      </div>
+    </Modal>
   );
 }
