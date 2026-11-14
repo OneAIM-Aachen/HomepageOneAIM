@@ -5,6 +5,7 @@ import { useMemo, useState } from "preact/hooks";
 import type { Account, TeamMember } from "../../lib/types";
 import { useStore } from "../../lib/store";
 import { appTitle, fmtDate } from "../../lib/fields";
+import { isDemo } from "../../lib/demo";
 import { TeamShell, PageHead } from "./TeamShell";
 import { confirmDialog, Field, Modal, toast } from "../ui/Ui";
 import { IconCheck, IconDownload, IconFile, IconPlus } from "../ui/Icons";
@@ -52,8 +53,9 @@ const CLAIM_LABEL: Record<ClaimStatus, [string, string]> = {
 };
 const KIND_LABEL: Record<TxKind, string> = { card: "Card payment", transfer: "Transfer", debit: "Direct debit", income: "Incoming" };
 const CITIES = ["Aachen", "Munich", "Frankfurt"];
-/** Each city has its own, independent bank account (balance before the mock transactions) */
-const OPENING: Record<string, number> = { Aachen: 2480.55, Munich: 1320.1, Frankfurt: 640 };
+/** Each city has its own, independent bank account (balance before the mock transactions; 0 without demo data) */
+const MOCK_OPENING: Record<string, number> = { Aachen: 2480.55, Munich: 1320.1, Frankfurt: 640 };
+const openingBalance = (city: string) => (isDemo() ? MOCK_OPENING[city] ?? 0 : 0);
 
 /** Who may approve claims of a city: the head of Finance & Legal and the presidents of that city */
 function approversOf(team: TeamMember[], departments: { id: string; name: string }[], city: string) {
@@ -68,7 +70,9 @@ const maskIban = (iban: string) => `${iban.slice(0, 4)} •••• •••�
 let seq = 100;
 const nextId = (p: string) => `${p}${++seq}`;
 
-function initialData(me: string) {
+/** Made-up claims and transactions; empty when demo data is switched off (not connected to the database yet) */
+function initialData(me: string): { claims: Claim[]; txs: Tx[] } {
+  if (!isDemo()) return { claims: [], txs: [] };
   const claims: Claim[] = [
     { id: "c1", who: me, city: "Aachen", amount: 48.6, date: "2026-11-06", what: "Pizza for the interview day", project: "AIM Connect Aachen – SS 27", category: "Food & drinks", receipt: { name: "pizza-hut-receipt.jpg" }, status: "paid", iban: "DE89370400440532013000", submittedAt: "2026-11-06", paidAt: "2026-11-09" },
     { id: "c2", who: me, city: "Aachen", amount: 23.9, date: "2026-11-11", what: "Name badges and markers", project: "General", category: "Printing & marketing", receipt: { name: "staples-2026-11-11.pdf" }, status: "submitted", iban: "DE89370400440532013000", submittedAt: "2026-11-11" },
@@ -127,7 +131,9 @@ function Finance({ acc }: { acc: Account }) {
       <PageHead overline="Finance" title={`Finance · OneAIM ${city}`}
         sub="Get money back for things you paid, keep a receipt for every payment of the city account, and have everything ready for the tax return." />
       <div class="demo-banner" role="status">
-        <strong>Mockup with made-up data.</strong> Click through freely: nothing is saved, no emails are sent and no money is moved. Reloading the page resets it.
+        {isDemo()
+          ? <><strong>Mockup with made-up data.</strong> Click through freely: nothing is saved, no emails are sent and no money is moved. Reloading the page resets it.</>
+          : <><strong>Demo data is off.</strong> Finance isn't connected to the database and the bank yet, so there's no real data here. Switch on “Demo data” in the sidebar to see the mockup.</>}
       </div>
       <div class="city-switch-row">
         <div class="city-switch" role="group" aria-label="City">
@@ -450,18 +456,25 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
   const needsReceipt = (t: Tx) => !t.receipt && t.kind !== "income";
   const needsCategory = (t: Tx) => !t.category;
   const shown = filter === "missing" ? list.filter(t => needsReceipt(t) || needsCategory(t)) : list;
-  const balance = (OPENING[city] ?? 0) + list.reduce((s, t) => s + t.amount, 0);
+  const balance = openingBalance(city) + list.reduce((s, t) => s + t.amount, 0);
   const cur = txs.find(t => t.id === edit);
   const set = (id: string, patch: Partial<Tx>) => setTxs(l => l.map(t => (t.id === id ? { ...t, ...patch } : t)));
 
   return (
     <div class="stack">
-      <div class="row">
-        <span class="chip chip--green">● Connected to the bank</span>
-        <span class="muted small" style="flex:1">Transactions come in automatically through the bank's interface (API), several times a day, and are matched with claims. Last sync today, 06:00.</span>
-      </div>
+      {isDemo() ? (
+        <div class="row">
+          <span class="chip chip--green">● Connected to the bank</span>
+          <span class="muted small" style="flex:1">Transactions come in automatically through the bank's interface (API), several times a day, and are matched with claims. Last sync today, 06:00.</span>
+        </div>
+      ) : (
+        <div class="row">
+          <span class="chip chip--gray">○ Not connected to the bank yet</span>
+          <span class="muted small" style="flex:1">Once connected, transactions of the {city} account come in automatically several times a day.</span>
+        </div>
+      )}
       <div class="stats">
-        <div class="card stat"><span class="stat__num">{money(balance)}</span><span class="stat__label">Balance</span><span class="muted small">OneAIM {city} account · synced today, 06:00</span></div>
+        <div class="card stat"><span class="stat__num">{money(balance)}</span><span class="stat__label">Balance</span><span class="muted small">OneAIM {city} account{isDemo() ? " · synced today, 06:00" : ""}</span></div>
         <div class="card stat"><span class="stat__num">{list.filter(needsReceipt).length}</span><span class="stat__label">Payments without receipt</span><span class="muted small">card payments, transfers, debits</span></div>
         <div class="card stat"><span class="stat__num">{list.filter(needsCategory).length}</span><span class="stat__label">Not categorized</span><span class="muted small">needed for the tax return</span></div>
       </div>
@@ -490,7 +503,7 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
                   </tr>
                 );
               })}
-              {!shown.length && <tr><td colSpan={6} class="muted">Everything has a receipt and a category. 🎉</td></tr>}
+              {!shown.length && <tr><td colSpan={6} class="muted">{list.length ? "Everything has a receipt and a category. 🎉" : "No transactions yet."}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -593,6 +606,7 @@ function Book({ city, year, txs }: { city: string; year: string; txs: Tx[] }) {
                     <td>{t.receipt || t.kind === "income" ? <span title="Receipt attached" style="color:#1A7F4B">✓</span> : <span class="chip chip--red">no receipt</span>}</td>
                   </tr>
                 ))}
+                {!shown.length && <tr><td colSpan={6} class="muted">No entries for {city} in {year}.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -699,7 +713,7 @@ function Overview({ city, year, txs }: { city: string; year: string; txs: Tx[] }
   const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
   const thisMonth = new Date().toISOString().slice(0, 7);
   // Mock history (in, out) per month; the real mock transactions are added on top
-  const history: Record<string, [number, number][]> = {
+  const history: Record<string, [number, number][]> = !isDemo() ? {} : {
     "2025": [[0, 18], [320, 140], [450, 380], [60, 90], [180, 120], [510, 470], [140, 60], [0, 25], [400, 310], [880, 620], [260, 340], [120, 410]],
     "2026": [[0, 22], [350, 160], [520, 410], [80, 75], [210, 150], [420, 310], [150, 95], [0, 42], [380, 260], [900, 540], [0, 0], [0, 0]],
   };
@@ -730,7 +744,7 @@ function Overview({ city, year, txs }: { city: string; year: string; txs: Tx[] }
   const totalIn = per.reduce((s, p) => s + p.inn, 0), totalOut = per.reduce((s, p) => s + p.out, 0);
   // Opening balance of the year (mock), end = opening + result
   const histResult = (y: string) => (history[y] ?? []).reduce((s, [i, o]) => s + (i - o) * scale, 0);
-  const open2026 = (OPENING[city] ?? 0) - histResult("2026");
+  const open2026 = openingBalance(city) - histResult("2026");
   const opening = year === "2025" ? open2026 - histResult("2025") : open2026;
   const past = year < thisMonth.slice(0, 4);
 
