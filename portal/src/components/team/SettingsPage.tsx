@@ -152,6 +152,69 @@ function EmailSection() {
 
 // ── University & study program lists ─────────────────────────────────────
 
+/**
+ * One value entered via "Other": add it to the list as it is, merge it into an
+ * existing entry, or create a new entry with a cleaned-up name (e.g.
+ * "Information Systems is close to CS" → "Information Systems") and use that.
+ */
+function UnlistedRow({ kind, value, n, options, groups }: { kind: ListKind; value: string; n: number; options: string[]; groups: string[] }) {
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState(value);
+  const [group, setGroup] = useState("");
+  const add = (entry: string, grp: string) => kind === "university" ? addUniversity(entry, grp) : kind === "company" ? addCompany(entry, grp) : addStudyProgram(entry, grp);
+  const people = `${n} ${n === 1 ? "person" : "people"}`;
+  const exists = options.some(o => o.toLowerCase() === name.trim().toLowerCase());
+  const create = async () => {
+    const entry = name.trim();
+    if (!entry) return;
+    const existing = options.find(o => o.toLowerCase() === entry.toLowerCase());
+    const r = await act(async () => {
+      if (!existing) await add(entry, group);
+      return entry === value ? 0 : mergeProfileValue(kind, value, existing ?? entry);
+    }, k => existing ? `Merged into ${existing} for ${k} ${k === 1 ? "person" : "people"}` : `Created “${entry}”${entry === value ? "" : ` and used it for ${people}`}`);
+    if (r !== undefined) setCreating(false);
+  };
+  return (
+    <div class="stack-s" style="padding:8px 10px;border-radius:12px;background:#FAFBFE">
+      <div class="row" style="justify-content:space-between;gap:8px">
+        <span><strong style="color:var(--color-text-heading)">{value}</strong> <span class="muted small">· {people}</span></span>
+        <span class="row" style="gap:6px">
+          <button class="btn btn--secondary btn--sm" onClick={() => act(() => add(value, kind === "university" ? "" : "Other"), `Added ${value} to the list`)}>Add to list</button>
+          <button class="btn btn--secondary btn--sm" aria-expanded={creating} onClick={() => { setCreating(!creating); setName(value); }}>New entry…</button>
+          <select class="input input--sm" style="width:auto;max-width:220px" aria-label={`Merge ${value} into`} value=""
+            onChange={async e => {
+              const to = e.currentTarget.value;
+              if (to && await confirmDialog({ title: "Merge entry?", confirmLabel: "Merge",
+                message: `Replace “${value}” with “${to}” for ${people}?` }))
+                act(() => mergeProfileValue(kind, value, to), k => `Merged for ${k} ${k === 1 ? "person" : "people"}`);
+            }}>
+            <option value="">Merge into…</option>
+            {options.map(o => <option>{o}</option>)}
+          </select>
+        </span>
+      </div>
+      {creating && (
+        <form class="row" style="flex-wrap:nowrap;gap:6px" onSubmit={e => { e.preventDefault(); create(); }}>
+          <input class="input input--sm" value={name} onInput={e => setName(e.currentTarget.value)} aria-label="Name of the new entry" autoFocus />
+          {kind === "university"
+            ? <input class="input input--sm" style="max-width:130px" placeholder="City (optional)" value={group} onInput={e => setGroup(e.currentTarget.value)} aria-label="City" />
+            : <>
+                <input class="input input--sm" style="max-width:170px" list={`groups-${kind}`} placeholder={kind === "company" ? "Sector" : "Field"} value={group}
+                  onInput={e => setGroup(e.currentTarget.value)} aria-label={kind === "company" ? "Sector" : "Field"} />
+                <datalist id={`groups-${kind}`}>{groups.map(g => <option value={g} />)}</datalist>
+              </>}
+          <button class="btn btn--primary btn--sm" disabled={!name.trim()} title={exists ? "This entry exists already: the value is merged into it" : ""}>
+            {exists ? "Use existing" : "Create & use"}
+          </button>
+        </form>
+      )}
+      {creating && name.trim() && name.trim() !== value && (
+        <span class="muted small">{people} will have “{exists ? options.find(o => o.toLowerCase() === name.trim().toLowerCase()) : name.trim()}” instead of “{value}”.</span>
+      )}
+    </div>
+  );
+}
+
 function ProfileLists() {
   const s = useStore(x => x);
   const [uniName, setUniName] = useState("");
@@ -208,22 +271,8 @@ function ProfileLists() {
     return (
       <div class="stack-s">
         {rows.map(([value, n]) => (
-          <div class="row" style="justify-content:space-between;gap:8px;padding:8px 10px;border-radius:12px;background:#FAFBFE">
-            <span><strong style="color:var(--color-text-heading)">{value}</strong> <span class="muted small">· {n} {n === 1 ? "person" : "people"}</span></span>
-            <span class="row" style="gap:6px">
-              <button class="btn btn--secondary btn--sm" onClick={() => act(() => kind === "university" ? addUniversity(value) : kind === "company" ? addCompany(value, "Other") : addStudyProgram(value, "Other"), `Added ${value} to the list`)}>Add to list</button>
-              <select class="input input--sm" style="width:auto;max-width:220px" aria-label={`Merge ${value} into`} value=""
-                onChange={async e => {
-                  const to = e.currentTarget.value;
-                  if (to && await confirmDialog({ title: "Merge entry?", confirmLabel: "Merge",
-                    message: `Replace “${value}” with “${to}” for ${n} ${n === 1 ? "person" : "people"}?` }))
-                    act(() => mergeProfileValue(kind, value, to), k => `Merged for ${k} ${k === 1 ? "person" : "people"}`);
-                }}>
-                <option value="">Merge into…</option>
-                {options.map(o => <option>{o}</option>)}
-              </select>
-            </span>
-          </div>
+          <UnlistedRow kind={kind} value={value} n={n} options={options}
+            groups={kind === "company" ? coCategories : kind === "studyProgram" ? categories : []} />
         ))}
       </div>
     );
