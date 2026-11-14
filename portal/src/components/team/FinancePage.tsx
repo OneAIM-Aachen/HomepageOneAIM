@@ -1,6 +1,8 @@
-// Finance – CLICKABLE MOCKUP. Made-up data that lives only in this browser
-// tab; nothing is saved and no money is moved. Shows how reimbursements,
-// the city bank accounts, the cash book and the year-end package could work.
+// Finance per city: reimbursement claims, money in & out, bank account,
+// year-end export. With demo data off, claims (with receipts) and the bank
+// connection are real (Supabase); receipts and categories for bank
+// transactions are still to come. With demo data on, everything is a
+// clickable mockup with made-up data that lives only in this browser tab.
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account, TeamMember } from "../../lib/types";
 import { useStore } from "../../lib/store";
@@ -10,6 +12,7 @@ import {
   bankStatus, connectBank, deleteIban, disconnectBank, formatIban, ibanValid, isFinance, listBanks, loadBankData, loadMyIbans, normalizeIban,
   saveIban, type BankConnection, type BankStatus, type SavedIban,
 } from "../../lib/bank";
+import { answerClaim, decideClaims, deleteClaim, loadClaims, markClaimsPaid, receiptUrl, submitClaim, type ClaimRow } from "../../lib/claims";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, confirmDialog, Field, Modal, toast, useParam } from "../ui/Ui";
 import { IconCheck, IconDownload, IconFile, IconPlus } from "../ui/Icons";
@@ -20,8 +23,22 @@ type ClaimStatus = "submitted" | "question" | "approved" | "paid" | "rejected";
 interface Claim {
   id: string; who: string; city: string; amount: number; date: string; what: string; project: string;
   category: string; receipt: Receipt; status: ClaimStatus; note?: string; iban: string; submittedAt: string; paidAt?: string;
+  /** Real claims: team_members.id of the claimant, answer to a question, who decided */
+  memberId?: string; holder?: string; answer?: string; decidedBy?: string;
 }
-interface Receipt { name: string; url?: string }
+/** url: local preview (mockup / before upload); path: stored receipt; file: chosen file before upload */
+interface Receipt { name: string; url?: string; path?: string; file?: File }
+
+/** What can be done with claims: saved in Supabase (real) or only in this page (mockup) */
+interface ClaimOps {
+  real: boolean;
+  isMine: (c: Claim) => boolean;
+  submit: (c: Claim) => Promise<boolean>;
+  remove: (c: Claim) => Promise<boolean>;
+  answer: (c: Claim, text: string) => Promise<boolean>;
+  decide: (c: Claim, d: "approve" | "question" | "reject", note?: string) => Promise<boolean>;
+  markPaid: (cs: Claim[]) => Promise<boolean>;
+}
 type TxKind = "card" | "transfer" | "debit" | "income" | "booking";
 interface Tx {
   id: string; city: string; date: string; counterparty: string; purpose: string; amount: number; kind: TxKind;
@@ -141,15 +158,76 @@ function Finance({ acc }: { acc: Account }) {
   const setClaims = (f: (c: Claim[]) => Claim[]) => setData(d => ({ ...d, claims: f(d.claims) }));
   const setTxs = (f: (t: Tx[]) => Tx[]) => setData(d => ({ ...d, txs: f(d.txs) }));
 
+  // Claims: real ones from Supabase when demo data is off
+  const real = !isDemo();
+  const team = useStore(s => s.team);
+  const cityName = (id: string) => CITIES.find(c => cityId(c) === id) ?? id;
+  const toClaim = (r: ClaimRow): Claim => ({
+    id: r.id, memberId: r.member_id, who: team.find(m => m.id === r.member_id)?.name ?? "Former member", city: cityName(r.location_id),
+    amount: r.amount, date: r.paid_on, what: r.what, project: r.project, category: r.category,
+    receipt: { name: r.receipt_name, path: r.receipt_path }, status: r.status, note: r.note ?? undefined, answer: r.answer ?? undefined,
+    decidedBy: r.decided_by ?? undefined, iban: r.iban, holder: r.holder, submittedAt: r.created_at.slice(0, 10), paidAt: r.paid_at?.slice(0, 10),
+  });
+  const reloadClaims = () => real ? loadClaims().then(rows => setData(x => ({ ...x, claims: rows.map(toClaim) }))).catch(e => toast(e instanceof Error ? e.message : String(e))) : Promise.resolve();
+  useEffect(() => { reloadClaims(); }, [team.length]);
+  const ok = (x: unknown) => x !== undefined;
+  const ops: ClaimOps = real ? {
+    real,
+    isMine: c => !!acc.memberId && c.memberId === acc.memberId,
+    submit: async c => {
+      if (!acc.memberId || !c.receipt.file) { toast("Claims need a personal team account and a receipt."); return false; }
+      const r = await act(() => submitClaim({
+        memberId: acc.memberId!, locationId: cityId(c.city), amount: c.amount, paidOn: c.date, what: c.what, project: c.project,
+        category: c.category, iban: c.iban, holder: c.holder ?? me, file: c.receipt.file!,
+      }), "Claim submitted. The approvers of the city see it now.");
+      await reloadClaims();
+      return ok(r);
+    },
+    remove: async c => { const r = await act(() => deleteClaim(c.id), "Claim deleted"); await reloadClaims(); return ok(r); },
+    answer: async (c, text) => { const r = await act(() => answerClaim(c.id, text), "Answer saved, the claim is back with the approvers"); await reloadClaims(); return ok(r); },
+    decide: async (c, d, note) => {
+      const r = await act(() => decideClaims([c.id], d, note), d === "approve" ? "Approved" : d === "question" ? "Question saved: the member sees it in their claims" : "Rejected");
+      await reloadClaims(); return ok(r);
+    },
+    markPaid: async cs => { const r = await act(() => markClaimsPaid(cs.map(c => c.id)), n => `${n} claim${n === 1 ? "" : "s"} marked as paid`); await reloadClaims(); return ok(r); },
+  } : {
+    real,
+    isMine: c => c.who === me,
+    submit: async c => { setClaims(l => [c, ...l]); toast("Claim submitted (mockup, not saved)."); return true; },
+    remove: async c => { setClaims(l => l.filter(x => x.id !== c.id)); toast("Claim deleted"); return true; },
+    answer: async (c, text) => { setClaims(l => l.map(x => x.id === c.id ? { ...x, status: "submitted", answer: text } : x)); toast("Answer saved"); return true; },
+    decide: async (c, d, note) => {
+      setClaims(l => l.map(x => x.id === c.id ? { ...x, status: d === "approve" ? "approved" : d === "question" ? "question" : "rejected", note: d === "approve" ? undefined : note, decidedBy: me } : x));
+      toast(d === "approve" ? "Approved" : d === "question" ? "Question saved" : "Rejected"); return true;
+    },
+    markPaid: async cs => {
+      const today = new Date().toISOString().slice(0, 10), ids = new Set(cs.map(c => c.id));
+      setClaims(l => l.map(c => (ids.has(c.id) ? { ...c, status: "paid", paidAt: today } : c)));
+      setTxs(l => [...cs.map(c => ({
+        id: nextId("t"), city: c.city, date: today, counterparty: c.who, purpose: `Auslagenerstattung ${c.what}`, amount: -c.amount,
+        kind: "transfer" as const, claimId: c.id, receipt: c.receipt, category: c.category, project: c.project,
+      })), ...l]);
+      toast("Marked as paid. The cash book entries were created with the receipts attached."); return true;
+    },
+  };
+
+  // Years to choose: from the first year with data of this city up to this year
+  const thisYear = new Date().getFullYear();
+  const firstYear = Math.min(thisYear, ...[...data.txs.filter(t => t.city === city).map(t => t.date), ...data.claims.filter(c => c.city === city).map(c => c.date)]
+    .map(d => Number(d.slice(0, 4))).filter(Boolean));
+  const years = Array.from({ length: thisYear - firstYear + 1 }, (_, i) => String(thisYear - i));
+
   const toCheck = data.claims.filter(c => c.city === city && c.status === "submitted").length;
   const missing = data.txs.filter(t => t.city === city && !t.receipt && t.kind !== "income").length;
-  const tabs: [Tab, string, number?, boolean?][] = [
-    ["mine", "My claims", data.claims.filter(c => c.city === city && c.who === me && c.status !== "paid" && c.status !== "rejected").length || undefined],
-    ["overview", "Money in & out", undefined, true],
-    ["inbox", "Claims to approve", toCheck || undefined, true],
-    ["bank", "Bank account", missing || undefined, true],
-    ["year", "Year-end & tax", undefined, true],
+  // Everything except "My claims" is for the presidents and the Finance & Legal lead of the city
+  const financeView = !real || !!bank.finance[city];
+  const tabs: [Tab, string, number?][] = [
+    ["mine", "My claims", data.claims.filter(c => c.city === city && ops.isMine(c) && c.status !== "paid" && c.status !== "rejected").length || undefined],
+    ...(financeView ? [
+      ["overview", "Money in & out"], ["inbox", "Claims to approve", toCheck || undefined], ["bank", "Bank account", missing || undefined], ["year", "Year-end & tax"],
+    ] as [Tab, string, number?][] : []),
   ];
+  const shownTab: Tab = tabs.some(([k]) => k === tab) ? tab : "mine";
 
   return (
     <div class="stack" style="gap:18px">
@@ -158,7 +236,7 @@ function Finance({ acc }: { acc: Account }) {
       <div class="demo-banner" role="status">
         {isDemo()
           ? <><strong>Mockup with made-up data.</strong> Click through freely: nothing is saved, no emails are sent and no money is moved. Reloading the page resets it.</>
-          : <><strong>Demo data is off.</strong> The bank account is real (once connected); claims, receipts and categories aren't saved yet. Switch on “Demo data” in the sidebar to see the full mockup.</>}
+          : <><strong>Real data.</strong> Claims and their receipts are saved, and the bank account is real once connected. Receipts and categories for bank transactions come next. Switch on “Demo data” in the sidebar to see the full mockup.</>}
       </div>
       <div class="city-switch-row">
         <div class="city-switch" role="group" aria-label="City">
@@ -170,54 +248,63 @@ function Finance({ acc }: { acc: Account }) {
           ))}
         </div>
         <span class="muted small" style="flex:1">Each city has its own bank account and its own books. Everything below is for {city} only.</span>
-        {(tab === "overview" || tab === "year") && (
+        {(shownTab === "overview" || shownTab === "year") && (
           <label class="row small" style="gap:6px">
             <span class="muted">Year</span>
             <select class="input input--sm" style="width:auto" value={year} onChange={e => setYear(e.currentTarget.value)} aria-label="Calendar year">
-              {["2026", "2025"].map(y => <option>{y}</option>)}
+              {years.map(y => <option>{y}</option>)}
             </select>
           </label>
         )}
       </div>
       <nav class="tabs" role="tablist">
-        {tabs.map(([k, label, n, finance]) => (
-          <button role="tab" aria-selected={tab === k} class={`tab ${tab === k ? "is-active" : ""}`} onClick={() => setTab(k)}>
+        {tabs.map(([k, label, n]) => (
+          <button role="tab" aria-selected={shownTab === k} class={`tab ${shownTab === k ? "is-active" : ""}`} onClick={() => setTab(k)}>
             {label}{n !== undefined && <span class="count">{n}</span>}
-            {finance && <span class="muted small" style="font-weight:600;margin-left:6px">· finance</span>}
           </button>
         ))}
       </nav>
-      {tab === "mine" && <MyClaims me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.who === me && c.city === city)} setClaims={setClaims} />}
-      {tab === "overview" && <>
+      {shownTab === "mine" && <MyClaims me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => ops.isMine(c) && c.city === city)} ops={ops} />}
+      {shownTab === "overview" && <>
         <Overview city={city} year={year} txs={data.txs} balanceNow={isDemo() ? undefined : bank.connections.find(c => c.location_id === cityId(city))?.balance ?? 0} />
         <Book city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} />
       </>}
-      {tab === "inbox" && <Inbox me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.city === city)} setClaims={setClaims} setTxs={setTxs} />}
-      {tab === "bank" && <Bank city={city} txs={data.txs} claims={data.claims} setTxs={setTxs} bank={bankView} />}
-      {tab === "year" && <YearEnd city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} claims={data.claims.filter(c => c.city === city && c.date.startsWith(year))} onGo={setTab} />}
+      {shownTab === "inbox" && <Inbox memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.city === city)} ops={ops}
+        canApprove={real ? !!bank.finance[city] : undefined} cityIban={bank.connections.find(c => c.location_id === cityId(city))?.accounts[0]?.iban ?? undefined} />}
+      {shownTab === "bank" && <Bank city={city} txs={data.txs} claims={data.claims} setTxs={setTxs} bank={bankView} />}
+      {shownTab === "year" && <YearEnd city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} claims={data.claims.filter(c => c.city === city && c.date.startsWith(year))} onGo={setTab} />}
     </div>
   );
 }
 
 function ReceiptView({ r }: { r?: Receipt }) {
+  const [signed, setSigned] = useState<string | null>(null);
+  useEffect(() => { setSigned(null); if (r?.path) receiptUrl(r.path).then(setSigned).catch(() => undefined); }, [r?.path]);
   if (!r) return <div class="receipt receipt--missing">No receipt yet</div>;
-  return r.url
-    ? <img class="receipt" src={r.url} alt={r.name} />
-    : <div class="receipt"><IconFile width={28} /><strong>{r.name}</strong><span class="muted small">Preview of the receipt</span></div>;
+  const isImage = /\.(png|jpe?g|webp|heic|heif)$/i.test(r.name);
+  const url = r.url ?? signed;
+  if (url && isImage) return <a href={url} target="_blank" rel="noopener" title="Open full size"><img class="receipt" src={url} alt={r.name} /></a>;
+  return (
+    <div class="receipt"><IconFile width={28} /><strong>{r.name}</strong>
+      {r.path ? (url ? <a class="btn btn--secondary btn--sm" href={url} target="_blank" rel="noopener">Open receipt</a> : <span class="muted small">Loading…</span>)
+        : <span class="muted small">Preview of the receipt</span>}
+    </div>
+  );
 }
 
 // ── My claims (every team member) ────────────────────────────────────────
 
-function MyClaims({ me, memberId, city, claims, setClaims }: { me: string; memberId?: string; city: string; claims: Claim[]; setClaims: (f: (c: Claim[]) => Claim[]) => void }) {
+function MyClaims({ me, memberId, city, claims, ops }: { me: string; memberId?: string; city: string; claims: Claim[]; ops: ClaimOps }) {
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const [answer, setAnswer] = useState("");
   const opened = claims.find(c => c.id === open);
   const outstanding = claims.filter(c => c.status !== "paid" && c.status !== "rejected").reduce((s, c) => s + c.amount, 0);
   return (
     <div class="stack">
       <div class="row">
         <p class="muted small" style="flex:1;margin:0">Paid something for OneAIM {city} yourself? Upload the receipt and get the money back from the {city} account, usually within a week. <strong>{money(outstanding)}</strong> waiting for you right now.</p>
-        <button class="btn btn--primary" onClick={() => setCreating(true)}><IconPlus width={18} />Get money back</button>
+        <button class="btn btn--primary" disabled={ops.real && !memberId} title={ops.real && !memberId ? "Claims need a personal team account" : ""} onClick={() => setCreating(true)}><IconPlus width={18} />Get money back</button>
       </div>
       <div class="card card--flush">
         <div class="table-wrap">
@@ -237,28 +324,32 @@ function MyClaims({ me, memberId, city, claims, setClaims }: { me: string; membe
           </table>
         </div>
       </div>
-      <p class="muted small">You get an email when your claim is approved, has a question, or is paid.</p>
+      <p class="muted small">The status of your claims shows here: approved, a question from the approvers, or paid. No emails are sent.</p>
       {creating && <NewClaim me={me} memberId={memberId} city={city} onClose={() => setCreating(false)}
-        onSubmit={c => { setClaims(l => [c, ...l]); setCreating(false); toast("Claim submitted. The finance team has been notified (mockup)."); }} />}
+        onSubmit={async c => { if (await ops.submit(c)) setCreating(false); }} />}
       {opened && (
         <Modal title={opened.what} onClose={() => setOpen(null)} wide>
           <div class="grid-2" style="align-items:start">
             <ReceiptView r={opened.receipt} />
             <dl class="qa">
               <div><dt>Status</dt><dd><span class={`chip ${CLAIM_LABEL[opened.status][1]}`}>{CLAIM_LABEL[opened.status][0]}</span></dd></div>
-              {opened.note && <div><dt>Question from finance</dt><dd>{opened.note}</dd></div>}
+              {opened.note && <div><dt>{opened.status === "rejected" ? "Reason" : "Question"}{opened.decidedBy ? ` from ${opened.decidedBy}` : ""}</dt><dd>{opened.note}</dd></div>}
+              {opened.answer && <div><dt>Your answer</dt><dd>{opened.answer}</dd></div>}
               <div><dt>Amount</dt><dd>{money(opened.amount)}</dd></div>
               <div><dt>Paid on</dt><dd>{fmtDate(opened.date)}</dd></div>
               <div><dt>For</dt><dd>{opened.project} · {opened.category}</dd></div>
               <div><dt>To account</dt><dd>{maskIban(opened.iban)}</dd></div>
             </dl>
           </div>
+          {opened.status === "question" && (
+            <textarea class="input" style="min-height:60px" placeholder="Your answer to the question" value={answer} onInput={e => setAnswer(e.currentTarget.value)} />
+          )}
           <div class="row">
             {opened.status === "submitted" || opened.status === "question" ? (
               <button class="btn btn--ghost btn--sm" onClick={async () => {
                 if (!(await confirmDialog({ title: "Delete claim?", danger: true, confirmLabel: "Delete claim",
                   message: `Delete “${opened.what}” (${money(opened.amount)})? It hasn't been approved yet, so nothing else changes.` }))) return;
-                setClaims(l => l.filter(c => c.id !== opened.id)); setOpen(null); toast("Claim deleted");
+                if (await ops.remove(opened)) setOpen(null);
               }}>Delete claim</button>
             ) : (
               <span class="muted small" style="flex:1">
@@ -269,7 +360,7 @@ function MyClaims({ me, memberId, city, claims, setClaims }: { me: string; membe
             )}
             <span class="spacer" />
             {opened.status === "question" && (
-              <button class="btn btn--primary" onClick={() => { setClaims(l => l.map(c => c.id === opened.id ? { ...c, status: "submitted", note: undefined } : c)); setOpen(null); toast("Answer sent"); }}>Answer & resubmit</button>
+              <button class="btn btn--primary" disabled={!answer.trim()} onClick={async () => { if (await ops.answer(opened, answer.trim())) { setAnswer(""); setOpen(null); } }}>Answer & resubmit</button>
             )}
           </div>
         </Modal>
@@ -281,7 +372,7 @@ function MyClaims({ me, memberId, city, claims, setClaims }: { me: string; membe
 /** Saved accounts in the mockup (demo data on): kept for this visit only */
 let demoIbans: SavedIban[] | null = null;
 
-function NewClaim({ me, memberId, city, onClose, onSubmit }: { me: string; memberId?: string; city: string; onClose: () => void; onSubmit: (c: Claim) => void }) {
+function NewClaim({ me, memberId, city, onClose, onSubmit }: { me: string; memberId?: string; city: string; onClose: () => void; onSubmit: (c: Claim) => Promise<void> | void }) {
   const apps = useStore(s => s.applications.filter(a => a.tags.location === city).slice(0, 6));
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [amount, setAmount] = useState("");
@@ -327,17 +418,24 @@ function NewClaim({ me, memberId, city, onClose, onSubmit }: { me: string; membe
         target = r.iban;
       }
     }
-    onSubmit({
-      id: nextId("c"), who: me, city, amount: value, date, what, project, category, receipt: receipt!, status: "submitted",
-      iban: target, submittedAt: new Date().toISOString().slice(0, 10),
+    setBusy(true);
+    await onSubmit({
+      id: nextId("c"), who: me, memberId, city, amount: value, date, what, project, category, receipt: receipt!, status: "submitted",
+      iban: target, holder: picked?.holder ?? holder, submittedAt: new Date().toISOString().slice(0, 10),
     });
+    setBusy(false);
   };
   return (
     <Modal title="Get money back" onClose={onClose} wide>
       <div class="grid-2" style="align-items:start">
         <label class="receipt receipt--drop">
           <input type="file" accept="image/*,application/pdf" capture="environment" style="display:none"
-            onChange={e => { const f = e.currentTarget.files?.[0]; if (f) setReceipt({ name: f.name, url: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined }); }} />
+            onChange={e => {
+              const f = e.currentTarget.files?.[0];
+              if (!f) return;
+              if (f.size > 10 * 1024 * 1024) { toast("This file is larger than 10 MB. Please take a smaller photo or PDF."); return; }
+              setReceipt({ name: f.name, file: f, url: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined });
+            }} />
           {receipt ? (receipt.url ? <img src={receipt.url} alt={receipt.name} style="max-width:100%;border-radius:10px" /> : <><IconFile width={28} /><strong>{receipt.name}</strong></>)
             : <><IconPlus width={28} /><strong>Photo or PDF of the receipt</strong><span class="muted small">On the phone this opens the camera</span></>}
         </label>
@@ -390,10 +488,10 @@ function NewClaim({ me, memberId, city, onClose, onSubmit }: { me: string; membe
           </div>
         </div>
       </div>
-      <p class="muted small">Paid with the city's bank card instead? Then don't submit a claim: the payment shows up under “City bank accounts”, where you add the receipt.</p>
+      <p class="muted small">Paid with the city's bank card instead? Then don't submit a claim: the payment shows up under “Bank account”, where the receipt is added.</p>
       <div class="row" style="justify-content:flex-end">
         <button class="btn btn--ghost" onClick={onClose}>Cancel</button>
-        <button class="btn btn--primary" disabled={!valid || busy} onClick={submit}>Submit claim</button>
+        <button class="btn btn--primary" disabled={!valid || busy} onClick={submit}>{busy ? "Uploading…" : "Submit claim"}</button>
       </div>
     </Modal>
   );
@@ -401,25 +499,30 @@ function NewClaim({ me, memberId, city, onClose, onSubmit }: { me: string; membe
 
 // ── Finance inbox ────────────────────────────────────────────────────────
 
-function Inbox({ me, memberId, city, claims, setClaims, setTxs }: {
-  me: string; memberId?: string; city: string; claims: Claim[]; setClaims: (f: (c: Claim[]) => Claim[]) => void; setTxs: (f: (t: Tx[]) => Tx[]) => void;
+function Inbox({ memberId, city, claims, ops, canApprove: canApproveReal, cityIban }: {
+  memberId?: string; city: string; claims: Claim[]; ops: ClaimOps;
+  /** Real data: is_finance for this city from the database; mockup: from the team list */
+  canApprove?: boolean;
+  /** IBAN of the city's account (from the bank connection) for the SEPA file */
+  cityIban?: string;
 }) {
   const team = useStore(s => s.team);
   const departments = useStore(s => s.departments);
   const approvers = approversOf(team, departments, city);
-  const canApprove = approvers.some(m => m.id === memberId);
+  const canApprove = canApproveReal ?? approvers.some(m => m.id === memberId);
+  const [debtorIban, setDebtorIban] = useState(cityIban ? formatIban(cityIban) : "");
   const [sel, setSel] = useState<string | null>(claims.find(c => c.status === "submitted")?.id ?? null);
   const [question, setQuestion] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const open = claims.filter(c => c.status === "submitted" || c.status === "question");
   const approved = claims.filter(c => c.status === "approved");
   const cur = claims.find(c => c.id === sel);
-  const set = (id: string, patch: Partial<Claim>) => setClaims(l => l.map(c => (c.id === id ? { ...c, ...patch } : c)));
   const nextOpen = (after: string) => open.find(c => c.id !== after && c.status === "submitted")?.id ?? null;
   const toPay = approved.filter(c => picked.has(c.id));
 
+  const sepaReady = !ops.real || ibanValid(debtorIban);
   const sepa = () => {
-    const xml = sepaXml(toPay);
+    const xml = sepaXml(toPay, { name: `OneAIM ${city}`, iban: ops.real ? normalizeIban(debtorIban) : "DE00000000000000000000" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([xml], { type: "application/xml" }));
     a.download = `sepa-oneaim-${new Date().toISOString().slice(0, 10)}.xml`;
@@ -428,23 +531,27 @@ function Inbox({ me, memberId, city, claims, setClaims, setTxs }: {
   };
   const markPaid = async () => {
     if (!(await confirmDialog({ title: "Mark as paid?", confirmLabel: "Mark as paid",
-      message: `Did the bank carry out the ${toPay.length} transfer${toPay.length === 1 ? "" : "s"} (${money(toPay.reduce((s, c) => s + c.amount, 0))})? The members get an email.` }))) return;
-    const today = new Date().toISOString().slice(0, 10);
-    setClaims(l => l.map(c => (picked.has(c.id) ? { ...c, status: "paid", paidAt: today } : c)));
-    setTxs(l => [...toPay.map(c => ({
-      id: nextId("t"), city: c.city, date: today, counterparty: c.who, purpose: `Auslagenerstattung ${c.what}`, amount: -c.amount,
-      kind: "transfer" as const, claimId: c.id, receipt: c.receipt, category: c.category, project: c.project,
-    })), ...l]);
-    setPicked(new Set());
-    toast("Marked as paid. The cash book entries were created with the receipts attached.");
+      message: `Did the bank carry out the ${toPay.length} transfer${toPay.length === 1 ? "" : "s"} (${money(toPay.reduce((s, c) => s + c.amount, 0))})? The members see “Paid” in their claims.` }))) return;
+    if (await ops.markPaid(toPay)) setPicked(new Set());
+  };
+  const decide = async (c: Claim, d: "approve" | "question" | "reject") => {
+    if (await ops.decide(c, d, d === "approve" ? undefined : question.trim())) { setQuestion(""); setSel(nextOpen(c.id)); }
   };
 
+  if (ops.real && !canApprove) {
+    return (
+      <div class="empty">
+        Claims of {city} are approved by the head of Finance & Legal and the presidents
+        {approvers.length ? ` (${approvers.map(m => m.name).join(", ")})` : ""}. Only they see this list. Your own claims are under “My claims”.
+      </div>
+    );
+  }
   return (
     <div class="stack">
       <div class="card card--tint small">
         <strong>Who approves claims in {city}:</strong> the head of Finance & Legal and the presidents
         {approvers.length ? <> ({approvers.map(m => m.name).join(", ")})</> : " (nobody set yet in the Team overview)"}.
-        {canApprove ? " That includes you." : " You can look, but not approve here."} Nobody approves their own claim.
+        {canApprove ? " That includes you." : ops.real ? " Only they see the claims of the city." : " You can look, but not approve here."} Nobody approves their own claim.
       </div>
       <div class="stats">
         <div class="card stat"><span class="stat__num">{claims.filter(c => c.status === "submitted").length}</span><span class="stat__label">To check</span></div>
@@ -481,21 +588,22 @@ function Inbox({ me, memberId, city, claims, setClaims, setTxs }: {
                 <div><dt>Paid on</dt><dd>{fmtDate(cur.date)}</dd></div>
                 <div><dt>For</dt><dd>{cur.project}</dd></div>
                 <div><dt>Category</dt><dd>{cur.category} <span class="muted small">→ {CATEGORIES[cur.category]?.area}</span></dd></div>
-                <div><dt>IBAN</dt><dd class="mono">{maskIban(cur.iban)}</dd></div>
+                <div><dt>IBAN</dt><dd class="mono">{maskIban(cur.iban)}{cur.holder ? <span class="muted small"> · {cur.holder}</span> : ""}</dd></div>
               </dl>
             </div>
-            {cur.note && <div class="card card--tint small"><strong>Question:</strong> {cur.note}</div>}
-            {cur.status === "submitted" && (cur.who === me
+            {cur.note && <div class="card card--tint small"><strong>Question{cur.decidedBy ? ` (${cur.decidedBy})` : ""}:</strong> {cur.note}</div>}
+            {cur.answer && <div class="card card--tint small"><strong>Answer from {cur.who}:</strong> {cur.answer}</div>}
+            {cur.status === "submitted" && (ops.isMine(cur)
               ? <p class="small field__error">Your own claim: another approver has to approve it (four-eyes rule).</p>
               : !canApprove
               ? <p class="small muted">Only the head of Finance & Legal or the presidents of {city} can approve this claim.</p>
               : <>
                   <textarea class="input" style="min-height:54px" placeholder="Question or reason (for “Ask” and “Reject”)" value={question} onInput={e => setQuestion(e.currentTarget.value)} />
                   <div class="row">
-                    <button class="btn btn--ghost btn--sm" disabled={!question.trim()} onClick={() => { set(cur.id, { status: "rejected", note: question }); setQuestion(""); setSel(nextOpen(cur.id)); toast("Rejected, the member gets an email"); }}>Reject</button>
+                    <button class="btn btn--ghost btn--sm" disabled={!question.trim()} onClick={() => decide(cur, "reject")}>Reject</button>
                     <span class="spacer" />
-                    <button class="btn btn--secondary btn--sm" disabled={!question.trim()} onClick={() => { set(cur.id, { status: "question", note: question }); setQuestion(""); setSel(nextOpen(cur.id)); toast("Question sent to the member"); }}>Ask</button>
-                    <button class="btn btn--primary btn--sm" onClick={() => { set(cur.id, { status: "approved" }); setSel(nextOpen(cur.id)); toast("Approved"); }}><IconCheck width={16} />Approve</button>
+                    <button class="btn btn--secondary btn--sm" disabled={!question.trim()} onClick={() => decide(cur, "question")}>Ask</button>
+                    <button class="btn btn--primary btn--sm" onClick={() => decide(cur, "approve")}><IconCheck width={16} />Approve</button>
                   </div>
                 </>)}
           </>}
@@ -526,8 +634,12 @@ function Inbox({ me, memberId, city, claims, setClaims, setTxs }: {
         {toPay.length > 0 && (
           <div class="row" style="padding:12px 20px 18px">
             <span class="small" style="flex:1">{toPay.length} selected · <strong>{money(toPay.reduce((s, c) => s + c.amount, 0))}</strong></span>
-            <button class="btn btn--secondary btn--sm" onClick={sepa}><IconDownload width={16} />SEPA file</button>
-            <button class="btn btn--primary btn--sm" onClick={markPaid}>Mark as paid</button>
+            {ops.real && (
+              <input class="input input--sm mono" style="max-width:260px" placeholder={`IBAN of the OneAIM ${city} account`} aria-label={`IBAN of the OneAIM ${city} account`}
+                value={debtorIban} onInput={e => setDebtorIban(e.currentTarget.value)} title="The account the money is paid from (filled in when the bank account is connected)" />
+            )}
+            <button class="btn btn--secondary btn--sm" disabled={!sepaReady} title={sepaReady ? "" : "Enter the IBAN of the city's account first"} onClick={sepa}><IconDownload width={16} />SEPA file</button>
+            <button class="btn btn--primary btn--sm" disabled={!canApprove} onClick={markPaid}>Mark as paid</button>
           </div>
         )}
       </section>
@@ -535,18 +647,18 @@ function Inbox({ me, memberId, city, claims, setClaims, setTxs }: {
   );
 }
 
-/** SEPA credit transfer file (pain.001) for online banking – mockup values for the debtor account */
-function sepaXml(list: Claim[]) {
+/** SEPA credit transfer file (pain.001) for online banking, paid from the city's account */
+function sepaXml(list: Claim[], debtor: { name: string; iban: string }) {
   const now = new Date().toISOString().slice(0, 19);
   const total = list.reduce((s, c) => s + c.amount, 0).toFixed(2);
   const esc = (s: string) => s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]!)).slice(0, 140);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
   <CstmrCdtTrfInitn>
-    <GrpHdr><MsgId>ONEAIM-${Date.now()}</MsgId><CreDtTm>${now}</CreDtTm><NbOfTxs>${list.length}</NbOfTxs><CtrlSum>${total}</CtrlSum><InitgPty><Nm>OneAIM (MOCKUP)</Nm></InitgPty></GrpHdr>
+    <GrpHdr><MsgId>ONEAIM-${Date.now()}</MsgId><CreDtTm>${now}</CreDtTm><NbOfTxs>${list.length}</NbOfTxs><CtrlSum>${total}</CtrlSum><InitgPty><Nm>${esc(debtor.name)}</Nm></InitgPty></GrpHdr>
     <PmtInf><PmtInfId>REIMB-${Date.now()}</PmtInfId><PmtMtd>TRF</PmtMtd><NbOfTxs>${list.length}</NbOfTxs><CtrlSum>${total}</CtrlSum>
-      <ReqdExctnDt>${now.slice(0, 10)}</ReqdExctnDt><Dbtr><Nm>OneAIM (MOCKUP)</Nm></Dbtr><DbtrAcct><Id><IBAN>DE00000000000000000000</IBAN></Id></DbtrAcct><DbtrAgt><FinInstnId><Othr><Id>NOTPROVIDED</Id></Othr></FinInstnId></DbtrAgt>
-${list.map(c => `      <CdtTrfTxInf><PmtId><EndToEndId>${c.id}</EndToEndId></PmtId><Amt><InstdAmt Ccy="EUR">${c.amount.toFixed(2)}</InstdAmt></Amt><Cdtr><Nm>${esc(c.who)}</Nm></Cdtr><CdtrAcct><Id><IBAN>${c.iban}</IBAN></Id></CdtrAcct><RmtInf><Ustrd>${esc(`Auslagenerstattung ${c.what}`)}</Ustrd></RmtInf></CdtTrfTxInf>`).join("\n")}
+      <ReqdExctnDt>${now.slice(0, 10)}</ReqdExctnDt><Dbtr><Nm>${esc(debtor.name)}</Nm></Dbtr><DbtrAcct><Id><IBAN>${debtor.iban}</IBAN></Id></DbtrAcct><DbtrAgt><FinInstnId><Othr><Id>NOTPROVIDED</Id></Othr></FinInstnId></DbtrAgt>
+${list.map(c => `      <CdtTrfTxInf><PmtId><EndToEndId>${c.id}</EndToEndId></PmtId><Amt><InstdAmt Ccy="EUR">${c.amount.toFixed(2)}</InstdAmt></Amt><Cdtr><Nm>${esc(c.holder ?? c.who)}</Nm></Cdtr><CdtrAcct><Id><IBAN>${c.iban}</IBAN></Id></CdtrAcct><RmtInf><Ustrd>${esc(`Auslagenerstattung ${c.what}`)}</Ustrd></RmtInf></CdtTrfTxInf>`).join("\n")}
     </PmtInf>
   </CstmrCdtTrfInitn>
 </Document>

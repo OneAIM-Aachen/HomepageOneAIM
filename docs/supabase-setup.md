@@ -24,6 +24,7 @@ The database lives in `supabase/migrations/`:
 | `20261030200000_feedback_rounds.sql` | Several feedbacks per application (`feedback_forms`: name, form copy, email text, send time), answers in `feedback_responses`, `email_log.feedback_id`; only accepted / confirmed participants get the link `/apply/feedback?t=<token>&f=<feedback id>` |
 | `20261114100000_bank_connections.sql` | Bank access per city (Enable Banking, read-only): provider keys (`bank_settings`, service role only), connection and transactions per city, `is_finance()` (presidents, co-presidents, Finance & Legal lead of the city), pg_cron job `bank-sync` 4× a day → edge function `bank` |
 | `20261114120000_member_bank_accounts.sql` | Saved IBANs of team members for reimbursements: visible to the member and the finance people of their city |
+| `20261114140000_claims.sql` (+ `…150000`, `…160000`) | Reimbursement claims: members submit with a receipt (private bucket `finance-receipts`, folder per city: `<city>/<member>/<uuid>/<file>`); finance of the city approves / asks / rejects (`claim_decide`, never their own claim) and marks paid; members delete until approved. No emails |
 
 ## Who can do what
 
