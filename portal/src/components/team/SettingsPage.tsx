@@ -7,6 +7,7 @@ import {
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, confirmDialog, Field } from "../ui/Ui";
 import { IconX } from "../ui/Icons";
+import { ListPicker, type PickerOption } from "../apply/ListPicker";
 
 export default function SettingsPage() {
   return <TeamShell active="settings">{acc => <Settings acc={acc} />}</TeamShell>;
@@ -158,7 +159,9 @@ function EmailSection() {
  * Systems"; field / sector required), merge it into an existing entry, or
  * deny it (removed from the profiles, the entry is then empty there).
  */
-function UnlistedRow({ kind, value, n, options, groups }: { kind: ListKind; value: string; n: number; options: string[]; groups: string[] }) {
+function UnlistedRow({ kind, value, n, options, pickerOptions, groups }: {
+  kind: ListKind; value: string; n: number; options: string[]; pickerOptions: PickerOption[]; groups: string[];
+}) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState(value);
   const [group, setGroup] = useState("");
@@ -181,16 +184,16 @@ function UnlistedRow({ kind, value, n, options, groups }: { kind: ListKind; valu
         <span><strong style="color:var(--color-text-heading)">{value}</strong> <span class="muted small">· {people}</span></span>
         <span class="row" style="gap:6px">
           <button class="btn btn--secondary btn--sm" aria-expanded={creating} onClick={() => { setCreating(!creating); setName(value); }}>New entry…</button>
-          <select class="input input--sm" style="width:auto;max-width:220px" aria-label={`Merge ${value} into`} value=""
-            onChange={async e => {
-              const to = e.currentTarget.value;
-              if (to && await confirmDialog({ title: "Merge entry?", confirmLabel: "Merge",
-                message: `Replace “${value}” with “${to}” for ${people}?` }))
-                act(() => mergeProfileValue(kind, value, to), k => `Merged for ${k} ${k === 1 ? "person" : "people"}`);
-            }}>
-            <option value="">Merge into…</option>
-            {options.map(o => <option>{o}</option>)}
-          </select>
+          <div style="width:230px">
+            <ListPicker small allowOther={false} label={`Merge ${value} into`} placeholder="Merge into… (type to search)"
+              options={pickerOptions} value={[]}
+              onChange={async v => {
+                const to = v[v.length - 1];
+                if (to && await confirmDialog({ title: "Merge entry?", confirmLabel: "Merge",
+                  message: `Replace “${value}” with “${to}” for ${people}?` }))
+                  act(() => mergeProfileValue(kind, value, to), k => `Merged for ${k} ${k === 1 ? "person" : "people"}`);
+              }} />
+          </div>
           <button class="btn btn--ghost btn--sm" onClick={async () => {
             if (await confirmDialog({ title: "Deny entry?", danger: true, confirmLabel: "Deny",
               message: `Remove “${value}” from the profile of ${people}? Their other entries stay; the original application answers aren't changed.` }))
@@ -273,11 +276,17 @@ function ProfileLists() {
   const Unlisted = ({ kind }: { kind: ListKind }) => {
     const rows = unlisted(kind);
     const options = listOf(kind).map(x => x.name).sort();
+    // For "Merge into…": search by name, abbreviation, country / field
+    const pickerOptions: PickerOption[] = kind === "university"
+      ? s.universities.map(u => ({ name: u.name, hint: u.country ?? u.city, terms: u.aliases }))
+      : kind === "company"
+      ? s.companies.map(c => ({ name: c.name, hint: c.category, terms: c.aliases }))
+      : s.studyPrograms.map(p => ({ name: p.name, hint: p.category }));
     if (!rows.length) return <p class="muted small">Nothing entered via “Other” yet.</p>;
     return (
       <div class="stack-s">
         {rows.map(([value, n]) => (
-          <UnlistedRow kind={kind} value={value} n={n} options={options}
+          <UnlistedRow kind={kind} value={value} n={n} options={options} pickerOptions={pickerOptions}
             groups={kind === "company" ? coCategories : kind === "studyProgram" ? categories : []} />
         ))}
       </div>
