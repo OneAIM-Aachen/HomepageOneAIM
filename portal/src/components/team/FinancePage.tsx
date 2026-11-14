@@ -226,11 +226,25 @@ function MyClaims({ me, city, claims, setClaims }: { me: string; city: string; c
               <div><dt>To account</dt><dd>{maskIban(opened.iban)}</dd></div>
             </dl>
           </div>
-          {opened.status === "question" && (
-            <div class="row" style="justify-content:flex-end">
+          <div class="row">
+            {opened.status === "submitted" || opened.status === "question" ? (
+              <button class="btn btn--ghost btn--sm" onClick={async () => {
+                if (!(await confirmDialog({ title: "Delete claim?", danger: true, confirmLabel: "Delete claim",
+                  message: `Delete “${opened.what}” (${money(opened.amount)})? It hasn't been approved yet, so nothing else changes.` }))) return;
+                setClaims(l => l.filter(c => c.id !== opened.id)); setOpen(null); toast("Claim deleted");
+              }}>Delete claim</button>
+            ) : (
+              <span class="muted small" style="flex:1">
+                {opened.status === "approved" ? "Approved claims can't be deleted any more. Ask the approver to reject it if it's wrong."
+                  : opened.status === "paid" ? "Paid claims stay in the books (needed for the tax return)."
+                  : "Rejected claims are kept for the records."}
+              </span>
+            )}
+            <span class="spacer" />
+            {opened.status === "question" && (
               <button class="btn btn--primary" onClick={() => { setClaims(l => l.map(c => c.id === opened.id ? { ...c, status: "submitted", note: undefined } : c)); setOpen(null); toast("Answer sent"); }}>Answer & resubmit</button>
-            </div>
-          )}
+            )}
+          </div>
         </Modal>
       )}
     </div>
