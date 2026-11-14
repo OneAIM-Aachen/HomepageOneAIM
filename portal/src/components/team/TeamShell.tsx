@@ -9,10 +9,10 @@ import { fmtDate, setSimDate, simDate } from "../../lib/fields";
 import { Avatar, ConfirmHost, Modal, Toaster, toast } from "../ui/Ui";
 import { MemberDrawer } from "./MemberDrawer";
 import {
-  IconApps, IconBlueprint, IconChart, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconBoard, IconCrm, IconSettings, IconTeam,
+  IconApps, IconBlueprint, IconChart, IconEuro, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconBoard, IconCrm, IconSettings, IconTeam,
 } from "../ui/Icons";
 
-export type NavKey = "overview" | "applications" | "blueprints" | "crm" | "board" | "insights" | "outbox" | "team" | "settings";
+export type NavKey = "overview" | "applications" | "blueprints" | "crm" | "board" | "insights" | "outbox" | "finance" | "team" | "settings";
 
 const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[] = [
   { key: "overview", label: "Overview", href: "/team", Icon: IconHome },
@@ -22,6 +22,7 @@ const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[]
   { key: "board", label: "Board", href: "/team/board", Icon: IconBoard },
   { key: "insights", label: "Insights", href: "/team/insights", Icon: IconChart },
   { key: "outbox", label: "Emails", href: "/team/outbox", Icon: IconMail },
+  { key: "finance", label: "Finance", href: "/team/finance", Icon: IconEuro },
 ];
 const NAV2: typeof NAV = [
   { key: "team", label: "Team overview", href: "/team/team", Icon: IconTeam },
