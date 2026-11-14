@@ -186,8 +186,10 @@ function UnlistedRow({ kind, value, n, options, pickerOptions, groups }: {
 }) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState(value);
-  const [group, setGroup] = useState("");
-  const add = (entry: string, grp: string) => kind === "university" ? addUniversity(entry, grp) : kind === "company" ? addCompany(entry, grp) : addStudyProgram(entry, grp);
+  const [group, setGroup] = useState("");      // field / sector; for universities: the country
+  const [city, setCity] = useState("");
+  const add = (entry: string, grp: string) => kind === "university" ? addUniversity(entry, city, grp) : kind === "company" ? addCompany(entry, grp) : addStudyProgram(entry, grp);
+  const missing = kind === "university" ? !city.trim() || !group.trim() : !group.trim();
   const people = `${n} ${n === 1 ? "person" : "people"}`;
   const exists = options.some(o => o.toLowerCase() === name.trim().toLowerCase());
   const create = async () => {
@@ -226,11 +228,10 @@ function UnlistedRow({ kind, value, n, options, pickerOptions, groups }: {
       {creating && (
         <form class="row" style="flex-wrap:nowrap;gap:6px" onSubmit={e => { e.preventDefault(); create(); }}>
           <input class="input input--sm" value={name} onInput={e => setName(e.currentTarget.value)} aria-label="Name of the new entry" autoFocus />
-          {kind === "university"
-            ? <input class="input input--sm" style="max-width:130px" placeholder="City (optional)" value={group} onInput={e => setGroup(e.currentTarget.value)} aria-label="City" />
-            : <GroupSelect label={kind === "company" ? "Sector" : "Field"} groups={groups} value={group} onChange={setGroup} />}
-          <button class="btn btn--primary btn--sm" disabled={!name.trim() || (!exists && kind !== "university" && !group.trim())}
-            title={exists ? "This entry exists already: the value is merged into it" : kind !== "university" && !group.trim() ? `Choose a ${kind === "company" ? "sector" : "field"} first` : ""}>
+          {kind === "university" && <input class="input input--sm" style="max-width:120px" placeholder="City" value={city} onInput={e => setCity(e.currentTarget.value)} aria-label="City" />}
+          <GroupSelect label={kind === "company" ? "Sector" : kind === "university" ? "Country" : "Field"} groups={groups} value={group} onChange={setGroup} />
+          <button class="btn btn--primary btn--sm" disabled={!name.trim() || (!exists && missing)}
+            title={exists ? "This entry exists already: the value is merged into it" : missing ? (kind === "university" ? "City and country are required" : `Choose a ${kind === "company" ? "sector" : "field"} first`) : ""}>
             {exists ? "Use existing" : "Create & use"}
           </button>
         </form>
@@ -246,6 +247,7 @@ function ProfileLists() {
   const s = useStore(x => x);
   const [uniName, setUniName] = useState("");
   const [uniCity, setUniCity] = useState("");
+  const [uniCountry, setUniCountry] = useState("");
   const [progName, setProgName] = useState("");
   const [progCat, setProgCat] = useState("");
   const [qU, setQU] = useState("");
@@ -255,6 +257,7 @@ function ProfileLists() {
   const [coCat, setCoCat] = useState("");
   const coCategories = [...new Set(s.companies.map(c => c.category))].sort();
   const categories = [...new Set(s.studyPrograms.map(p => p.category))].sort();
+  const countries = [...new Set(s.universities.map(u => u.country).filter((c): c is string => !!c))].sort();
 
   // Values entered via "Other" that aren't in the lists yet, with how many people use them
   const listOf = (kind: ListKind) => (kind === "university" ? s.universities : kind === "company" ? s.companies : s.studyPrograms);
@@ -305,7 +308,7 @@ function ProfileLists() {
       <div class="stack-s">
         {rows.map(([value, n]) => (
           <UnlistedRow kind={kind} value={value} n={n} options={options} pickerOptions={pickerOptions}
-            groups={kind === "company" ? coCategories : kind === "studyProgram" ? categories : []} />
+            groups={kind === "company" ? coCategories : kind === "studyProgram" ? categories : countries} />
         ))}
       </div>
     );
@@ -330,10 +333,11 @@ function ProfileLists() {
               </div>
             ))}
           </div>
-          <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addUniversity(uniName, uniCity), `Added ${uniName}`).then(() => { setUniName(""); setUniCity(""); }); }}>
+          <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addUniversity(uniName, uniCity, uniCountry), `Added ${uniName}`).then(() => { setUniName(""); setUniCity(""); }); }}>
             <input class="input input--sm" placeholder="New university" value={uniName} onInput={e => setUniName(e.currentTarget.value)} aria-label="New university" />
-            <input class="input input--sm" style="max-width:120px" placeholder="City (optional)" value={uniCity} onInput={e => setUniCity(e.currentTarget.value)} aria-label="City" />
-            <button class="btn btn--secondary btn--sm" disabled={!uniName.trim()}>Add</button>
+            <input class="input input--sm" style="max-width:110px" placeholder="City" value={uniCity} onInput={e => setUniCity(e.currentTarget.value)} aria-label="City" />
+            <GroupSelect label="Country" groups={countries} value={uniCountry} onChange={setUniCountry} />
+            <button class="btn btn--secondary btn--sm" disabled={!uniName.trim() || !uniCity.trim() || !uniCountry.trim()} title={uniCity.trim() && uniCountry.trim() ? "" : "City and country are required"}>Add</button>
           </form>
           <h3 style="margin-top:10px">Entered via “Other”</h3>
           <Unlisted kind="university" />

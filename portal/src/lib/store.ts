@@ -911,9 +911,9 @@ export async function fetchFormOptions(): Promise<FormOptions> {
   return data as FormOptions;
 }
 
-export async function addUniversity(name: string, city?: string) {
+export async function addUniversity(name: string, city?: string, country?: string) {
   if (!name.trim()) return;
-  check(await supabase.from("universities").insert({ name: name.trim(), city: city?.trim() || null }));
+  check(await supabase.from("universities").insert({ name: name.trim(), city: city?.trim() || null, country: country?.trim() || null }));
   await loadAll();
 }
 
