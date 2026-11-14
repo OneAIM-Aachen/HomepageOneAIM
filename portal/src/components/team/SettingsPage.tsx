@@ -153,6 +153,28 @@ function EmailSection() {
 
 // ── University & study program lists ─────────────────────────────────────
 
+/** Field (study programs) or sector (companies): pick an existing one, or type a new one */
+function GroupSelect({ label, groups, value, onChange }: { label: string; groups: string[]; value: string; onChange: (v: string) => void }) {
+  const [custom, setCustom] = useState(false);
+  if (custom) {
+    return (
+      <span class="row" style="gap:4px;flex-wrap:nowrap;max-width:210px">
+        <input class="input input--sm" placeholder={`New ${label.toLowerCase()}`} value={value} onInput={e => onChange(e.currentTarget.value)} aria-label={`New ${label.toLowerCase()}`} autoFocus />
+        <button type="button" class="icon-btn" aria-label={`Choose an existing ${label.toLowerCase()}`} title={`Choose an existing ${label.toLowerCase()}`}
+          onClick={() => { setCustom(false); onChange(""); }}><IconX /></button>
+      </span>
+    );
+  }
+  return (
+    <select class="input input--sm" style="max-width:190px" value={value} aria-label={label}
+      onChange={e => { const v = e.currentTarget.value; if (v === "__new") { setCustom(true); onChange(""); } else onChange(v); }}>
+      <option value="">{label}…</option>
+      {groups.map(g => <option value={g}>{g}</option>)}
+      <option value="__new">+ New {label.toLowerCase()}…</option>
+    </select>
+  );
+}
+
 /**
  * One value entered via "Other": create a list entry from it (name can be
  * cleaned up, e.g. "Information Systems is close to CS" → "Information
@@ -206,11 +228,7 @@ function UnlistedRow({ kind, value, n, options, pickerOptions, groups }: {
           <input class="input input--sm" value={name} onInput={e => setName(e.currentTarget.value)} aria-label="Name of the new entry" autoFocus />
           {kind === "university"
             ? <input class="input input--sm" style="max-width:130px" placeholder="City (optional)" value={group} onInput={e => setGroup(e.currentTarget.value)} aria-label="City" />
-            : <>
-                <input class="input input--sm" style="max-width:170px" list={`groups-${kind}`} placeholder={kind === "company" ? "Sector" : "Field"} value={group}
-                  onInput={e => setGroup(e.currentTarget.value)} aria-label={kind === "company" ? "Sector" : "Field"} />
-                <datalist id={`groups-${kind}`}>{groups.map(g => <option value={g} />)}</datalist>
-              </>}
+            : <GroupSelect label={kind === "company" ? "Sector" : "Field"} groups={groups} value={group} onChange={setGroup} />}
           <button class="btn btn--primary btn--sm" disabled={!name.trim() || (!exists && kind !== "university" && !group.trim())}
             title={exists ? "This entry exists already: the value is merged into it" : kind !== "university" && !group.trim() ? `Choose a ${kind === "company" ? "sector" : "field"} first` : ""}>
             {exists ? "Use existing" : "Create & use"}
@@ -343,8 +361,7 @@ function ProfileLists() {
           </div>
           <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addStudyProgram(progName, progCat), `Added ${progName}`).then(() => setProgName("")); }}>
             <input class="input input--sm" placeholder="New study program" value={progName} onInput={e => setProgName(e.currentTarget.value)} aria-label="New study program" />
-            <input class="input input--sm" style="max-width:170px" list="prog-cats" placeholder="Field" value={progCat} onInput={e => setProgCat(e.currentTarget.value)} aria-label="Field" />
-            <datalist id="prog-cats">{categories.map(c => <option value={c} />)}</datalist>
+            <GroupSelect label="Field" groups={categories} value={progCat} onChange={setProgCat} />
             <button class="btn btn--secondary btn--sm" disabled={!progName.trim() || !progCat.trim()} title={progCat.trim() ? "" : "Choose a field first"}>Add</button>
           </form>
           <h3 style="margin-top:10px">Entered via “Other”</h3>
@@ -375,8 +392,7 @@ function ProfileLists() {
         </div>
         <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addCompany(coName, coCat), `Added ${coName}`).then(() => setCoName("")); }}>
           <input class="input input--sm" placeholder="New company" value={coName} onInput={e => setCoName(e.currentTarget.value)} aria-label="New company" />
-          <input class="input input--sm" style="max-width:190px" list="co-cats" placeholder="Sector" value={coCat} onInput={e => setCoCat(e.currentTarget.value)} aria-label="Sector" />
-          <datalist id="co-cats">{coCategories.map(c => <option value={c} />)}</datalist>
+          <GroupSelect label="Sector" groups={coCategories} value={coCat} onChange={setCoCat} />
           <button class="btn btn--secondary btn--sm" disabled={!coName.trim() || !coCat.trim()} title={coCat.trim() ? "" : "Choose a sector first"}>Add</button>
         </form>
         <h3 style="margin-top:10px">Entered via “Other”</h3>
