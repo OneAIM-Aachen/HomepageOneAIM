@@ -451,11 +451,11 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
   return (
     <div class="stack">
       <div class="row">
-        <span class="spacer" />
-        <button class="btn btn--secondary btn--sm" onClick={() => toast("Here you'd pick the CSV export of the bank statement; new transactions are added and matched with claims (mockup).")}>Import bank statement (CSV)</button>
+        <span class="chip chip--green">● Connected to the bank</span>
+        <span class="muted small" style="flex:1">Transactions come in automatically through the bank's interface (API), several times a day, and are matched with claims. Last sync today, 06:00.</span>
       </div>
       <div class="stats">
-        <div class="card stat"><span class="stat__num">{money(balance)}</span><span class="stat__label">Balance</span><span class="muted small">OneAIM {city} account · last import 13 Nov</span></div>
+        <div class="card stat"><span class="stat__num">{money(balance)}</span><span class="stat__label">Balance</span><span class="muted small">OneAIM {city} account · synced today, 06:00</span></div>
         <div class="card stat"><span class="stat__num">{list.filter(needsReceipt).length}</span><span class="stat__label">Payments without receipt</span><span class="muted small">card payments, transfers, debits</span></div>
         <div class="card stat"><span class="stat__num">{list.filter(needsCategory).length}</span><span class="stat__label">Not categorized</span><span class="muted small">needed for the tax return</span></div>
       </div>
