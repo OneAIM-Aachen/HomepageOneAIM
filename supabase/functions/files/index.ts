@@ -17,6 +17,8 @@
 //   → {path, url} otherwise: PUT the file to url within 10 minutes, then save path
 // • download {path}                                     (who may: SQL can_read_file) → {url} valid 5 minutes
 // • delete {path}                                       (who may: SQL can_delete_file)
+// • simplify_receipts                                    (finance, one-time) moves receipts from
+//   receipts/<city>/<member>/<random>/<file> to receipts/<city>/<file>
 // • migrate {limit?}                                    (finance) copies files from Supabase Storage
 //   to R2, updates their locations, removes the originals; call again until remaining = 0
 
@@ -72,6 +74,11 @@ class R2 {
     const res = await this.aws.fetch(new Request(this.url(key), { method: "PUT", body, headers: { "Content-Type": type || "application/octet-stream" } }));
     if (!res.ok) throw new Error(`R2 upload ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
+  async get(key: string): Promise<Blob> {
+    const res = await this.aws.fetch(new Request(this.url(key), { method: "GET" }));
+    if (!res.ok) throw new Error(`R2 download ${res.status}`);
+    return await res.blob();
+  }
   async size(key: string): Promise<number | null> {
     const res = await this.aws.fetch(new Request(this.url(key), { method: "HEAD" }));
     return res.ok ? Number(res.headers.get("content-length")) : null;
@@ -83,6 +90,19 @@ class R2 {
 }
 
 const keyOf = (path: string) => path.replace(/^r2:/, "");
+
+/** receipts/<city>/<file name>; adds -2, -3, … before the extension while the name is taken */
+async function freeReceiptKey(db: SupabaseClient, r2: R2, location: string, fileName: string): Promise<string> {
+  const name = safeName(fileName);
+  const dot = name.lastIndexOf(".");
+  const [base, ext] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""];
+  for (let i = 1; i < 1000; i++) {
+    const key = `receipts/${location}/${i === 1 ? base : `${base}-${i}`}${ext}`;
+    const { data: taken } = await db.from("file_uploads").select("path").eq("path", `r2:${key}`).maybeSingle();
+    if (!taken && (await r2.size(key)) === null) return key;
+  }
+  return `receipts/${location}/${base}-${crypto.randomUUID().slice(0, 8)}${ext}`;
+}
 
 // ── Moving files from Supabase Storage to R2 ─────────────────────────────
 
@@ -148,7 +168,9 @@ async function migrate(db: SupabaseClient, r2: R2, limit: number) {
   // Claim receipts: <city>/<member>/… → receipts/<city>/<member>/…
   const { data: claims } = await db.from("claims").select("id, receipt_path").not("receipt_path", "like", "r2:%");
   for (const c of claims ?? []) {
-    const to = await copy("finance-receipts", c.receipt_path, `receipts/${c.receipt_path}`);
+    const key = await freeReceiptKey(db, r2, c.receipt_path.split("/")[0], c.receipt_path.split("/").pop() ?? "receipt");
+    const to = await copy("finance-receipts", c.receipt_path, key);
+    if (to) await db.from("file_uploads").insert({ path: to, member_id: null, location_id: c.receipt_path.split("/")[0] });
     if (to) {
       const { error } = await db.from("claims").update({ receipt_path: to }).eq("id", c.id);
       if (error) throw new Error(error.message);
@@ -194,7 +216,13 @@ Deno.serve(async req => {
         const location = String(input.location_id ?? "");
         const { data: loc } = await db.from("locations").select("id").eq("id", location).maybeSingle();
         if (!member || !loc) return json({ error: "not_allowed" }, 403);
-        key = `receipts/${location}/${member}/${crypto.randomUUID()}/${safeName(String(input.file_name ?? ""))}`;
+        const r2 = await R2.from(db);
+        if (!r2) return json({ provider: "supabase" });
+        // receipts/<city>/<file name>, with -2, -3, … if the name is taken; the uploader is recorded in file_uploads
+        key = await freeReceiptKey(db, r2, location, String(input.file_name ?? ""));
+        const { error } = await db.from("file_uploads").insert({ path: `r2:${key}`, member_id: member, location_id: location });
+        if (error) throw new Error(error.message);
+        return json({ path: `r2:${key}`, url: await r2.signed("PUT", key, 600) });
       }
       const r2 = await R2.from(db);
       if (!r2) return json({ provider: "supabase" });
@@ -214,6 +242,7 @@ Deno.serve(async req => {
       if (!path.startsWith("r2:") || (await rpc("can_delete_file", { p_path: path })) !== true) return json({ error: "not_allowed" }, 403);
       const r2 = await R2.from(db);
       if (r2) await r2.remove(keyOf(path));
+      await db.from("file_uploads").delete().eq("path", path);
       return json({ ok: true });
     }
 
@@ -238,6 +267,27 @@ Deno.serve(async req => {
         return json({ ok: false, error: errText(e) });
       }
       return json({ ok: true });
+    }
+
+    if (action === "simplify_receipts") {
+      const r2 = await R2.from(db);
+      if (!r2) return json({ error: "storage_not_configured" }, 409);
+      const { data: claims } = await db.from("claims").select("id, member_id, location_id, receipt_path").like("receipt_path", "r2:receipts/%");
+      const old = (claims ?? []).filter(c => /^r2:receipts\/[^/]+\/[0-9a-f-]{36}\//.test(c.receipt_path));
+      let moved = 0;
+      for (const c of old) {
+        const from = keyOf(c.receipt_path);
+        const res = await r2.get(from);
+        const to = await freeReceiptKey(db, r2, c.location_id, from.split("/").pop()!);
+        await r2.put(to, res, res.type);
+        if ((await r2.size(to)) !== res.size) throw new Error(`copy check failed for ${from}`);
+        await db.from("file_uploads").insert({ path: `r2:${to}`, member_id: c.member_id, location_id: c.location_id });
+        const { error } = await db.from("claims").update({ receipt_path: `r2:${to}` }).eq("id", c.id);
+        if (error) throw new Error(error.message);
+        await r2.remove(from);
+        moved++;
+      }
+      return json({ moved });
     }
 
     if (action === "migrate") {

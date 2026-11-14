@@ -938,6 +938,13 @@ export async function removeListEntry(kind: ListKind, id: string) {
 }
 
 /** Replaces a free-text value ("Other") with a list entry for everyone who entered it. */
+/** "Deny": removes a value entered via "Other" from every profile that has it */
+export async function removeProfileValue(kind: ListKind, value: string): Promise<number> {
+  const n = check(await supabase.rpc("remove_profile_value", { p_kind: kind, p_value: value })) as number;
+  await loadAll();
+  return n;
+}
+
 export async function mergeProfileValue(kind: ListKind, from: string, to: string): Promise<number> {
   const n = check(await supabase.rpc("merge_profile_value", { p_kind: kind, p_from: from, p_to: to })) as number;
   await loadAll();

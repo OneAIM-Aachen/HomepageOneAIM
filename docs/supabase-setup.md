@@ -25,7 +25,8 @@ The database lives in `supabase/migrations/`:
 | `20261114100000_bank_connections.sql` | Bank access per city (Enable Banking, read-only): provider keys as Supabase secrets (see “Secrets” below), connection and transactions per city, `is_finance()` (presidents, co-presidents, Finance & Legal lead of the city), pg_cron job `bank-sync` 4× a day → edge function `bank` |
 | `20261114120000_member_bank_accounts.sql` | Saved IBANs of team members for reimbursements: visible to the member and the finance people of their city |
 | `20261114140000_claims.sql` (+ `…150000`, `…160000`) | Reimbursement claims: members submit with a receipt (private bucket `finance-receipts`, folder per city: `<city>/<member>/<uuid>/<file>`); finance of the city approves / asks / rejects (`claim_decide`, never their own claim) and marks paid; members delete until approved. No emails |
-| `20261114170000_r2_files.sql` | Files on Cloudflare R2: keys as Supabase secrets (see “Secrets” below), `can_read_file` / `can_delete_file`; stored locations `r2:uploads/<application>/…` and `r2:receipts/<city>/<member>/…`; edge function `files` signs upload/download links and moves existing files from Supabase Storage |
+| `20261114170000_r2_files.sql` | Files on Cloudflare R2: keys as Supabase secrets (see “Secrets” below), `can_read_file` / `can_delete_file`; stored locations `r2:uploads/<application>/…` and `r2:receipts/<city>/<file name>` (uploader in `file_uploads`, `-2`, `-3` … when a name exists; `20261115100000_simple_receipt_paths.sql`); edge function `files` signs upload/download links and moves existing files from Supabase Storage |
+| `20261115110000_remove_profile_value.sql` | “Deny” for values entered via “Other” (Settings → lists): removes the value from all profiles |
 
 ## Who can do what
 

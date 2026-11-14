@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import {
-  addCompany, addStudyProgram, addTag, addUniversity, changePassword, loadEmailSettings, mergeProfileValue, removeListEntry, removeTag,
+  addCompany, addStudyProgram, addTag, addUniversity, changePassword, loadEmailSettings, mergeProfileValue, removeListEntry, removeProfileValue, removeTag,
   saveEmailSettings, sendQueuedNow, useStore, type EmailSettings, type ListKind, type TagListKey,
 } from "../../lib/store";
 import { TeamShell, PageHead } from "./TeamShell";
@@ -153,9 +153,10 @@ function EmailSection() {
 // ── University & study program lists ─────────────────────────────────────
 
 /**
- * One value entered via "Other": add it to the list as it is, merge it into an
- * existing entry, or create a new entry with a cleaned-up name (e.g.
- * "Information Systems is close to CS" → "Information Systems") and use that.
+ * One value entered via "Other": create a list entry from it (name can be
+ * cleaned up, e.g. "Information Systems is close to CS" → "Information
+ * Systems"; field / sector required), merge it into an existing entry, or
+ * deny it (removed from the profiles, the entry is then empty there).
  */
 function UnlistedRow({ kind, value, n, options, groups }: { kind: ListKind; value: string; n: number; options: string[]; groups: string[] }) {
   const [creating, setCreating] = useState(false);
@@ -179,7 +180,6 @@ function UnlistedRow({ kind, value, n, options, groups }: { kind: ListKind; valu
       <div class="row" style="justify-content:space-between;gap:8px">
         <span><strong style="color:var(--color-text-heading)">{value}</strong> <span class="muted small">· {people}</span></span>
         <span class="row" style="gap:6px">
-          <button class="btn btn--secondary btn--sm" onClick={() => act(() => add(value, kind === "university" ? "" : "Other"), `Added ${value} to the list`)}>Add to list</button>
           <button class="btn btn--secondary btn--sm" aria-expanded={creating} onClick={() => { setCreating(!creating); setName(value); }}>New entry…</button>
           <select class="input input--sm" style="width:auto;max-width:220px" aria-label={`Merge ${value} into`} value=""
             onChange={async e => {
@@ -191,6 +191,11 @@ function UnlistedRow({ kind, value, n, options, groups }: { kind: ListKind; valu
             <option value="">Merge into…</option>
             {options.map(o => <option>{o}</option>)}
           </select>
+          <button class="btn btn--ghost btn--sm" onClick={async () => {
+            if (await confirmDialog({ title: "Deny entry?", danger: true, confirmLabel: "Deny",
+              message: `Remove “${value}” from the profile of ${people}? Their other entries stay; the original application answers aren't changed.` }))
+              act(() => removeProfileValue(kind, value), k => `Removed “${value}” from ${k} ${k === 1 ? "profile" : "profiles"}`);
+          }}>Deny</button>
         </span>
       </div>
       {creating && (
@@ -203,7 +208,8 @@ function UnlistedRow({ kind, value, n, options, groups }: { kind: ListKind; valu
                   onInput={e => setGroup(e.currentTarget.value)} aria-label={kind === "company" ? "Sector" : "Field"} />
                 <datalist id={`groups-${kind}`}>{groups.map(g => <option value={g} />)}</datalist>
               </>}
-          <button class="btn btn--primary btn--sm" disabled={!name.trim()} title={exists ? "This entry exists already: the value is merged into it" : ""}>
+          <button class="btn btn--primary btn--sm" disabled={!name.trim() || (!exists && kind !== "university" && !group.trim())}
+            title={exists ? "This entry exists already: the value is merged into it" : kind !== "university" && !group.trim() ? `Choose a ${kind === "company" ? "sector" : "field"} first` : ""}>
             {exists ? "Use existing" : "Create & use"}
           </button>
         </form>
@@ -282,7 +288,7 @@ function ProfileLists() {
     <section class="stack">
       <div class="stack-s">
         <h2>Universities, study programs & companies</h2>
-        <p class="muted small">The choices for “University affiliations”, “Study program(s)” and “Company affiliations” in every form. Applicants can pick several, or “Other (please specify)”; those entries appear below and can be added or merged.</p>
+        <p class="muted small">The choices for “University affiliations”, “Study program(s)” and “Company affiliations” in every form. Applicants can pick several, or “Other (please specify)”; those entries appear below: make a new list entry from them, merge them into an existing one, or deny them.</p>
       </div>
       <div class="grid-2" style="align-items:start">
         <div class="card stack-s">
@@ -330,7 +336,7 @@ function ProfileLists() {
             <input class="input input--sm" placeholder="New study program" value={progName} onInput={e => setProgName(e.currentTarget.value)} aria-label="New study program" />
             <input class="input input--sm" style="max-width:170px" list="prog-cats" placeholder="Field" value={progCat} onInput={e => setProgCat(e.currentTarget.value)} aria-label="Field" />
             <datalist id="prog-cats">{categories.map(c => <option value={c} />)}</datalist>
-            <button class="btn btn--secondary btn--sm" disabled={!progName.trim()}>Add</button>
+            <button class="btn btn--secondary btn--sm" disabled={!progName.trim() || !progCat.trim()} title={progCat.trim() ? "" : "Choose a field first"}>Add</button>
           </form>
           <h3 style="margin-top:10px">Entered via “Other”</h3>
           <Unlisted kind="studyProgram" />
@@ -362,7 +368,7 @@ function ProfileLists() {
           <input class="input input--sm" placeholder="New company" value={coName} onInput={e => setCoName(e.currentTarget.value)} aria-label="New company" />
           <input class="input input--sm" style="max-width:190px" list="co-cats" placeholder="Sector" value={coCat} onInput={e => setCoCat(e.currentTarget.value)} aria-label="Sector" />
           <datalist id="co-cats">{coCategories.map(c => <option value={c} />)}</datalist>
-          <button class="btn btn--secondary btn--sm" disabled={!coName.trim()}>Add</button>
+          <button class="btn btn--secondary btn--sm" disabled={!coName.trim() || !coCat.trim()} title={coCat.trim() ? "" : "Choose a sector first"}>Add</button>
         </form>
         <h3 style="margin-top:10px">Entered via “Other”</h3>
         <Unlisted kind="company" />
