@@ -159,8 +159,7 @@ Enable Banking secrets, “Connect bank account” isn't available.
 ```json
 [
   {
-    "AllowedOrigins": ["http://localhost:4400", "https://lambent-rolypoly-19b487.netlify.app", "https://one-aim.org", "https://www.one-aim.org",
-                       "https://team.one-aim.org", "https://apply.one-aim.org", "https://members.one-aim.org"],
+    "AllowedOrigins": ["http://localhost:4400", "https://lambent-rolypoly-19b487.netlify.app", "https://one-aim.org", "https://*.one-aim.org"],
     "AllowedMethods": ["PUT", "GET"],
     "AllowedHeaders": ["Content-Type"],
     "MaxAgeSeconds": 3600
@@ -168,8 +167,8 @@ Enable Banking secrets, “Connect bank account” isn't available.
 ]
 ```
 
-   Origins match exactly (subdomains aren't included automatically). Only pages that upload
-   (application form, team area) need it; add new domains here when they go live.
+   `https://*.one-aim.org` covers all subdomains (team., apply., www., …; tested 15 Nov 2026),
+   the main domain needs its own entry. Paths don't matter (one-aim.org/… is covered).
 3. R2 → **Manage API tokens → Create API token**: Object Read & Write, this bucket only.
 4. Set the five `R2_…` secrets. Check: edge function `files`, action `check` (finance login),
    writes, reads and deletes a test file.
