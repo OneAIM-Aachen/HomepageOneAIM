@@ -1029,7 +1029,7 @@ function ConnectBank({ city, real, onClose }: { city: string; real: boolean; onC
   const list = (banks ?? []).filter(b => words.every(w => b.name.toLowerCase().includes(w))).slice(0, 60);
 
   const go = async () => {
-    if (!real) { toast("Connecting banks isn't available yet: the bank access provider still needs to be set up (Settings → Bank access)."); onClose(); return; }
+    if (!real) { toast("Connecting banks isn't available yet: the Enable Banking keys still need to be added to the Supabase secrets."); onClose(); return; }
     setBusy(true);
     try { location.href = await connectBank(cityId(city), bank); }
     catch (e) { setError(e instanceof Error ? e.message : String(e)); setBusy(false); }
@@ -1070,9 +1070,8 @@ function BankConnectionBox({ city, bank, conn, onConnect }: { city: string; bank
       <section class="card row bank-connect">
         <div style="flex:1;min-width:0" class="stack-s">
           <strong style="color:var(--color-text-heading)">No bank account connected for OneAIM {city}</strong>
-          <span class="muted small">Bank access isn't set up yet. A president or the head of Finance & Legal enters the Enable Banking keys once under Settings → Bank access; then every city can connect its account here.</span>
+          <span class="muted small">Bank access isn't set up yet: the Enable Banking keys still need to be added to the Supabase secrets (see docs/supabase-setup.md). Then every city can connect its account here.</span>
         </div>
-        <a class="btn btn--secondary" href="/team/settings#bank">Set up bank access</a>
         <button class="btn btn--primary" onClick={onConnect}><IconPlus width={18} />Connect bank account</button>
       </section>
     );

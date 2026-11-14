@@ -22,10 +22,10 @@ The database lives in `supabase/migrations/`:
 | `20261029160000_team_history_alumni_checkins.sql` | Position history, alumni, yearly "still active?" check (pg_cron daily → team-accounts `checkins`) |
 | `20261030190100_participant_feedback.sql` | Feedback forms (blueprints of kind `feedback`), personal token per participant (`submissions.feedback_token`), pg_cron job `send-due-feedback` (every 5 minutes) |
 | `20261030200000_feedback_rounds.sql` | Several feedbacks per application (`feedback_forms`: name, form copy, email text, send time), answers in `feedback_responses`, `email_log.feedback_id`; only accepted / confirmed participants get the link `/apply/feedback?t=<token>&f=<feedback id>` |
-| `20261114100000_bank_connections.sql` | Bank access per city (Enable Banking, read-only): provider keys (`bank_settings`, service role only), connection and transactions per city, `is_finance()` (presidents, co-presidents, Finance & Legal lead of the city), pg_cron job `bank-sync` 4× a day → edge function `bank` |
+| `20261114100000_bank_connections.sql` | Bank access per city (Enable Banking, read-only): provider keys as Supabase secrets (see “Secrets” below), connection and transactions per city, `is_finance()` (presidents, co-presidents, Finance & Legal lead of the city), pg_cron job `bank-sync` 4× a day → edge function `bank` |
 | `20261114120000_member_bank_accounts.sql` | Saved IBANs of team members for reimbursements: visible to the member and the finance people of their city |
 | `20261114140000_claims.sql` (+ `…150000`, `…160000`) | Reimbursement claims: members submit with a receipt (private bucket `finance-receipts`, folder per city: `<city>/<member>/<uuid>/<file>`); finance of the city approves / asks / rejects (`claim_decide`, never their own claim) and marks paid; members delete until approved. No emails |
-| `20261114170000_r2_files.sql` | Files on Cloudflare R2: keys in `storage_settings` (service role only, entered under Settings → File storage), `can_read_file` / `can_delete_file`; stored locations `r2:uploads/<application>/…` and `r2:receipts/<city>/<member>/…`; edge function `files` signs upload/download links and moves existing files from Supabase Storage |
+| `20261114170000_r2_files.sql` | Files on Cloudflare R2: keys as Supabase secrets (see “Secrets” below), `can_read_file` / `can_delete_file`; stored locations `r2:uploads/<application>/…` and `r2:receipts/<city>/<member>/…`; edge function `files` signs upload/download links and moves existing files from Supabase Storage |
 
 ## Who can do what
 
@@ -130,3 +130,53 @@ Steps 1–3 are done (25 Oct 2026); all migrations are pushed.
 
 - Main site: read `published_applications()` at build time instead of `src/data/applications.ts`.
 - Spam protection for the public form (e.g. Cloudflare Turnstile).
+
+## Secrets (Enable Banking, Cloudflare R2)
+
+Set in the Supabase dashboard: project → **Edge Functions → Secrets** (or
+`supabase secrets set NAME=value` in a terminal). Never commit them or paste
+them into chats. The table rows from `…170000`/`…100000` were replaced by
+these secrets (`20261114180000_keys_as_secrets.sql`).
+
+| Secret | Used by | Value |
+|---|---|---|
+| `R2_ACCOUNT_ID` | `files` | Cloudflare account ID (32 characters, R2 overview → Account Details) |
+| `R2_ACCESS_KEY_ID` | `files` | Access Key ID of an R2 API token with “Object Read & Write” for the bucket |
+| `R2_SECRET_ACCESS_KEY` | `files` | Secret Access Key of that token |
+| `R2_BUCKET` | `files` | Bucket name, e.g. `oneaim-files` |
+| `R2_JURISDICTION` | `files` | `eu` (bucket created with jurisdiction European Union) or `default` |
+| `ENABLE_BANKING_APP_ID` | `bank` | Application ID from the Enable Banking control panel |
+| `ENABLE_BANKING_PRIVATE_KEY` | `bank` | Content of the application's private key `.pem` (line breaks may be written as `\n`) |
+
+Without the R2 secrets, uploads keep going to Supabase Storage. Without the
+Enable Banking secrets, “Connect bank account” isn't available.
+
+### Cloudflare R2 bucket
+
+1. R2 → **Create bucket**, location **Jurisdiction: European Union (EU)**, private.
+2. Bucket → **Settings → CORS policy**:
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:4400", "https://lambent-rolypoly-19b487.netlify.app", "https://apply.one-aim.org", "https://one-aim.org"],
+    "AllowedMethods": ["PUT", "GET"],
+    "AllowedHeaders": ["Content-Type"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+3. R2 → **Manage API tokens → Create API token**: Object Read & Write, this bucket only.
+4. Set the five `R2_…` secrets. Check: edge function `files`, action `check` (finance login),
+   writes, reads and deletes a test file.
+5. Existing files: action `migrate` (finance login, repeat until `remaining` is 0) copies
+   them from Supabase Storage to R2, updates their locations and removes the originals.
+
+### Enable Banking
+
+Application in the **production** environment, redirect URLs
+`http://localhost:4400/team/bank-callback` and
+`https://lambent-rolypoly-19b487.netlify.app/team/bank-callback` (later the real
+domain), “Activate by linking accounts” (restricted mode: only the linked
+OneAIM accounts can be read). Then set the two `ENABLE_BANKING_…` secrets.

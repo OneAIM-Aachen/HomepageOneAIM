@@ -4,7 +4,7 @@
 // signed-in person is finance for (presidents, Finance & Legal lead).
 import { friendlyError, supabase } from "./supabase";
 
-export interface BankStatus { configured: boolean; app_id?: string; updated_at?: string; updated_by?: string }
+export interface BankStatus { configured: boolean }
 
 export interface BankConnection {
   id: string;
@@ -45,19 +45,14 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
 
 function bankError(code: string): string {
   if (code === "not_allowed") return "Only the presidents and the head of Finance & Legal can do this.";
-  if (code === "bank_not_configured") return "Bank access isn't set up yet (Settings → Bank access).";
-  if (code === "bank_keys_invalid") return "Please enter the application ID and the private key (a .pem file starting with -----BEGIN PRIVATE KEY-----).";
-  if (code.startsWith("bank_keys_rejected:")) return `Enable Banking didn't accept these keys: ${code.slice(19)}`;
+  if (code === "bank_not_configured") return "Bank access isn't set up yet: the Enable Banking keys are missing in the Supabase secrets.";
   if (code === "bank_link_invalid") return "This bank link is not valid any more. Please start connecting again.";
   if (code === "bank_cancelled") return "Connecting was cancelled at the bank.";
   return code;
 }
 
-export async function bankStatus(): Promise<BankStatus> {
-  const { data, error } = await supabase.rpc("bank_settings_status");
-  if (error) throw new Error(friendlyError(error));
-  return (data as BankStatus | null) ?? { configured: false };
-}
+/** Are the Enable Banking keys set (Supabase secrets, see docs/supabase-setup.md)? */
+export const bankStatus = () => call<BankStatus>({ action: "status" });
 
 /** Is the signed-in person finance for this city (or any city when location is null)? */
 export async function isFinance(location: string | null): Promise<boolean> {
@@ -65,8 +60,6 @@ export async function isFinance(location: string | null): Promise<boolean> {
   return data === true;
 }
 
-export const saveBankKeys = (appId: string, privateKey: string) => call<{ ok: true }>({ action: "settings_save", app_id: appId, private_key: privateKey });
-export const clearBankKeys = () => call<{ ok: true }>({ action: "settings_clear" });
 export const listBanks = (country = "DE") => call<{ banks: { name: string; country: string; logo: string | null }[] }>({ action: "banks", country }).then(r => r.banks);
 
 /** Starts the bank login; returns the URL of the bank's page */

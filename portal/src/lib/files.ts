@@ -21,10 +21,7 @@ function fileError(code: string): string {
   if (code === "invalid_file") return "This file type or size isn't allowed (max. 10 MB).";
   if (code === "not_allowed") return "You're not allowed to open or change this file.";
   if (code === "application_not_open") return "This application is not open for submissions.";
-  if (code === "storage_keys_invalid") return "Please fill in account ID (32 characters), access key, secret and bucket name.";
-  if (code.startsWith("storage_keys_rejected:")) return `Cloudflare didn't accept these keys: ${code.slice(22)}`;
-  if (code === "storage_in_use") return "Files are stored on Cloudflare: the keys can only be replaced, not removed.";
-  if (code === "storage_not_configured") return "File storage on Cloudflare isn't set up (Settings → File storage).";
+  if (code === "storage_not_configured") return "File storage on Cloudflare isn't set up: the R2 keys are missing in the Supabase secrets.";
   return code;
 }
 
@@ -62,22 +59,9 @@ export async function removeFile(path: string, bucket: string) {
   else await supabase.storage.from(bucket).remove([path]);
 }
 
-// ── Settings → File storage ──────────────────────────────────────────────
-
-export interface StorageStatus { configured: boolean; bucket?: string; jurisdiction?: string; updated_at?: string; updated_by?: string }
-
-export async function storageStatus(): Promise<StorageStatus> {
-  const { data, error } = await supabase.rpc("storage_settings_status");
-  if (error) throw new Error(friendlyError(error));
-  return (data as StorageStatus | null) ?? { configured: false };
-}
+// ── Moving existing files (one-time, after the R2 secrets are set) ───────
 
 export const filesOnSupabase = () => call<{ configured: boolean; on_supabase: number; cvs_on_supabase: number }>({ action: "status" });
 
-export const saveStorageKeys = (k: { account_id: string; access_key_id: string; secret_access_key: string; bucket: string; jurisdiction: "eu" | "default" }) =>
-  call<{ ok: true }>({ action: "settings_save", ...k });
-
-export const clearStorageKeys = () => call<{ ok: true }>({ action: "settings_clear" });
-
-/** Moves a batch of files from Supabase Storage to R2 */
+/** Moves a batch of files from Supabase Storage to R2 (finance people only) */
 export const moveFilesToR2 = (limit = 40) => call<{ moved: number; failed: string[]; remaining: number }>({ action: "migrate", limit });

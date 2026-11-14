@@ -1,10 +1,9 @@
 // supabase/functions/bank
 //
 // Read-only bank access per city through Enable Banking (PSD2 account
-// information). The provider keys live in bank_settings, which only this
-// function (service role) can read.
-// • settings_save {app_id, private_key}          (finance of any city) checks and stores the keys
-// • settings_clear                               (finance of any city)
+// information). Keys: Supabase secrets ENABLE_BANKING_APP_ID and
+// ENABLE_BANKING_PRIVATE_KEY (the .pem content), see docs/supabase-setup.md.
+// • status                                       (team) are the keys set?
 // • banks {country?}                             (finance) banks to pick from
 // • connect {location_id, aspsp_name, redirect_url}  (finance of that city)
 //   returns the bank's login URL; the treasurer confirms there with TAN/app
@@ -36,10 +35,13 @@ const errText = (e: unknown) => String(e instanceof Error ? e.message : e).slice
 
 class Bank {
   constructor(private jwt: string) {}
-  static async from(db: SupabaseClient): Promise<Bank> {
-    const { data } = await db.from("bank_settings").select("app_id, private_key").maybeSingle();
-    if (!data) throw new Error("bank_not_configured");
-    return new Bank(await signJwt(data.app_id, data.private_key));
+  static configured() { return !!(Deno.env.get("ENABLE_BANKING_APP_ID") && Deno.env.get("ENABLE_BANKING_PRIVATE_KEY")); }
+  // deno-lint-ignore no-unused-vars
+  static async from(_db?: SupabaseClient): Promise<Bank> {
+    const appId = Deno.env.get("ENABLE_BANKING_APP_ID"), key = Deno.env.get("ENABLE_BANKING_PRIVATE_KEY");
+    if (!appId || !key) throw new Error("bank_not_configured");
+    // Secrets set as one line keep "\n" literally
+    return new Bank(await signJwt(appId.trim(), key.replace(/\\n/g, "\n").trim()));
   }
   async call<T>(method: string, path: string, body?: unknown): Promise<T> {
     const res = await fetch(`${API}${path}`, {
@@ -153,26 +155,10 @@ Deno.serve(async req => {
     // deno-lint-ignore no-explicit-any
     const meLabel = me ? `${me.name} (${(me as any).locations?.name ?? ""})` : who.user.email ?? "Team";
 
-    if (action === "settings_save") {
-      if (!(await financeOf(null))) return json({ error: "not_allowed" }, 403);
-      const appId = String(input.app_id ?? "").trim();
-      const key = String(input.private_key ?? "").trim();
-      if (!appId || !/-----BEGIN (RSA )?PRIVATE KEY-----/.test(key)) return json({ error: "bank_keys_invalid" }, 400);
-      // Check the keys before saving: list the banks with them
-      try {
-        await new Bank(await signJwt(appId, key)).call("GET", "/aspsps?country=DE&service=AIS");
-      } catch (e) {
-        return json({ error: `bank_keys_rejected:${errText(e)}` }, 400);
-      }
-      const { error } = await db.from("bank_settings").upsert({ id: true, provider: "enable_banking", app_id: appId, private_key: key, updated_at: new Date().toISOString(), updated_by: meLabel });
-      if (error) throw new Error(error.message);
-      return json({ ok: true });
-    }
-
-    if (action === "settings_clear") {
-      if (!(await financeOf(null))) return json({ error: "not_allowed" }, 403);
-      await db.from("bank_settings").delete().eq("id", true);
-      return json({ ok: true });
+    if (action === "status") {
+      const { data: team } = await caller.rpc("is_team");
+      if (team !== true) return json({ error: "not_allowed" }, 403);
+      return json({ configured: Bank.configured() });
     }
 
     if (action === "banks") {

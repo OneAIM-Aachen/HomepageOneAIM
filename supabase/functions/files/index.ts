@@ -4,12 +4,12 @@
 // and claim receipts. Supabase keeps the data and, per file, its location
 // ("r2:uploads/…", "r2:receipts/…"). This function checks who may do what
 // and hands out short-lived signed links; the browser uploads/downloads
-// directly to/from R2. Keys: table storage_settings (Settings → File storage).
+// directly to/from R2. Keys: Supabase secrets R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+// R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_JURISDICTION ("eu" or "default"),
+// see docs/supabase-setup.md.
 //
 // • status                                              (team) configured? files still on Supabase?
-// • settings_save {account_id, access_key_id, secret_access_key, bucket, jurisdiction}
-//                                                       (finance) checks the keys with a test file, stores them
-// • settings_clear                                      (finance)
+// • check                                               (finance) writes, reads and deletes a test file
 // • upload {kind: "application", application_id, file_name, content_type, size}
 //                                                       (public, open applications only)
 // • upload {kind: "receipt", location_id, file_name, content_type, size}   (team member)
@@ -53,9 +53,14 @@ class R2 {
     this.aws = new AwsClient({ accessKeyId: c.access_key_id, secretAccessKey: c.secret_access_key, service: "s3", region: "auto" });
     this.base = `https://${c.account_id}${c.jurisdiction === "eu" ? ".eu" : ""}.r2.cloudflarestorage.com/${c.bucket}`;
   }
-  static async from(db: SupabaseClient): Promise<R2 | null> {
-    const { data } = await db.from("storage_settings").select("*").maybeSingle();
-    return data ? new R2(data as R2Config) : null;
+  // deno-lint-ignore no-unused-vars
+  static async from(_db?: SupabaseClient): Promise<R2 | null> {
+    const env = (k: string) => (Deno.env.get(k) ?? "").trim();
+    const c: R2Config = {
+      account_id: env("R2_ACCOUNT_ID").toLowerCase(), access_key_id: env("R2_ACCESS_KEY_ID"), secret_access_key: env("R2_SECRET_ACCESS_KEY"),
+      bucket: env("R2_BUCKET"), jurisdiction: env("R2_JURISDICTION") === "default" ? "default" : "eu",
+    };
+    return c.account_id && c.access_key_id && c.secret_access_key && c.bucket ? new R2(c) : null;
   }
   private url(key: string) { return `${this.base}/${key.split("/").map(encodeURIComponent).join("/")}`; }
   /** Signed link for the browser (PUT upload or GET download) */
@@ -220,44 +225,18 @@ Deno.serve(async req => {
       return json({ configured: !!(await R2.from(db)), on_supabase: p.files.length, cvs_on_supabase: p.cvs });
     }
     if ((await rpc("is_finance", { p_location: null })) !== true) return json({ error: "not_allowed" }, 403);
-    const { data: me } = await caller.auth.getUser(jwt);
-    const { data: member } = await db.from("team_members").select("name, locations(name)").eq("user_id", me.user?.id ?? "").maybeSingle();
-    // deno-lint-ignore no-explicit-any
-    const meLabel = member ? `${member.name} (${(member as any).locations?.name ?? ""})` : "Team";
 
-    if (action === "settings_save") {
-      const c: R2Config = {
-        account_id: String(input.account_id ?? "").trim().toLowerCase(),
-        access_key_id: String(input.access_key_id ?? "").trim(),
-        secret_access_key: String(input.secret_access_key ?? "").trim(),
-        bucket: String(input.bucket ?? "").trim(),
-        jurisdiction: input.jurisdiction === "default" ? "default" : "eu",
-      };
-      if (!/^[0-9a-f]{32}$/.test(c.account_id) || !c.access_key_id || !c.secret_access_key || !/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(c.bucket)) {
-        return json({ error: "storage_keys_invalid" }, 400);
-      }
-      // Check: write, read back and delete a small test file
+    if (action === "check") {
+      const r2 = await R2.from(db);
+      if (!r2) return json({ error: "storage_not_configured" }, 409);
       try {
-        const r2 = new R2(c);
         const key = `_check/${crypto.randomUUID()}.txt`;
         await r2.put(key, new Blob(["OneAIM storage check"]), "text/plain");
         if ((await r2.size(key)) === null) throw new Error("test file not found after upload");
         await r2.remove(key);
       } catch (e) {
-        return json({ error: `storage_keys_rejected:${errText(e)}` }, 400);
+        return json({ ok: false, error: errText(e) });
       }
-      const { error } = await db.from("storage_settings").upsert({ id: true, ...c, updated_at: new Date().toISOString(), updated_by: meLabel });
-      if (error) throw new Error(error.message);
-      return json({ ok: true });
-    }
-
-    if (action === "settings_clear") {
-      // Not while files are on R2: they couldn't be opened any more
-      const { count: receipts } = await db.from("claims").select("id", { count: "exact", head: true }).like("receipt_path", "r2:%");
-      const { data: subs } = await db.from("submissions").select("answers");
-      const uploads = (subs ?? []).some(s => Object.values(s.answers ?? {}).some(v => isFile(v) && (v as { path: string }).path.startsWith("r2:")));
-      if ((receipts ?? 0) > 0 || uploads) return json({ error: "storage_in_use" }, 409);
-      await db.from("storage_settings").delete().eq("id", true);
       return json({ ok: true });
     }
 
