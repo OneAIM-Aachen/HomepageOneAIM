@@ -111,7 +111,7 @@ function initialData(me: string): { claims: Claim[]; txs: Tx[] } {
 
 // ── Page ─────────────────────────────────────────────────────────────────
 
-type Tab = "mine" | "overview" | "inbox" | "bank" | "book" | "year";
+type Tab = "mine" | "overview" | "inbox" | "bank" | "year";
 
 export default function FinancePage() {
   return <TeamShell active="finance">{acc => <Finance acc={acc} />}</TeamShell>;
@@ -148,7 +148,6 @@ function Finance({ acc }: { acc: Account }) {
     ["overview", "Money in & out", undefined, true],
     ["inbox", "Claims to approve", toCheck || undefined, true],
     ["bank", "Bank account", missing || undefined, true],
-    ["book", "Cash book", undefined, true],
     ["year", "Year-end & tax", undefined, true],
   ];
 
@@ -171,7 +170,7 @@ function Finance({ acc }: { acc: Account }) {
           ))}
         </div>
         <span class="muted small" style="flex:1">Each city has its own bank account and its own books. Everything below is for {city} only.</span>
-        {(tab === "overview" || tab === "book" || tab === "year") && (
+        {(tab === "overview" || tab === "year") && (
           <label class="row small" style="gap:6px">
             <span class="muted">Year</span>
             <select class="input input--sm" style="width:auto" value={year} onChange={e => setYear(e.currentTarget.value)} aria-label="Calendar year">
@@ -189,10 +188,12 @@ function Finance({ acc }: { acc: Account }) {
         ))}
       </nav>
       {tab === "mine" && <MyClaims me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.who === me && c.city === city)} setClaims={setClaims} />}
-      {tab === "overview" && <Overview city={city} year={year} txs={data.txs} balanceNow={isDemo() ? undefined : bank.connections.find(c => c.location_id === cityId(city))?.balance ?? 0} />}
+      {tab === "overview" && <>
+        <Overview city={city} year={year} txs={data.txs} balanceNow={isDemo() ? undefined : bank.connections.find(c => c.location_id === cityId(city))?.balance ?? 0} />
+        <Book city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} />
+      </>}
       {tab === "inbox" && <Inbox me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.city === city)} setClaims={setClaims} setTxs={setTxs} />}
       {tab === "bank" && <Bank city={city} txs={data.txs} claims={data.claims} setTxs={setTxs} bank={bankView} />}
-      {tab === "book" && <Book city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} />}
       {tab === "year" && <YearEnd city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} claims={data.claims.filter(c => c.city === city && c.date.startsWith(year))} onGo={setTab} />}
     </div>
   );
@@ -691,14 +692,12 @@ function Book({ city, year, txs }: { city: string; year: string; txs: Tx[] }) {
 
   return (
     <div class="stack">
-      <div class="row">
-        <span class="small" style="flex:1">Books of <strong>OneAIM {city}</strong>, {year}, numbered per city and year (receipt numbers {city.slice(0, 2).toUpperCase()}-{year}-001, …).</span>
-        <input class="input input--sm" style="max-width:260px" placeholder="Search…" value={q} onInput={e => setQ(e.currentTarget.value)} />
-      </div>
-      <div class="stats">
-        <div class="card stat"><span class="stat__num" style="color:#1A7F4B">{money(income)}</span><span class="stat__label">Income</span></div>
-        <div class="card stat"><span class="stat__num">{money(-expenses)}</span><span class="stat__label">Expenses</span></div>
-        <div class="card stat"><span class="stat__num">{money(income + expenses)}</span><span class="stat__label">Result</span><span class="muted small">{year}</span></div>
+      <div class="row" style="margin-top:8px">
+        <div class="stack-s" style="flex:1">
+          <h2 style="margin:0">All entries <span class="muted small">(cash book)</span></h2>
+          <span class="muted small">Every booking of OneAIM {city} in {year}, numbered per city and year ({city.slice(0, 2).toUpperCase()}-{year}-001, …). {q ? `Filtered: ${money(income)} in, ${money(-expenses)} out.` : ""}</span>
+        </div>
+        <input class="input input--sm" style="max-width:260px" placeholder="Search entries…" value={q} onInput={e => setQ(e.currentTarget.value)} />
       </div>
       <div class="grid-2" style="align-items:start;grid-template-columns:minmax(0,2fr) minmax(0,1fr)">
         <div class="card card--flush">
