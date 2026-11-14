@@ -5,9 +5,10 @@ import {
   saveEmailSettings, sendQueuedNow, useStore, type EmailSettings, type ListKind, type TagListKey,
 } from "../../lib/store";
 import { TeamShell, PageHead } from "./TeamShell";
-import { act, confirmDialog, Field } from "../ui/Ui";
+import { act, confirmDialog, Field, toast } from "../ui/Ui";
 import { IconX } from "../ui/Icons";
 import { BANK_CALLBACK_PATH, bankStatus, clearBankKeys, isFinance, saveBankKeys, type BankStatus } from "../../lib/bank";
+import { clearStorageKeys, filesOnSupabase, moveFilesToR2, saveStorageKeys, storageStatus, type StorageStatus } from "../../lib/files";
 import { fmtShort } from "../../lib/fields";
 
 export default function SettingsPage() {
@@ -38,6 +39,8 @@ function Settings({ acc }: { acc: Account }) {
       <EmailSection />
 
       <BankAccessSection />
+
+      <FileStorageSection />
 
       <section class="stack">
         <h2>Tags</h2>
@@ -223,6 +226,118 @@ function BankAccessSection() {
           </Field>
           <div class="row">
             <button class="btn btn--primary" disabled={busy || !appId.trim() || !/-----BEGIN (RSA )?PRIVATE KEY-----/.test(key)} onClick={save}>{busy ? "Checking…" : "Check & save"}</button>
+            {editing && <button class="btn btn--ghost" onClick={() => setEditing(false)}>Cancel</button>}
+          </div>
+        </div>
+      ) : (
+        <p class="muted small">Only presidents and heads of Finance & Legal can set this up.</p>
+      ))}
+    </section>
+  );
+}
+
+// ── File storage (Cloudflare R2) ─────────────────────────────────────────
+
+const STORAGE_ORIGINS = ["http://localhost:4400", "https://lambent-rolypoly-19b487.netlify.app", "https://apply.one-aim.org", "https://one-aim.org"];
+
+function FileStorageSection() {
+  const [status, setStatus] = useState<StorageStatus | null>(null);
+  const [left, setLeft] = useState<number | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [k, setK] = useState({ account_id: "", access_key_id: "", secret_access_key: "", bucket: "oneaim-files", jurisdiction: "eu" as "eu" | "default" });
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState("");
+  const load = () => {
+    storageStatus().then(setStatus).catch(() => setStatus({ configured: false }));
+    filesOnSupabase().then(r => setLeft(r.on_supabase)).catch(() => setLeft(null));
+  };
+  useEffect(() => { load(); isFinance(null).then(setCanEdit); }, []);
+  if (!status) return null;
+
+  const origins = [...new Set([location.origin, ...STORAGE_ORIGINS])];
+  const cors = JSON.stringify([{ AllowedOrigins: origins, AllowedMethods: ["PUT", "GET"], AllowedHeaders: ["Content-Type"], MaxAgeSeconds: 3600 }], null, 2);
+  const save = async () => {
+    setBusy(true);
+    const r = await act(() => saveStorageKeys({ ...k, account_id: k.account_id.trim(), bucket: k.bucket.trim() }), "File storage saved. Cloudflare accepted the keys (test file written and deleted).");
+    setBusy(false);
+    if (r) { setEditing(false); setK({ ...k, access_key_id: "", secret_access_key: "" }); load(); }
+  };
+  const move = async () => {
+    if (!(await confirmDialog({ title: "Move files to Cloudflare?", confirmLabel: "Move files",
+      message: `${left} file${left === 1 ? "" : "s"} (CVs, application uploads, receipts) are copied to Cloudflare, checked, and then removed from Supabase. Links in the portal keep working.` }))) return;
+    setBusy(true);
+    let moved = 0;
+    const failed: string[] = [];
+    try {
+      for (let round = 0; round < 50; round++) {
+        const r = await moveFilesToR2(40);
+        moved += r.moved; failed.push(...r.failed);
+        setProgress(`${moved} moved, ${r.remaining} left…`);
+        if (!r.remaining || !r.moved) break;
+      }
+      toast(`${moved} file${moved === 1 ? "" : "s"} moved to Cloudflare${failed.length ? `, ${failed.length} couldn't be moved` : ""}`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e));
+    }
+    setProgress(failed.length ? `Not moved: ${failed.slice(0, 5).join("; ")}` : "");
+    setBusy(false);
+    load();
+  };
+
+  return (
+    <section class="card stack" id="files">
+      <div class="row row--between">
+        <div class="stack-s">
+          <h2>File storage</h2>
+          <p class="muted small">Where CVs, application uploads and claim receipts are stored. With Cloudflare R2 set up, new files go there; the data stays in Supabase. Header images of application pages stay in Supabase.</p>
+        </div>
+        <span class={`chip ${status.configured ? "chip--green" : "chip--gray"}`}>{status.configured ? "Cloudflare R2" : "Supabase (not set up)"}</span>
+      </div>
+
+      {status.configured && !editing && (
+        <div class="stack-s">
+          <p class="small">Bucket <span class="mono">{status.bucket}</span>{status.jurisdiction === "eu" ? " · EU" : ""}{status.updated_by ? <> · saved by {status.updated_by}{status.updated_at ? `, ${fmtShort(status.updated_at)}` : ""}</> : ""}</p>
+          <p class="muted small">The keys are stored on the server only and can't be shown again.</p>
+          {left !== null && (
+            <div class="row">
+              <span class="small" style="flex:1">{left ? `${left} file${left === 1 ? " is" : "s are"} still stored in Supabase.` : "All files are on Cloudflare."}{progress && <span class="muted"> {progress}</span>}</span>
+              {canEdit && left > 0 && <button class="btn btn--primary btn--sm" disabled={busy} onClick={move}>{busy ? "Moving…" : "Move files to Cloudflare"}</button>}
+            </div>
+          )}
+          {canEdit && (
+            <div class="row">
+              <button class="btn btn--secondary btn--sm" onClick={() => setEditing(true)}>Replace keys</button>
+              <button class="btn btn--ghost btn--sm" onClick={async () => {
+                if (await confirmDialog({ title: "Stop using Cloudflare?", danger: true, confirmLabel: "Remove keys",
+                  message: "New files would be stored in Supabase again. Only possible while no files are on Cloudflare yet." }))
+                  act(clearStorageKeys, "File storage reset to Supabase").then(load);
+              }}>Remove</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(!status.configured || editing) && (canEdit ? (
+        <div class="stack">
+          <ol class="stack-s small" style="margin:0;padding-left:18px">
+            <li>In the <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare dashboard</a> open <strong>R2 Object Storage</strong> and activate it (Cloudflare asks for a payment method; up to 10 GB is free).</li>
+            <li><strong>Create bucket</strong>: name e.g. <span class="mono">oneaim-files</span>, location <strong>Jurisdiction: European Union (EU)</strong>. Keep it private (no public access).</li>
+            <li>In the bucket: <strong>Settings → CORS policy → Add</strong> and paste:
+              <pre class="mono small" style="user-select:all;white-space:pre-wrap;background:#F5F7FC;padding:10px;border-radius:10px;margin:6px 0">{cors}</pre>
+            </li>
+            <li><strong>R2 → Manage API tokens → Create API token</strong>: permission <strong>Object Read & Write</strong>, only for this bucket. Copy the <strong>Access Key ID</strong> and <strong>Secret Access Key</strong> (shown once).</li>
+            <li>Copy the <strong>Account ID</strong> (R2 overview page, 32 characters) and fill in everything below.</li>
+          </ol>
+          <div class="grid-2">
+            <Field label="Account ID"><input class="input mono" value={k.account_id} onInput={e => setK({ ...k, account_id: e.currentTarget.value })} /></Field>
+            <Field label="Bucket name"><input class="input mono" value={k.bucket} onInput={e => setK({ ...k, bucket: e.currentTarget.value })} /></Field>
+            <Field label="Access Key ID"><input class="input mono" value={k.access_key_id} onInput={e => setK({ ...k, access_key_id: e.currentTarget.value })} /></Field>
+            <Field label="Secret Access Key"><input class="input mono" type="password" autoComplete="off" value={k.secret_access_key} onInput={e => setK({ ...k, secret_access_key: e.currentTarget.value })} /></Field>
+          </div>
+          <label class="check small"><input type="checkbox" checked={k.jurisdiction === "eu"} onChange={e => setK({ ...k, jurisdiction: e.currentTarget.checked ? "eu" : "default" })} /><span>The bucket is in the EU jurisdiction (recommended)</span></label>
+          <div class="row">
+            <button class="btn btn--primary" disabled={busy || !/^[0-9a-fA-F]{32}$/.test(k.account_id.trim()) || !k.access_key_id.trim() || !k.secret_access_key.trim() || !k.bucket.trim()} onClick={save}>{busy ? "Checking…" : "Check & save"}</button>
             {editing && <button class="btn btn--ghost" onClick={() => setEditing(false)}>Cancel</button>}
           </div>
         </div>

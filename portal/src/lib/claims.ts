@@ -1,9 +1,10 @@
-// Reimbursement claims, stored in Supabase (table claims, receipts in the
-// private bucket finance-receipts, one folder per city:
-// <city>/<member id>/<uuid>/<file>). Members see their own claims; the
+// Reimbursement claims, stored in Supabase (table claims). Receipts are on
+// Cloudflare R2 (r2:receipts/<city>/<member id>/<uuid>/<file>) or, until R2
+// is set up, in the private Supabase bucket finance-receipts (<city>/<member id>/…). Members see their own claims; the
 // finance people of a city (presidents, Finance & Legal lead) see that
 // city's claims and decide on them. No emails are sent for claims.
 import { friendlyError, supabase } from "./supabase";
+import { fileUrl, removeFile, uploadFile } from "./files";
 
 export const RECEIPTS_BUCKET = "finance-receipts";
 
@@ -59,15 +60,19 @@ export interface NewClaimInput {
 
 /** Uploads the receipt, then saves the claim (the file is removed again if saving fails) */
 export async function submitClaim(c: NewClaimInput) {
-  const path = `${c.locationId}/${c.memberId}/${crypto.randomUUID()}/${safeName(c.file.name)}`;
-  const up = await supabase.storage.from(RECEIPTS_BUCKET).upload(path, c.file, { contentType: c.file.type || undefined });
-  if (up.error) throw new Error(`Uploading the receipt failed. Please use a photo or PDF under 10 MB. (${up.error.message})`);
+  let path: string;
+  try {
+    path = await uploadFile(c.file, "receipt", { locationId: c.locationId },
+      { bucket: RECEIPTS_BUCKET, path: `${c.locationId}/${c.memberId}/${crypto.randomUUID()}/${safeName(c.file.name)}` });
+  } catch (e) {
+    throw new Error(`Uploading the receipt failed. Please use a photo or PDF under 10 MB. (${e instanceof Error ? e.message : e})`);
+  }
   const { error } = await supabase.from("claims").insert({
     member_id: c.memberId, location_id: c.locationId, amount: Math.round(c.amount * 100) / 100, paid_on: c.paidOn, what: c.what.trim(),
     project: c.project, category: c.category, receipt_path: path, receipt_name: c.file.name, iban: c.iban, holder: c.holder.trim(),
   });
   if (error) {
-    await supabase.storage.from(RECEIPTS_BUCKET).remove([path]);
+    await removeFile(path, RECEIPTS_BUCKET);
     fail(error);
   }
   return true as const;
@@ -76,7 +81,7 @@ export async function submitClaim(c: NewClaimInput) {
 export async function deleteClaim(id: string) {
   const { data, error } = await supabase.rpc("claim_delete", { p_id: id });
   if (error) fail(error);
-  if (data) await supabase.storage.from(RECEIPTS_BUCKET).remove([data as string]);
+  if (data) await removeFile(data as string, RECEIPTS_BUCKET);
   return true as const;
 }
 
@@ -99,8 +104,4 @@ export async function markClaimsPaid(ids: string[]) {
 }
 
 /** Short-lived link to open a receipt */
-export async function receiptUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage.from(RECEIPTS_BUCKET).createSignedUrl(path, 300);
-  if (error || !data) fail(error ?? "Receipt not found");
-  return data.signedUrl;
-}
+export const receiptUrl = (path: string): Promise<string> => fileUrl(path, RECEIPTS_BUCKET);

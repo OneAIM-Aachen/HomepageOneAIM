@@ -18,6 +18,7 @@ import type {
 import { appTitle, baseFields, defaultTemplates, firstName, fmtDate, LOCKED_KINDS, nowLocal, today } from "./fields";
 import { FILES_BUCKET, IMAGES_BUCKET, friendlyError, supabase } from "./supabase";
 import { isDemo, withDemo } from "./demo";
+import { fileUrl, uploadFile } from "./files";
 import { mapPost } from "./members";
 import type { PostDraft } from "../components/network/Board";
 
@@ -611,9 +612,9 @@ export function slotTaken(app: Application, slotId: string, exceptSub?: string):
 export async function openFile(file: FileRef) {
   if (!file.path) throw new Error("This file has no stored copy.");
   const win = window.open("", "_blank");
-  const { data, error } = await supabase.storage.from(FILES_BUCKET).createSignedUrl(file.path, 300);
-  if (error || !data) { win?.close(); throw new Error("Could not open the file."); }
-  if (win) win.location.href = data.signedUrl; else window.location.href = data.signedUrl;
+  let url: string;
+  try { url = await fileUrl(file.path, FILES_BUCKET); } catch (e) { win?.close(); throw e; }
+  if (win) win.location.href = url; else window.location.href = url;
 }
 
 // ── Public (apply site) ──────────────────────────────────────────────────
@@ -664,9 +665,13 @@ export async function submitApplication(
   try {
     const final = { ...answers };
     for (const [fieldId, file] of Object.entries(files)) {
-      const path = `uploads/${app.id}/${crypto.randomUUID()}/${safeName(file.name)}`;
-      const up = await supabase.storage.from(FILES_BUCKET).upload(path, file, { contentType: file.type || undefined });
-      if (up.error) return `Uploading "${file.name}" failed. Please check it is a PDF/Word/image under 10 MB.`;
+      let path: string;
+      try {
+        path = await uploadFile(file, "application", { applicationId: app.id },
+          { bucket: FILES_BUCKET, path: `uploads/${app.id}/${crypto.randomUUID()}/${safeName(file.name)}` });
+      } catch {
+        return `Uploading "${file.name}" failed. Please check it is a PDF/Word/image under 10 MB.`;
+      }
       final[fieldId] = { path, fileName: file.name, size: file.size };
     }
     const { error } = await supabase.rpc("submit_application", { p_application_id: app.id, p_answers: final, p_consent: consent });
