@@ -114,7 +114,7 @@ function Finance({ acc }: { acc: Account }) {
   const toCheck = data.claims.filter(c => c.city === city && c.status === "submitted").length;
   const missing = data.txs.filter(t => t.city === city && !t.receipt && t.kind !== "income").length;
   const tabs: [Tab, string, number?, boolean?][] = [
-    ["mine", "My claims", data.claims.filter(c => c.who === me && c.status !== "paid" && c.status !== "rejected").length || undefined],
+    ["mine", "My claims", data.claims.filter(c => c.city === city && c.who === me && c.status !== "paid" && c.status !== "rejected").length || undefined],
     ["overview", "Money in & out", undefined, true],
     ["inbox", "Claims to approve", toCheck || undefined, true],
     ["bank", "Bank account", missing || undefined, true],
@@ -124,10 +124,29 @@ function Finance({ acc }: { acc: Account }) {
 
   return (
     <div class="stack" style="gap:18px">
-      <PageHead overline="Finance" title="Finance"
-        sub="Get money back for things you paid, keep a receipt for every payment of the city accounts, and have everything ready for the tax return." />
+      <PageHead overline="Finance" title={`Finance · OneAIM ${city}`}
+        sub="Get money back for things you paid, keep a receipt for every payment of the city account, and have everything ready for the tax return." />
       <div class="demo-banner" role="status">
         <strong>Mockup with made-up data.</strong> Click through freely: nothing is saved, no emails are sent and no money is moved. Reloading the page resets it.
+      </div>
+      <div class="city-switch-row">
+        <div class="city-switch" role="group" aria-label="City">
+          {CITIES.map(c => (
+            <button class={city === c ? "is-active" : ""} aria-pressed={city === c} onClick={() => setCity(c)}>
+              OneAIM {c}
+              {data.claims.some(x => x.city === c && x.status === "submitted") && <span class="city-switch__dot" title="Claims to approve" />}
+            </button>
+          ))}
+        </div>
+        <span class="muted small" style="flex:1">Each city has its own bank account and its own books. Everything below is for {city} only.</span>
+        {(tab === "overview" || tab === "book" || tab === "year") && (
+          <label class="row small" style="gap:6px">
+            <span class="muted">Year</span>
+            <select class="input input--sm" style="width:auto" value={year} onChange={e => setYear(e.currentTarget.value)} aria-label="Calendar year">
+              {["2026", "2025"].map(y => <option>{y}</option>)}
+            </select>
+          </label>
+        )}
       </div>
       <nav class="tabs" role="tablist">
         {tabs.map(([k, label, n, finance]) => (
@@ -137,20 +156,7 @@ function Finance({ acc }: { acc: Account }) {
           </button>
         ))}
       </nav>
-      {tab !== "mine" && (
-        <div class="row" style="gap:6px">
-          <span class="small muted">City:</span>
-          {CITIES.map(c => <button class={`chip-btn ${city === c ? "is-active" : ""}`} onClick={() => setCity(c)}>OneAIM {c}</button>)}
-          <span class="muted small" style="flex:1">· each city has its own bank account and its own books</span>
-          {tab !== "inbox" && tab !== "bank" && <>
-            <span class="small muted">Year:</span>
-            <select class="input input--sm" style="width:auto" value={year} onChange={e => setYear(e.currentTarget.value)} aria-label="Calendar year">
-              {["2026", "2025"].map(y => <option>{y}</option>)}
-            </select>
-          </>}
-        </div>
-      )}
-      {tab === "mine" && <MyClaims me={me} city={acc.city} claims={data.claims.filter(c => c.who === me)} setClaims={setClaims} />}
+      {tab === "mine" && <MyClaims me={me} city={city} claims={data.claims.filter(c => c.who === me && c.city === city)} setClaims={setClaims} />}
       {tab === "overview" && <Overview city={city} year={year} txs={data.txs} />}
       {tab === "inbox" && <Inbox me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.city === city)} setClaims={setClaims} setTxs={setTxs} />}
       {tab === "bank" && <Bank city={city} txs={data.txs} claims={data.claims} setTxs={setTxs} />}
@@ -177,7 +183,7 @@ function MyClaims({ me, city, claims, setClaims }: { me: string; city: string; c
   return (
     <div class="stack">
       <div class="row">
-        <p class="muted small" style="flex:1;margin:0">Paid something for OneAIM yourself? Upload the receipt and get the money back, usually within a week. <strong>{money(outstanding)}</strong> waiting for you right now.</p>
+        <p class="muted small" style="flex:1;margin:0">Paid something for OneAIM {city} yourself? Upload the receipt and get the money back from the {city} account, usually within a week. <strong>{money(outstanding)}</strong> waiting for you right now.</p>
         <button class="btn btn--primary" onClick={() => setCreating(true)}><IconPlus width={18} />Get money back</button>
       </div>
       <div class="card card--flush">
