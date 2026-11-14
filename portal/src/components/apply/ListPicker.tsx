@@ -3,7 +3,7 @@
 // below the field; with `single` the chosen name stays in the field and can
 // be typed over. A name that isn't in the list can be used as it is
 // ("Other"); the team can later merge it into the list.
-import { useMemo, useRef, useState } from "preact/hooks";
+import { useLayoutEffect, useMemo, useRef, useState } from "preact/hooks";
 import { IconX } from "../ui/Icons";
 
 export interface PickerOption {
@@ -75,6 +75,9 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const box = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
+  // Menu position relative to the window, so tables / scroll areas don't cut it off
+  const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null);
 
   const indexed = useMemo(() => options.map(index), [options]);
   const query = q.trim();
@@ -98,6 +101,25 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   };
   const canUseTyped = allowOther && query.length > 0 && !matches.some(o => norm(o.name) === norm(query));
   const showMenu = open && (query.length >= Math.max(minChars, 1) || minChars === 0);
+  useLayoutEffect(() => {
+    if (!showMenu || !field.current) { setPos(null); return; }
+    // Inside a transformed container (pop-up windows) "fixed" isn't relative to the window: keep the normal menu
+    for (let el = field.current.parentElement; el; el = el.parentElement) {
+      const cs = getComputedStyle(el);
+      if (cs.transform !== "none" || cs.filter !== "none") { setPos(null); return; }
+    }
+    const place = () => {
+      const r = field.current!.getBoundingClientRect();
+      const below = window.innerHeight - r.bottom - 12, above = r.top - 12;
+      const up = dropUp || (below < 220 && above > below);
+      const maxH = Math.max(120, Math.min(280, up ? above : below));
+      setPos(up ? { left: r.left, width: r.width, bottom: window.innerHeight - r.top + 4, maxH } : { left: r.left, width: r.width, top: r.bottom + 4, maxH });
+    };
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => { window.removeEventListener("scroll", place, true); window.removeEventListener("resize", place); };
+  }, [showMenu, dropUp]);
 
   const choose = (v: string) => {
     const t = v.trim();
@@ -139,7 +161,7 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
   return (
     <div class="picker" ref={box}
       onFocusOut={e => { if (!box.current?.contains(e.relatedTarget as Node)) commit(); }}>
-      <input class={`input ${small ? "input--sm" : ""} ${invalid ? "input--invalid" : ""}`} value={shown} placeholder={placeholder}
+      <input ref={field} class={`input ${small ? "input--sm" : ""} ${invalid ? "input--invalid" : ""}`} value={shown} placeholder={placeholder}
         role="combobox" aria-expanded={showMenu} aria-label={label} aria-autocomplete="list" autoComplete="off"
         onFocus={e => {
           setEditing(true);
@@ -150,7 +172,9 @@ export function ListPicker({ options, value, onChange, invalid, placeholder, lab
         onKeyDown={onKey} />
 
       {showMenu && (matches.length > 0 || canUseTyped) && (
-        <div class={`picker__menu ${dropUp ? "picker__menu--up" : ""}`} role="listbox">
+        <div class={`picker__menu ${dropUp && !pos ? "picker__menu--up" : ""}`} role="listbox"
+          style={pos ? `position:fixed;z-index:80;right:auto;left:${pos.left}px;width:${pos.width}px;max-height:${pos.maxH}px;` +
+            (pos.top !== undefined ? `top:${pos.top}px;bottom:auto` : `bottom:${pos.bottom}px;top:auto`) : undefined}>
           {matches.map((o, i) => {
             const head = !query && o.group && o.group !== lastGroup ? o.group : null;
             lastGroup = o.group;
