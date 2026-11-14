@@ -1,13 +1,17 @@
 // Finance – CLICKABLE MOCKUP. Made-up data that lives only in this browser
 // tab; nothing is saved and no money is moved. Shows how reimbursements,
 // the city bank accounts, the cash book and the year-end package could work.
-import { useMemo, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account, TeamMember } from "../../lib/types";
 import { useStore } from "../../lib/store";
-import { appTitle, fmtDate } from "../../lib/fields";
+import { appTitle, fmtDate, fmtShort } from "../../lib/fields";
 import { isDemo } from "../../lib/demo";
+import {
+  bankStatus, connectBank, deleteIban, disconnectBank, formatIban, ibanValid, isFinance, listBanks, loadBankData, loadMyIbans, normalizeIban,
+  saveIban, type BankConnection, type BankStatus, type SavedIban,
+} from "../../lib/bank";
 import { TeamShell, PageHead } from "./TeamShell";
-import { confirmDialog, Field, Modal, toast } from "../ui/Ui";
+import { act, confirmDialog, Field, Modal, toast, useParam } from "../ui/Ui";
 import { IconCheck, IconDownload, IconFile, IconPlus } from "../ui/Icons";
 
 // ── Mock data model ──────────────────────────────────────────────────────
@@ -18,7 +22,7 @@ interface Claim {
   category: string; receipt: Receipt; status: ClaimStatus; note?: string; iban: string; submittedAt: string; paidAt?: string;
 }
 interface Receipt { name: string; url?: string }
-type TxKind = "card" | "transfer" | "debit" | "income";
+type TxKind = "card" | "transfer" | "debit" | "income" | "booking";
 interface Tx {
   id: string; city: string; date: string; counterparty: string; purpose: string; amount: number; kind: TxKind;
   receipt?: Receipt; category?: string; project?: string; claimId?: string; requestedFrom?: string;
@@ -37,6 +41,8 @@ const CATEGORIES: Record<string, { area: Area; income?: boolean }> = {
   "Printing & marketing": { area: "Ideeller Bereich" },
   "Software & tools": { area: "Ideeller Bereich" },
   "Bank fees": { area: "Ideeller Bereich" },
+  "Administration & legal fees": { area: "Ideeller Bereich" },   // register of associations, notary, court fees
+  "Insurance": { area: "Ideeller Bereich" },
   "Merchandise": { area: "Wirtschaftlicher Geschäftsbetrieb" },
 };
 type Area = "Ideeller Bereich" | "Vermögensverwaltung" | "Zweckbetrieb" | "Wirtschaftlicher Geschäftsbetrieb";
@@ -51,8 +57,13 @@ const CLAIM_LABEL: Record<ClaimStatus, [string, string]> = {
   submitted: ["Submitted", "chip--blue"], question: ["Question", "chip--amber"], approved: ["Approved", "chip--purple"],
   paid: ["Paid", "chip--green"], rejected: ["Rejected", "chip--red"],
 };
-const KIND_LABEL: Record<TxKind, string> = { card: "Card payment", transfer: "Transfer", debit: "Direct debit", income: "Incoming" };
+const KIND_LABEL: Record<TxKind, string> = { card: "Card payment", transfer: "Transfer", debit: "Direct debit", income: "Incoming", booking: "Booking" };
 const CITIES = ["Aachen", "Munich", "Frankfurt"];
+/** City name → location id in the database */
+const cityId = (city: string) => city.toLowerCase();
+
+/** Real bank data (demo data off): provider status, connection per city, who may see it */
+interface BankView { status: BankStatus | null; connections: BankConnection[]; finance: Record<string, boolean>; reload: () => void }
 /** Each city has its own, independent bank account (balance before the mock transactions; 0 without demo data) */
 const MOCK_OPENING: Record<string, number> = { Aachen: 2480.55, Munich: 1320.1, Frankfurt: 640 };
 const openingBalance = (city: string) => (isDemo() ? MOCK_OPENING[city] ?? 0 : 0);
@@ -109,8 +120,23 @@ export default function FinancePage() {
 function Finance({ acc }: { acc: Account }) {
   const me = acc.name;
   const [data, setData] = useState(() => initialData(me));
-  const [tab, setTab] = useState<Tab>("mine");
-  const [city, setCity] = useState(CITIES.includes(acc.city) ? acc.city : "Aachen");
+  const tabParam = useParam("tab") as Tab | null, cityParam = useParam("city");
+  const [tab, setTab] = useState<Tab>(tabParam ?? "mine");
+  const [city, setCity] = useState(CITIES.find(c => cityId(c) === cityParam) ?? (CITIES.includes(acc.city) ? acc.city : "Aachen"));
+  const [bank, setBank] = useState<Omit<BankView, "reload">>({ status: null, connections: [], finance: {} });
+  const loadBank = () => {
+    if (isDemo()) return;
+    Promise.all([bankStatus(), loadBankData(), Promise.all(CITIES.map(c => isFinance(cityId(c))))]).then(([status, d, fin]) => {
+      setBank({ status, connections: d.connections, finance: Object.fromEntries(CITIES.map((c, i) => [c, fin[i]!])) });
+      const name = (id: string) => CITIES.find(c => cityId(c) === id) ?? id;
+      setData(x => ({ ...x, txs: d.transactions.map(t => ({
+        id: t.id, city: name(t.location_id), date: t.booking_date, counterparty: t.counterparty || "–", purpose: t.purpose,
+        amount: t.amount, kind: (t.amount > 0 ? "income" : "booking") as TxKind,
+      })) }));
+    }).catch(e => toast(e instanceof Error ? e.message : String(e)));
+  };
+  useEffect(loadBank, []);
+  const bankView: BankView = { ...bank, reload: loadBank };
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const setClaims = (f: (c: Claim[]) => Claim[]) => setData(d => ({ ...d, claims: f(d.claims) }));
   const setTxs = (f: (t: Tx[]) => Tx[]) => setData(d => ({ ...d, txs: f(d.txs) }));
@@ -133,7 +159,7 @@ function Finance({ acc }: { acc: Account }) {
       <div class="demo-banner" role="status">
         {isDemo()
           ? <><strong>Mockup with made-up data.</strong> Click through freely: nothing is saved, no emails are sent and no money is moved. Reloading the page resets it.</>
-          : <><strong>Demo data is off.</strong> Finance isn't connected to the database and the bank yet, so there's no real data here. Switch on “Demo data” in the sidebar to see the mockup.</>}
+          : <><strong>Demo data is off.</strong> The bank account is real (once connected); claims, receipts and categories aren't saved yet. Switch on “Demo data” in the sidebar to see the full mockup.</>}
       </div>
       <div class="city-switch-row">
         <div class="city-switch" role="group" aria-label="City">
@@ -162,10 +188,10 @@ function Finance({ acc }: { acc: Account }) {
           </button>
         ))}
       </nav>
-      {tab === "mine" && <MyClaims me={me} city={city} claims={data.claims.filter(c => c.who === me && c.city === city)} setClaims={setClaims} />}
-      {tab === "overview" && <Overview city={city} year={year} txs={data.txs} />}
+      {tab === "mine" && <MyClaims me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.who === me && c.city === city)} setClaims={setClaims} />}
+      {tab === "overview" && <Overview city={city} year={year} txs={data.txs} balanceNow={isDemo() ? undefined : bank.connections.find(c => c.location_id === cityId(city))?.balance ?? 0} />}
       {tab === "inbox" && <Inbox me={me} memberId={acc.memberId} city={city} claims={data.claims.filter(c => c.city === city)} setClaims={setClaims} setTxs={setTxs} />}
-      {tab === "bank" && <Bank city={city} txs={data.txs} claims={data.claims} setTxs={setTxs} />}
+      {tab === "bank" && <Bank city={city} txs={data.txs} claims={data.claims} setTxs={setTxs} bank={bankView} />}
       {tab === "book" && <Book city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} />}
       {tab === "year" && <YearEnd city={city} year={year} txs={data.txs.filter(t => t.city === city && t.date.startsWith(year))} claims={data.claims.filter(c => c.city === city && c.date.startsWith(year))} onGo={setTab} />}
     </div>
@@ -181,7 +207,7 @@ function ReceiptView({ r }: { r?: Receipt }) {
 
 // ── My claims (every team member) ────────────────────────────────────────
 
-function MyClaims({ me, city, claims, setClaims }: { me: string; city: string; claims: Claim[]; setClaims: (f: (c: Claim[]) => Claim[]) => void }) {
+function MyClaims({ me, memberId, city, claims, setClaims }: { me: string; memberId?: string; city: string; claims: Claim[]; setClaims: (f: (c: Claim[]) => Claim[]) => void }) {
   const [creating, setCreating] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const opened = claims.find(c => c.id === open);
@@ -211,7 +237,7 @@ function MyClaims({ me, city, claims, setClaims }: { me: string; city: string; c
         </div>
       </div>
       <p class="muted small">You get an email when your claim is approved, has a question, or is paid.</p>
-      {creating && <NewClaim me={me} city={city} onClose={() => setCreating(false)}
+      {creating && <NewClaim me={me} memberId={memberId} city={city} onClose={() => setCreating(false)}
         onSubmit={c => { setClaims(l => [c, ...l]); setCreating(false); toast("Claim submitted. The finance team has been notified (mockup)."); }} />}
       {opened && (
         <Modal title={opened.what} onClose={() => setOpen(null)} wide>
@@ -251,7 +277,10 @@ function MyClaims({ me, city, claims, setClaims }: { me: string; city: string; c
   );
 }
 
-function NewClaim({ me, city, onClose, onSubmit }: { me: string; city: string; onClose: () => void; onSubmit: (c: Claim) => void }) {
+/** Saved accounts in the mockup (demo data on): kept for this visit only */
+let demoIbans: SavedIban[] | null = null;
+
+function NewClaim({ me, memberId, city, onClose, onSubmit }: { me: string; memberId?: string; city: string; onClose: () => void; onSubmit: (c: Claim) => void }) {
   const apps = useStore(s => s.applications.filter(a => a.tags.location === city).slice(0, 6));
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [amount, setAmount] = useState("");
@@ -259,9 +288,49 @@ function NewClaim({ me, city, onClose, onSubmit }: { me: string; city: string; o
   const [what, setWhat] = useState("");
   const [project, setProject] = useState("General");
   const [category, setCategory] = useState(EXPENSE_CATS[0]!);
-  const [iban, setIban] = useState("DE89 3704 0044 0532 0130 00");
+  // Pay it to: one of the saved accounts, or a new one (saved for next time if wanted)
+  const demo = isDemo();
+  const [saved, setSaved] = useState<SavedIban[] | null>(null);
+  const [choice, setChoice] = useState<string>("new");
+  const [iban, setIban] = useState("");
+  const [holder, setHolder] = useState(me);
+  const [label, setLabel] = useState("");
+  const [keep, setKeep] = useState(true);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const done = (l: SavedIban[]) => { setSaved(l); if (l.length) setChoice(l[l.length - 1]!.id); };
+    if (demo) done(demoIbans ??= [{ id: "demo-iban", iban: "DE89370400440532013000", holder: me, label: "Sparkasse" }]);
+    else if (memberId) loadMyIbans(memberId).then(done).catch(() => done([]));
+    else done([]);
+  }, []);
+  const picked = saved?.find(x => x.id === choice);
+  const ibanOk = picked ? true : ibanValid(iban) && holder.trim().length > 0;
   const value = Number(amount.replace(",", "."));
-  const valid = receipt && value > 0 && date && what.trim() && iban.replace(/\s/g, "").length >= 15;
+  const valid = receipt && value > 0 && date && what.trim() && ibanOk;
+  const removeSaved = async (x: SavedIban) => {
+    if (!(await confirmDialog({ title: "Remove saved account?", confirmLabel: "Remove", message: `Remove ${formatIban(x.iban)} from your saved accounts? Claims already submitted keep it.` }))) return;
+    if (!demo) { const r = await act(() => deleteIban(x.id)); if (r === undefined) return; }
+    const next = (saved ?? []).filter(y => y.id !== x.id);
+    if (demo) demoIbans = next;
+    setSaved(next);
+    if (choice === x.id) setChoice(next[0]?.id ?? "new");
+  };
+  const submit = async () => {
+    let target = picked?.iban ?? normalizeIban(iban);
+    if (!picked && keep) {
+      setBusy(true);
+      if (demo) demoIbans = [...(demoIbans ?? []), { id: nextId("iban"), iban: target, holder, label: label || null }];
+      else if (memberId) {
+        const r = await act(() => saveIban(memberId, target, holder, label));
+        if (!r) { setBusy(false); return; }
+        target = r.iban;
+      }
+    }
+    onSubmit({
+      id: nextId("c"), who: me, city, amount: value, date, what, project, category, receipt: receipt!, status: "submitted",
+      iban: target, submittedAt: new Date().toISOString().slice(0, 10),
+    });
+  };
   return (
     <Modal title="Get money back" onClose={onClose} wide>
       <div class="grid-2" style="align-items:start">
@@ -288,18 +357,42 @@ function NewClaim({ me, city, onClose, onSubmit }: { me: string; city: string; o
               <select class="input" value={category} onChange={e => setCategory(e.currentTarget.value)}>{EXPENSE_CATS.map(c => <option>{c}</option>)}</select>
             </Field>
           </div>
-          <Field label="Pay it to (IBAN)" help="Saved on your profile after the first time. Only the finance team can see it.">
-            <input class="input mono" value={iban} onInput={e => setIban(e.currentTarget.value)} />
-          </Field>
+          <div class="stack-s">
+            <span class="field__label">Pay it to<span class="req">*</span></span>
+            {saved === null && <span class="muted small">Loading your saved accounts…</span>}
+            {saved?.map(x => (
+              <label class={`iban-option ${choice === x.id ? "is-active" : ""}`}>
+                <input type="radio" name="payto" checked={choice === x.id} onChange={() => setChoice(x.id)} />
+                <span style="flex:1;min-width:0"><strong>{x.label || x.holder}</strong><br /><span class="mono small">{formatIban(x.iban)}</span>{x.label && <span class="muted small"> · {x.holder}</span>}</span>
+                <button type="button" class="icon-btn" aria-label="Remove saved account" title="Remove saved account" onClick={e => { e.preventDefault(); removeSaved(x); }}>×</button>
+              </label>
+            ))}
+            {saved !== null && (
+              <label class={`iban-option ${choice === "new" ? "is-active" : ""}`}>
+                <input type="radio" name="payto" checked={choice === "new"} onChange={() => setChoice("new")} />
+                <span><strong>{saved.length ? "Another account" : "Your bank account"}</strong></span>
+              </label>
+            )}
+            {choice === "new" && saved !== null && (
+              <div class="stack-s" style="padding-left:6px">
+                <input class="input mono" placeholder="IBAN, e.g. DE89 3704 0044 0532 0130 00" value={iban} onInput={e => setIban(e.currentTarget.value)}
+                  onBlur={() => ibanValid(iban) && setIban(formatIban(iban))} />
+                {iban.trim().length >= 15 && !ibanValid(iban) && <span class="field__error">This IBAN isn't valid. Please check it for typos.</span>}
+                <div class="grid-2">
+                  <input class="input" placeholder="Account holder" value={holder} onInput={e => setHolder(e.currentTarget.value)} aria-label="Account holder" />
+                  <input class="input" placeholder="Name, e.g. Sparkasse (optional)" value={label} onInput={e => setLabel(e.currentTarget.value)} aria-label="Name for this account" />
+                </div>
+                {(memberId || demo) && <label class="check small"><input type="checkbox" checked={keep} onChange={e => setKeep(e.currentTarget.checked)} /><span>Save for my next claims</span></label>}
+              </div>
+            )}
+            <span class="field__help">Saved accounts are only visible to you and to the people who approve claims in your city.</span>
+          </div>
         </div>
       </div>
       <p class="muted small">Paid with the city's bank card instead? Then don't submit a claim: the payment shows up under “City bank accounts”, where you add the receipt.</p>
       <div class="row" style="justify-content:flex-end">
         <button class="btn btn--ghost" onClick={onClose}>Cancel</button>
-        <button class="btn btn--primary" disabled={!valid} onClick={() => onSubmit({
-          id: nextId("c"), who: me, city, amount: value, date, what, project, category, receipt: receipt!, status: "submitted",
-          iban: iban.replace(/\s/g, ""), submittedAt: new Date().toISOString().slice(0, 10),
-        })}>Submit claim</button>
+        <button class="btn btn--primary" disabled={!valid || busy} onClick={submit}>Submit claim</button>
       </div>
     </Modal>
   );
@@ -461,8 +554,10 @@ ${list.map(c => `      <CdtTrfTxInf><PmtId><EndToEndId>${c.id}</EndToEndId></Pmt
 
 // ── City bank accounts ───────────────────────────────────────────────────
 
-function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: Claim[]; setTxs: (f: (t: Tx[]) => Tx[]) => void }) {
+function Bank({ city, txs, claims, setTxs, bank }: { city: string; txs: Tx[]; claims: Claim[]; setTxs: (f: (t: Tx[]) => Tx[]) => void; bank: BankView }) {
   const [connecting, setConnecting] = useState(false);
+  const real = !isDemo();
+  const conn = bank.connections.find(c => c.location_id === cityId(city));
   const team = useStore(s => s.team.filter(m => m.status === "active"));
   const [filter, setFilter] = useState<"all" | "missing">("missing");
   const [edit, setEdit] = useState<string | null>(null);
@@ -471,7 +566,10 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
   const needsReceipt = (t: Tx) => !t.receipt && t.kind !== "income";
   const needsCategory = (t: Tx) => !t.category;
   const shown = filter === "missing" ? list.filter(t => needsReceipt(t) || needsCategory(t)) : list;
-  const balance = openingBalance(city) + list.reduce((s, t) => s + t.amount, 0);
+  const balance = real ? conn?.balance ?? 0 : openingBalance(city) + list.reduce((s, t) => s + t.amount, 0);
+  if (real && bank.status && !bank.finance[city]) {
+    return <div class="empty">Only the presidents and the head of Finance & Legal of {city} can see the bank account of OneAIM {city}.</div>;
+  }
   const cur = txs.find(t => t.id === edit);
   const set = (id: string, patch: Partial<Tx>) => setTxs(l => l.map(t => (t.id === id ? { ...t, ...patch } : t)));
 
@@ -482,18 +580,10 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
           <span class="chip chip--green">● Connected to the bank</span>
           <span class="muted small" style="flex:1">Transactions come in automatically through the bank's interface (API), several times a day, and are matched with claims. Last sync today, 06:00.</span>
         </div>
-      ) : (
-        <section class="card row bank-connect">
-          <div style="flex:1;min-width:0" class="stack-s">
-            <strong style="color:var(--color-text-heading)">No bank account connected for OneAIM {city}</strong>
-            <span class="muted small">Connect the {city} account once: transactions then come in automatically several times a day, and every payment shows up here to add its receipt.</span>
-          </div>
-          <button class="btn btn--primary" onClick={() => setConnecting(true)}><IconPlus width={18} />Connect bank account</button>
-        </section>
-      )}
-      {connecting && <ConnectBank city={city} onClose={() => setConnecting(false)} />}
+      ) : <BankConnectionBox city={city} bank={bank} conn={conn} onConnect={() => setConnecting(true)} />}
+      {connecting && <ConnectBank city={city} real={real && !!bank.status?.configured} onClose={() => setConnecting(false)} />}
       <div class="stats">
-        <div class="card stat"><span class="stat__num">{money(balance)}</span><span class="stat__label">Balance</span><span class="muted small">OneAIM {city} account{isDemo() ? " · synced today, 06:00" : ""}</span></div>
+        <div class="card stat"><span class="stat__num">{money(balance)}</span><span class="stat__label">Balance</span><span class="muted small">OneAIM {city} account{isDemo() ? " · synced today, 06:00" : conn?.last_sync_at ? ` · synced ${fmtShort(conn.last_sync_at)}` : ""}</span></div>
         <div class="card stat"><span class="stat__num">{list.filter(needsReceipt).length}</span><span class="stat__label">Payments without receipt</span><span class="muted small">card payments, transfers, debits</span></div>
         <div class="card stat"><span class="stat__num">{list.filter(needsCategory).length}</span><span class="stat__label">Not categorized</span><span class="muted small">needed for the tax return</span></div>
       </div>
@@ -509,7 +599,7 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
               {shown.map(t => {
                 const claim = claims.find(c => c.id === t.claimId);
                 return (
-                  <tr class="is-clickable" onClick={() => setEdit(t.id)}>
+                  <tr class={real ? "" : "is-clickable"} onClick={() => !real && setEdit(t.id)}>
                     <td class="muted">{fmtDate(t.date)}</td>
                     <td><strong style="color:var(--color-text-heading)">{t.counterparty}</strong><br /><span class="muted small">{t.purpose}</span></td>
                     <td class="small">{KIND_LABEL[t.kind]}{claim && <><br /><span class="muted">reimbursement</span></>}</td>
@@ -527,7 +617,8 @@ function Bank({ city, txs, claims, setTxs }: { city: string; txs: Tx[]; claims: 
           </table>
         </div>
       </div>
-      <p class="muted small">Every payment of the city account needs a receipt: card payments, transfers and direct debits. Whoever paid with the card gets a reminder until the receipt is uploaded.</p>
+      <p class="muted small">Every payment of the city account needs a receipt: card payments, transfers and direct debits. Whoever paid with the card gets a reminder until the receipt is uploaded.
+        {real && " Adding receipts and categories to real transactions comes in the next step; for now they're shown as they come from the bank."}</p>
 
       {cur && (
         <Modal title={`${cur.counterparty} · ${money(cur.amount)}`} onClose={() => setEdit(null)} wide>
@@ -727,7 +818,7 @@ function YearEnd({ city, year, txs, claims, onGo }: { city: string; year: string
 
 // ── Money in & out per city ──────────────────────────────────────────────
 
-function Overview({ city, year, txs }: { city: string; year: string; txs: Tx[] }) {
+function Overview({ city, year, txs, balanceNow }: { city: string; year: string; txs: Tx[]; balanceNow?: number }) {
   const mine = txs.filter(t => t.city === city && t.date.startsWith(year));
   const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
   const thisMonth = new Date().toISOString().slice(0, 7);
@@ -764,7 +855,10 @@ function Overview({ city, year, txs }: { city: string; year: string; txs: Tx[] }
   // Opening balance of the year (mock), end = opening + result
   const histResult = (y: string) => (history[y] ?? []).reduce((s, [i, o]) => s + (i - o) * scale, 0);
   const open2026 = openingBalance(city) - histResult("2026");
-  const opening = year === "2025" ? open2026 - histResult("2025") : open2026;
+  // Real data: today's balance from the bank minus everything booked since 1 January of that year
+  const opening = balanceNow !== undefined
+    ? balanceNow - txs.filter(t => t.city === city && t.date >= `${year}-01-01`).reduce((s, t) => s + t.amount, 0)
+    : year === "2025" ? open2026 - histResult("2025") : open2026;
   const past = year < thisMonth.slice(0, 4);
 
   return (
@@ -810,12 +904,26 @@ function Overview({ city, year, txs }: { city: string; year: string; txs: Tx[] }
 
 // ── Connect a bank account (not available yet) ──────────────────────────
 
-const BANKS = ["Sparkasse Aachen", "Stadtsparkasse München", "Frankfurter Sparkasse", "Volksbank / Raiffeisenbank", "Deutsche Bank", "Commerzbank", "GLS Bank", "Qonto", "N26 Business", "Other bank"];
+/** Shown in the mockup (demo data on); with real access the list comes from Enable Banking */
+const MOCK_BANKS = ["Sparkasse Aachen", "Stadtsparkasse München", "Frankfurter Sparkasse", "Volksbank / Raiffeisenbank", "Deutsche Bank", "Commerzbank", "GLS Bank", "Qonto", "N26 Business", "Other bank"];
 
-function ConnectBank({ city, onClose }: { city: string; onClose: () => void }) {
+function ConnectBank({ city, real, onClose }: { city: string; real: boolean; onClose: () => void }) {
   const [q, setQ] = useState("");
   const [bank, setBank] = useState("");
-  const list = BANKS.filter(b => b.toLowerCase().includes(q.trim().toLowerCase()));
+  const [banks, setBanks] = useState<{ name: string; logo: string | null }[] | null>(real ? null : MOCK_BANKS.map(name => ({ name, logo: null })));
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (real) listBanks("DE").then(setBanks).catch(e => { setBanks([]); setError(e instanceof Error ? e.message : String(e)); }); }, []);
+  const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const list = (banks ?? []).filter(b => words.every(w => b.name.toLowerCase().includes(w))).slice(0, 60);
+
+  const go = async () => {
+    if (!real) { toast("Connecting banks isn't available yet: the bank access provider still needs to be set up (Settings → Bank access)."); onClose(); return; }
+    setBusy(true);
+    try { location.href = await connectBank(cityId(city), bank); }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); setBusy(false); }
+  };
+
   return (
     <Modal title={`Connect the bank account of OneAIM ${city}`} onClose={onClose}>
       <ol class="stack-s small" style="margin:0;padding-left:18px">
@@ -823,20 +931,80 @@ function ConnectBank({ city, onClose }: { city: string; onClose: () => void }) {
         <li>You're sent to the bank's own login page and confirm with your TAN or banking app. Your online-banking password never reaches this website.</li>
         <li>Back here, transactions come in automatically several times a day. Read-only: no money can be moved from here.</li>
       </ol>
-      <input class="input" placeholder="Search your bank…" value={q} onInput={e => setQ(e.currentTarget.value)} autoFocus />
-      <div class="stack-s" style="max-height:220px;overflow-y:auto">
+      <input class="input" placeholder="Search your bank, e.g. Sparkasse Aachen" value={q} onInput={e => setQ(e.currentTarget.value)} autoFocus />
+      <div class="stack-s" style="max-height:260px;overflow-y:auto">
+        {banks === null && <p class="muted small">Loading the list of banks…</p>}
         {list.map(b => (
-          <button type="button" class={`slot ${bank === b ? "is-active" : ""}`} style="text-align:left" onClick={() => setBank(b)}><strong>{b}</strong></button>
+          <button type="button" class={`slot ${bank === b.name ? "is-active" : ""}`} style="text-align:left;flex-direction:row;align-items:center;gap:10px" onClick={() => setBank(b.name)}>
+            {b.logo && <img src={b.logo} alt="" width={22} height={22} style="object-fit:contain" />}<strong>{b.name}</strong>
+          </button>
         ))}
+        {banks !== null && !list.length && !error && <p class="muted small">No bank found{q ? ` for “${q}”` : ""}.</p>}
       </div>
+      {error && <p class="field__error">{error}</p>}
       <p class="muted small">The bank asks to confirm the access again about every 180 days; you get an email before it runs out.</p>
       <div class="row" style="justify-content:flex-end">
         <button class="btn btn--ghost" onClick={onClose}>Cancel</button>
-        <button class="btn btn--primary" disabled={!bank}
-          onClick={() => { toast("Connecting banks isn't available yet: the bank access provider still needs to be set up."); onClose(); }}>
-          Continue to {bank || "your bank"} →
-        </button>
+        <button class="btn btn--primary" disabled={!bank || busy} onClick={go}>{busy ? "Opening the bank…" : `Continue to ${bank || "your bank"} →`}</button>
       </div>
     </Modal>
+  );
+}
+
+/** Connection state of a city's account (real data) */
+function BankConnectionBox({ city, bank, conn, onConnect }: { city: string; bank: BankView; conn?: BankConnection; onConnect: () => void }) {
+  if (!bank.status) return <p class="muted small">Loading the bank connection…</p>;
+  if (!bank.status.configured) {
+    return (
+      <section class="card row bank-connect">
+        <div style="flex:1;min-width:0" class="stack-s">
+          <strong style="color:var(--color-text-heading)">No bank account connected for OneAIM {city}</strong>
+          <span class="muted small">Bank access isn't set up yet. A president or the head of Finance & Legal enters the Enable Banking keys once under Settings → Bank access; then every city can connect its account here.</span>
+        </div>
+        <a class="btn btn--secondary" href="/team/settings#bank">Set up bank access</a>
+        <button class="btn btn--primary" onClick={onConnect}><IconPlus width={18} />Connect bank account</button>
+      </section>
+    );
+  }
+  if (conn?.status === "active") {
+    const daysLeft = conn.valid_until ? Math.floor((Date.parse(conn.valid_until) - Date.now()) / 864e5) : null;
+    return (
+      <div class="stack-s">
+        <div class="row">
+          <span class="chip chip--green">● Connected: {conn.aspsp_name}</span>
+          <span class="muted small" style="flex:1">
+            {conn.accounts.length} account{conn.accounts.length === 1 ? "" : "s"}{conn.accounts[0]?.iban ? ` (${conn.accounts.map(a => a.iban ? `…${a.iban.slice(-4)}` : "").join(", ")})` : ""}
+            {conn.last_sync_at ? ` · last sync ${fmtShort(conn.last_sync_at)}` : ""} · syncs automatically 4 times a day
+            {conn.valid_until ? ` · access until ${fmtDate(conn.valid_until.slice(0, 10))}` : ""}
+          </span>
+          <button class="btn btn--ghost btn--sm" onClick={async () => {
+            if (await confirmDialog({ title: "Disconnect the bank account?", danger: true, confirmLabel: "Disconnect",
+              message: `Stop syncing the ${city} account? Transactions fetched so far stay.` }))
+              act(() => disconnectBank(cityId(city)), "Bank account disconnected").then(bank.reload);
+          }}>Disconnect</button>
+        </div>
+        {daysLeft !== null && daysLeft <= 14 && (
+          <div class="card card--tint row small">
+            <span style="flex:1">The bank access runs out in {Math.max(0, daysLeft)} day{daysLeft === 1 ? "" : "s"}. Confirm it again at the bank to keep syncing.</span>
+            <button class="btn btn--primary btn--sm" onClick={onConnect}>Renew access</button>
+          </div>
+        )}
+        {conn.last_error && <p class="small field__error">Last sync failed: {conn.last_error}</p>}
+      </div>
+    );
+  }
+  const why = conn?.status === "expired" ? `The access to ${conn.aspsp_name} ran out. Connect again to keep syncing.`
+    : conn?.status === "error" ? `Connecting to ${conn.aspsp_name} didn't work${conn.last_error ? `: ${conn.last_error}` : ""}.`
+    : conn?.status === "pending" ? `Connecting to ${conn.aspsp_name} was started but not finished at the bank.`
+    : conn?.status === "disconnected" ? `The ${conn.aspsp_name} account was disconnected.`
+    : `Connect the ${city} account once: transactions then come in automatically several times a day, and every payment shows up here to add its receipt.`;
+  return (
+    <section class="card row bank-connect">
+      <div style="flex:1;min-width:0" class="stack-s">
+        <strong style="color:var(--color-text-heading)">No bank account connected for OneAIM {city}</strong>
+        <span class="muted small">{why}</span>
+      </div>
+      <button class="btn btn--primary" onClick={onConnect}><IconPlus width={18} />Connect bank account</button>
+    </section>
   );
 }

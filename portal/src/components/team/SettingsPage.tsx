@@ -7,6 +7,8 @@ import {
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, confirmDialog, Field } from "../ui/Ui";
 import { IconX } from "../ui/Icons";
+import { BANK_CALLBACK_PATH, bankStatus, clearBankKeys, isFinance, saveBankKeys, type BankStatus } from "../../lib/bank";
+import { fmtShort } from "../../lib/fields";
 
 export default function SettingsPage() {
   return <TeamShell active="settings">{acc => <Settings acc={acc} />}</TeamShell>;
@@ -34,6 +36,8 @@ function Settings({ acc }: { acc: Account }) {
       <ProfileLists />
 
       <EmailSection />
+
+      <BankAccessSection />
 
       <section class="stack">
         <h2>Tags</h2>
@@ -146,6 +150,85 @@ function EmailSection() {
         <button class="btn btn--primary" disabled={!dirty} onClick={save}>{dirty ? "Save email settings" : "Saved"}</button>
         <button class="btn btn--secondary" onClick={() => act(sendQueuedNow, r => r.skipped ? `Not sent: ${r.skipped}` : `${r.sent ?? 0} sent, ${r.failed ?? 0} failed`)}>Send queued emails now</button>
       </div>
+    </section>
+  );
+}
+
+// ── Bank access (Enable Banking) ─────────────────────────────────────────
+
+function BankAccessSection() {
+  const [status, setStatus] = useState<BankStatus | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [appId, setAppId] = useState("");
+  const [key, setKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = () => bankStatus().then(setStatus).catch(() => setStatus({ configured: false }));
+  useEffect(() => { load(); isFinance(null).then(setCanEdit); }, []);
+  if (!status) return null;
+
+  const origins = [...new Set([location.origin, "https://lambent-rolypoly-19b487.netlify.app"])];
+  const save = async () => {
+    setBusy(true);
+    const r = await act(() => saveBankKeys(appId.trim(), key.trim()), "Bank access saved. The keys were checked with Enable Banking.");
+    setBusy(false);
+    if (r) { setEditing(false); setAppId(""); setKey(""); load(); }
+  };
+
+  return (
+    <section class="card stack" id="bank">
+      <div class="row row--between">
+        <div class="stack-s">
+          <h2>Bank access</h2>
+          <p class="muted small">Lets the cities connect their bank accounts in Finance (read-only: balances and transactions, no payments). Provider: Enable Banking, licensed for PSD2 account access.</p>
+        </div>
+        <span class={`chip ${status.configured ? "chip--green" : "chip--gray"}`}>{status.configured ? "Set up" : "Not set up"}</span>
+      </div>
+
+      {status.configured && !editing && (
+        <div class="stack-s">
+          <p class="small">Application ID <span class="mono">{status.app_id}</span>{status.updated_by ? <> · saved by {status.updated_by}{status.updated_at ? `, ${fmtShort(status.updated_at)}` : ""}</> : ""}</p>
+          <p class="muted small">The private key is stored on the server only and can't be shown again.</p>
+          {canEdit && (
+            <div class="row">
+              <button class="btn btn--secondary btn--sm" onClick={() => setEditing(true)}>Replace keys</button>
+              <button class="btn btn--ghost btn--sm" onClick={async () => {
+                if (await confirmDialog({ title: "Remove bank access?", danger: true, confirmLabel: "Remove",
+                  message: "Remove the Enable Banking keys? Connected accounts stop syncing until new keys are saved. Already synced transactions stay." }))
+                  act(clearBankKeys, "Bank access removed").then(load);
+              }}>Remove</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {(!status.configured || editing) && (canEdit ? (
+        <div class="stack">
+          <ol class="stack-s small" style="margin:0;padding-left:18px">
+            <li>Register at <a href="https://enablebanking.com/cp" target="_blank" rel="noopener">enablebanking.com</a> and create an application in the <strong>production</strong> environment. Let the browser generate the key and download the private key (a <span class="mono">.pem</span> file).</li>
+            <li>Add these redirect URLs to the application:
+              {origins.map(o => <div class="mono" style="user-select:all">{o}{BANK_CALLBACK_PATH}</div>)}
+            </li>
+            <li>Click <strong>“Activate by linking accounts”</strong> in the Enable Banking control panel and link the OneAIM bank accounts. In this restricted mode only these linked accounts can be read, which is all we need.</li>
+            <li>Paste the application ID and the private key below. They're checked with Enable Banking before saving.</li>
+          </ol>
+          <Field label="Application ID">
+            <input class="input mono" placeholder="e.g. 0d1c1b6e-…" value={appId} onInput={e => setAppId(e.currentTarget.value)} />
+          </Field>
+          <Field label="Private key" help="The .pem file from Enable Banking: choose the file or paste its content.">
+            <div class="stack-s">
+              <input type="file" accept=".pem,.key,text/plain" onChange={async e => { const f = e.currentTarget.files?.[0]; if (f) setKey(await f.text()); }} />
+              <textarea class="input mono" style="min-height:90px;font-size:12px" placeholder="-----BEGIN PRIVATE KEY-----" value={key} onInput={e => setKey(e.currentTarget.value)} />
+            </div>
+          </Field>
+          <div class="row">
+            <button class="btn btn--primary" disabled={busy || !appId.trim() || !/-----BEGIN (RSA )?PRIVATE KEY-----/.test(key)} onClick={save}>{busy ? "Checking…" : "Check & save"}</button>
+            {editing && <button class="btn btn--ghost" onClick={() => setEditing(false)}>Cancel</button>}
+          </div>
+        </div>
+      ) : (
+        <p class="muted small">Only presidents and heads of Finance & Legal can set this up.</p>
+      ))}
     </section>
   );
 }
