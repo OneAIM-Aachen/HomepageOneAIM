@@ -135,7 +135,11 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
     setBp(id); setIntro(b.description); setFields(structuredClone(b.fields));
   };
   const past = when === "scheduled" && !!sendAt && sendAt <= nowLocal();
-  const valid = name.trim() && pick && fields.length > 0 && fields.every(f => f.label.trim())
+  // Email to the participants: standard text, editable right here (used as is by "Send now")
+  const [subject, setSubject] = useState(app.templates.feedback.subject);
+  const [body, setBody] = useState(app.templates.feedback.body);
+  const missingLink = !body.includes("{feedback_link}");
+  const valid = name.trim() && pick && fields.length > 0 && fields.every(f => f.label.trim()) && subject.trim() && !missingLink
     && (when !== "scheduled" || (sendAt && !past)) && (when !== "now" || participants > 0);
 
   const create = async () => {
@@ -143,7 +147,7 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
     setBusy(true);
     const id = await act(() => createFeedback({
       applicationId: app.id, name, blueprintName: pick.name, intro, fields,
-      subject: app.templates.feedback.subject, body: app.templates.feedback.body,
+      subject, body,
       sendAt: when === "scheduled" ? sendAt : undefined,
     }), when === "now" ? undefined : "Feedback set up");
     if (!id) { setBusy(false); return; }
@@ -204,6 +208,24 @@ function NewFeedback({ app, participants, onClose, onCreated }: {
         <label class="check"><input type="radio" name="when" checked={when === "later"} onChange={() => setWhen("later")} />
           <span><strong>Not yet</strong> <span class="muted small">set a time or send it later</span></span></label>
       </div>
+      <details class="stack-s feedback-setup__email" open={when === "now"}>
+        <summary class="field__label" style="cursor:pointer">Email to the participants <span class="muted small" style="font-weight:400">· {subject === app.templates.feedback.subject && body === app.templates.feedback.body ? "standard text" : "changed"}</span></summary>
+        <div class="stack-s" style="margin-top:8px">
+          <input class="input" value={subject} onInput={e => setSubject(e.currentTarget.value)} aria-label="Email subject" placeholder="Subject" />
+          <textarea class="input" style="min-height:150px" value={body} onInput={e => setBody(e.currentTarget.value)} aria-label="Email message" />
+          {missingLink && <span class="field__error">The message needs {"{feedback_link}"}, otherwise participants can't open the form.</span>}
+          <div class="row" style="gap:6px">
+            {PLACEHOLDERS.filter(ph => !PLACEHOLDER_ONLY[ph] || PLACEHOLDER_ONLY[ph]!.includes("feedback")).map(ph => (
+              <button type="button" class="chip chip--outline mono" style="cursor:pointer" onClick={() => setBody(body + ph)}>{ph}</button>
+            ))}
+          </div>
+          <span class="field__help">Each participant gets a personal link for {"{feedback_link}"}. Preview with an example name:</span>
+          <div class="mail">
+            <div class="mail__head"><span><span class="muted">Subject:</span> <strong>{renderTemplate(subject, app, { name: "Alex Example" })}</strong></span></div>
+            <div class="mail__body">{renderTemplate(body, app, { name: "Alex Example" })}</div>
+          </div>
+        </div>
+      </details>
       <p class="muted small">Only the accepted participants of this application get the link.</p>
       <div class="row" style="justify-content:flex-end">
         <button class="btn btn--ghost" onClick={onClose}>Cancel</button>
