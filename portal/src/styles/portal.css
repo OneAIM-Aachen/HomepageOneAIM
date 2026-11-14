@@ -780,6 +780,8 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 .company-entry__grid { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
 .company-input--invalid .company-entry { border-color: var(--p-red); }
 @media (max-width: 600px) { .company-entry__grid { grid-template-columns: 1fr; } }
+.publication-entry__grid { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 2fr) 110px minmax(0, 1.4fr); gap: 10px 12px; }
+@media (max-width: 600px) { .publication-entry__grid { grid-template-columns: 1fr; } }
 .picker__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .picker__chips .chip { padding-right: 4px; }
 .filter-search { position: relative; flex: 1 1 180px; min-width: 170px; max-width: 280px; }
@@ -795,8 +797,8 @@ ol.history { list-style: none; padding: 0; margin: 0; }
 /* ── Review workflow ─────────────────────────────────────────────────────── */
 .member-chip { gap: 6px; padding: 3px 6px 3px 3px; }
 .member-chip .avatar { width: 22px; height: 22px; font-size: 9.5px; }
-.criterion-row { display: grid; grid-template-columns: 1.1fr 1.6fr 70px auto; gap: 8px; align-items: center; }
-@media (max-width: 720px) { .criterion-row { grid-template-columns: 1fr 70px auto; } .criterion-row > input:nth-child(2) { grid-column: 1 / -1; grid-row: 2; } }
+.criterion-row { display: grid; grid-template-columns: 1.1fr 1.6fr 96px auto; gap: 8px; align-items: center; }
+@media (max-width: 720px) { .criterion-row { grid-template-columns: 1fr 96px auto; } .criterion-row > input:nth-child(2) { grid-column: 1 / -1; grid-row: 2; } }
 .scoresheet__row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--p-line); }
 .scale { display: flex; gap: 4px; flex-shrink: 0; }
 .scale button {
@@ -940,3 +942,5 @@ img.receipt { max-height: 340px; background: #fff; }
 .bank-connect { gap: 16px; border: 1.5px dashed #9DB8F2; background: #F7F9FF; }
 .iban-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--p-line); border-radius: 12px; cursor: pointer; }
 .iban-option.is-active { border-color: var(--color-brand-blue); background: #F7F9FF; }
+.weight-input { display: flex; align-items: center; gap: 4px; font-weight: 700; color: var(--color-text-muted); }
+.weight-input .input { width: 72px; }

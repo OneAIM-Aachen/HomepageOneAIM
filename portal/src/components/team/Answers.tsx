@@ -1,7 +1,7 @@
 // Everything an applicant submitted, rendered field by field.
 // Used in the applicant drawer and in the network profile.
-import type { Answer, Application, CompanyEntry, Field, FileRef, Submission } from "../../lib/types";
-import { companyPeriod } from "../apply/CompanyInput";
+import type { Answer, Application, CompanyEntry, Field, FileRef, Publication, ResearchGroupEntry, Submission } from "../../lib/types";
+import { companyPeriod, researchGroupText } from "../apply/CompanyInput";
 import { fmtDate, NO_COMPANY } from "../../lib/fields";
 import { act } from "../ui/Ui";
 import { openFile as openStored } from "../../lib/store";
@@ -17,12 +17,19 @@ function answerText(v: Answer): string {
   if (v === NO_COMPANY) return "No company yet";
   if (Array.isArray(v)) {
     if (!v.length) return "–";
-    // Company affiliations: [{company, position, from, to}]
-    if (typeof v[0] === "object") return (v as CompanyEntry[]).map(e => `${e.company}: ${e.position} (${companyPeriod(e)})`).join("\n");
+    if (typeof v[0] === "object") {
+      // Research groups: [{group, role, from, to}]; publications: [{title, year, url}]; company affiliations: [{company, position, from, to}]
+      if ("group" in v[0]) return (v as ResearchGroupEntry[]).map(researchGroupText).join("\n");
+      if ("title" in v[0]) return (v as Publication[]).map(publicationText).join("\n");
+      return (v as CompanyEntry[]).map(e => `${e.company}: ${e.position} (${companyPeriod(e)})`).join("\n");
+    }
     return (v as string[]).join(", ");
   }
   return String(v);
 }
+
+/** "Title (2024) https://doi.org/…" */
+export const publicationText = (p: Publication) => `${p.title} (${p.year})${p.url ? ` ${p.url}` : ""}`;
 
 // Opens via a short-lived signed URL from Supabase storage (private bucket).
 export function openFile(f: FileRef) {

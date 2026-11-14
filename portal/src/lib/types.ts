@@ -18,7 +18,7 @@ export type SubmissionStatus =
 export type FieldKind =
   // Profile fields: map onto the person in the network database
   | "name" | "email" | "phone" | "linkedin" | "university"
-  | "studyProgram" | "company" | "semester" | "degree" | "cv"
+  | "studyProgram" | "company" | "researchGroup" | "publications" | "semester" | "degree" | "cv"
   // Custom questions
   | "shortText" | "longText" | "single" | "multi" | "dropdown"
   | "file" | "url" | "number" | "date" | "yesno";
@@ -138,7 +138,7 @@ export interface FileRef {
   /** Storage path in bucket "application-files" */
   path?: string;
 }
-export type Answer = string | string[] | boolean | FileRef | CompanyEntry[] | undefined;
+export type Answer = string | string[] | boolean | FileRef | CompanyEntry[] | ResearchGroupEntry[] | Publication[] | undefined;
 
 export interface Comment {
   author: string; text: string; at: string;
@@ -199,6 +199,9 @@ export interface Person {
   studyPrograms: string[];
   /** Internships, working student jobs, work experience */
   companies: CompanyEntry[];
+  /** Research groups (HiWi, thesis, PhD …) */
+  researchGroups: ResearchGroupEntry[];
+  publications: Publication[];
   semester?: string;
   degree?: string;
   /** Latest CV upload (older CVs stay with their submission) */
@@ -321,15 +324,23 @@ export interface MailboxStatus {
 export interface ListUniversity { id: string; name: string; city?: string; country?: string; aliases: string[] }
 export interface ListStudyProgram { id: string; name: string; category: string }
 export interface ListCompany { id: string; name: string; category: string; aliases: string[] }
+export interface ListResearchGroup { id: string; name: string; institution: string; aliases: string[] }
 
 /** One company affiliation: company (from the list), position, start / end month ("YYYY-MM"; no end = until today) */
 export interface CompanyEntry { company: string; position: string; from: string; to?: string }
+
+/** One research group affiliation: group (from the list), role, start / end month ("YYYY-MM"; no end = until today) */
+export interface ResearchGroupEntry { group: string; role: string; from: string; to?: string }
+
+/** One publication: title, year, link (DOI or URL, optional) */
+export interface Publication { title: string; year: number | string; url?: string }
 
 /** Options for the profile fields of every form */
 export interface FormOptions {
   universities: { name: string; country?: string; aliases?: string[] }[];
   studyPrograms: { name: string; category: string }[];
   companies: { name: string; category: string; aliases?: string[] }[];
+  researchGroups: { name: string; institution: string; aliases?: string[] }[];
 }
 
 export interface TagLists {
@@ -358,5 +369,6 @@ export interface State {
   universities: ListUniversity[];
   studyPrograms: ListStudyProgram[];
   companies: ListCompany[];
+  researchGroups: ListResearchGroup[];
   mailbox: MailboxStatus | null;
 }

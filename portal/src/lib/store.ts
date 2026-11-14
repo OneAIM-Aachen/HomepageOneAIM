@@ -27,7 +27,7 @@ import type { PostDraft } from "../components/network/Board";
 const EMPTY: State = {
   team: [], scorecards: [], posts: [], networkAccounts: {}, departments: [], tagLists: { semesters: [], programs: [], locations: [] },
   blueprints: [], applications: [], submissions: [], feedbacks: [], feedbackResponses: [], people: [], outbox: [], inbox: [], mailbox: null,
-  universities: [], studyPrograms: [], companies: [],
+  universities: [], studyPrograms: [], companies: [], researchGroups: [],
 };
 
 let state: State = EMPTY;
@@ -150,7 +150,7 @@ async function all(make: () => any): Promise<{ data: any[]; error: unknown }> {
 const LIVE_TABLES = [
   "applications", "interview_slots", "submissions", "submission_scores", "submission_reviewers", "submission_comments",
   "people", "email_log", "mailbox_messages", "team_members", "team_departments", "network_posts", "blueprints", "scorecards",
-  "feedback_forms", "feedback_responses",
+  "feedback_forms", "feedback_responses", "research_groups",
 ];
 let lastLoad = 0;
 let live = false;
@@ -179,7 +179,7 @@ export function startLive() {
 }
 
 export async function loadAll(): Promise<void> {
-  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs, companyList, reviewers, scoreRows, scorecardRows, feedbackForms, feedbackRows] =
+  const [programs, locations, semesters, members, departments, memberStatus, roles, netAccounts, posts, blueprints, apps, slots, people, subs, comments, history, mails, inbox, mailbox, unis, studyProgs, companyList, reviewers, scoreRows, scorecardRows, feedbackForms, feedbackRows, groupList] =
     await Promise.all([
       supabase.from("programs").select("id, name").order("sort_order"),
       supabase.from("locations").select("id, name").order("sort_order"),
@@ -208,6 +208,7 @@ export async function loadAll(): Promise<void> {
       supabase.from("scorecards").select("*").order("name"),
       supabase.from("feedback_forms").select("*").order("created_at"),
       all(() => supabase.from("feedback_responses").select("*").order("submitted_at").order("id")),
+      all(() => supabase.from("research_groups").select("id, name, institution, aliases").order("name").order("id")),
     ]);
 
   const P = check(programs) as any[], L = check(locations) as any[], S = check(semesters) as any[];
@@ -275,7 +276,8 @@ export async function loadAll(): Promise<void> {
     }) as FeedbackResponse),
     people: (check(people) as any[]).map(p => ({
       id: p.id, email: p.email, name: p.name, phone: p.phone ?? undefined, linkedin: p.linkedin ?? undefined,
-      universities: p.universities ?? [], studyPrograms: p.study_programs ?? [], companies: p.companies ?? [], semester: p.semester ?? undefined,
+      universities: p.universities ?? [], studyPrograms: p.study_programs ?? [], companies: p.companies ?? [],
+      researchGroups: p.research_groups ?? [], publications: p.publications ?? [], semester: p.semester ?? undefined,
       degree: p.degree ?? undefined, cv: p.cv ?? undefined, firstSeen: p.first_seen_at,
     }) as Person),
     submissions: (check(subs) as any[]).map(x => ({
@@ -309,6 +311,7 @@ export async function loadAll(): Promise<void> {
     studyPrograms: check(studyProgs) as any[],
     scorecards: (check(scorecardRows) as any[]).map(c => ({ id: c.id, name: c.name, description: c.description, criteria: c.criteria ?? [] })),
     companies: (check(companyList) as any[]).map(c => ({ id: c.id, name: c.name, category: c.category, aliases: c.aliases ?? [] })),
+    researchGroups: (check(groupList) as any[]).map(g => ({ id: g.id, name: g.name, institution: g.institution, aliases: g.aliases ?? [] })),
     mailbox: (() => {
       const m = check(mailbox) as any;
       return m ? { lastSyncAt: m.last_sync_at ?? undefined, lastError: m.last_error ?? undefined, syncSince: m.sync_since } : null;
@@ -901,14 +904,16 @@ export function formOptionsFromState(s: State): FormOptions {
     universities: s.universities.map(u => ({ name: u.name, country: u.country, aliases: u.aliases })),
     studyPrograms: s.studyPrograms.map(p => ({ name: p.name, category: p.category })),
     companies: s.companies.map(c => ({ name: c.name, category: c.category, aliases: c.aliases })),
+    researchGroups: s.researchGroups.map(g => ({ name: g.name, institution: g.institution, aliases: g.aliases })),
   };
 }
 
 /** Options for the apply form (public, read-only). */
 export async function fetchFormOptions(): Promise<FormOptions> {
   const { data, error } = await supabase.rpc("public_form_options");
-  if (error || !data) return { universities: [], studyPrograms: [], companies: [] };
-  return data as FormOptions;
+  if (error || !data) return { universities: [], studyPrograms: [], companies: [], researchGroups: [] };
+  const d = data as Partial<FormOptions>;
+  return { universities: d.universities ?? [], studyPrograms: d.studyPrograms ?? [], companies: d.companies ?? [], researchGroups: d.researchGroups ?? [] };
 }
 
 export async function addUniversity(name: string, city?: string, country?: string) {
@@ -929,8 +934,14 @@ export async function addCompany(name: string, category: string) {
   await loadAll();
 }
 
-export type ListKind = "university" | "studyProgram" | "company";
-const LIST_TABLE: Record<ListKind, string> = { university: "universities", studyProgram: "study_programs", company: "companies" };
+export async function addResearchGroup(name: string, institution: string) {
+  if (!name.trim() || !institution.trim()) return;
+  check(await supabase.from("research_groups").insert({ name: name.trim(), institution: institution.trim() }));
+  await loadAll();
+}
+
+export type ListKind = "university" | "studyProgram" | "company" | "researchGroup";
+const LIST_TABLE: Record<ListKind, string> = { university: "universities", studyProgram: "study_programs", company: "companies", researchGroup: "research_groups" };
 
 export async function removeListEntry(kind: ListKind, id: string) {
   check(await supabase.from(LIST_TABLE[kind]).delete().eq("id", id));
@@ -1015,13 +1026,15 @@ export async function updateMember(id: string, p: MemberPatch) {
 }
 
 /** Personal details live on the network profile (shared with applications). */
-export async function updatePersonDetails(personId: string, p: Partial<Pick<Person, "phone" | "linkedin" | "universities" | "studyPrograms" | "companies" | "semester" | "degree">>) {
+export async function updatePersonDetails(personId: string, p: Partial<Pick<Person, "phone" | "linkedin" | "universities" | "studyPrograms" | "companies" | "researchGroups" | "publications" | "semester" | "degree">>) {
   const row: Record<string, unknown> = {};
   if ("phone" in p) row.phone = p.phone?.trim() || null;
   if ("linkedin" in p) row.linkedin = p.linkedin?.trim() || null;
   if (p.universities) row.universities = p.universities;
   if (p.studyPrograms) row.study_programs = p.studyPrograms;
   if (p.companies) row.companies = p.companies;
+  if (p.researchGroups) row.research_groups = p.researchGroups;
+  if (p.publications) row.publications = p.publications;
   if ("semester" in p) row.semester = p.semester || null;
   if ("degree" in p) row.degree = p.degree || null;
   check(await supabase.from("people").update(row).eq("id", personId));

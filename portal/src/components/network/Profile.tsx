@@ -4,7 +4,7 @@
 // Used by the team portal (Network page) and the members site (/members),
 // where the data comes from the database function network_directory().
 import type { ComponentChildren } from "preact";
-import type { CompanyEntry, RoleEntry, TeamMember } from "../../lib/types";
+import type { CompanyEntry, Publication, ResearchGroupEntry, RoleEntry, TeamMember } from "../../lib/types";
 import { companyPeriod } from "../apply/CompanyInput";
 import { Avatar, Drawer } from "../ui/Ui";
 import { fmtMonth, roleLabel } from "../team/MemberDrawer";
@@ -28,6 +28,8 @@ export interface NetworkProfile {
   universities: string[];
   studyPrograms: string[];
   companies: CompanyEntry[];
+  researchGroups: ResearchGroupEntry[];
+  publications: Publication[];
   semester?: string;
   degree?: string;
   /** Accepted / confirmed only, newest first */
@@ -104,6 +106,37 @@ export function ProfileDrawer({ r, onClose, foot }: { r: NetworkProfile; onClose
             </ol>
           : <p class="muted small">No company affiliations yet.</p>}
       </section>
+
+      {r.researchGroups.length > 0 && (
+        <section class="stack-s">
+          <h3>Research groups</h3>
+          <ol class="history">
+            {[...r.researchGroups].sort((a, b) => (b.to ?? "9999").localeCompare(a.to ?? "9999") || b.from.localeCompare(a.from)).map(g => (
+              <li class="history__item">
+                <span class="history__dot" />
+                <div style="flex:1;min-width:0">
+                  <strong style="color:var(--color-text-heading)">{g.group}</strong><span class="muted"> · {g.role}</span>
+                  <div class="muted small">{companyPeriod(g)}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {r.publications.length > 0 && (
+        <section class="stack-s">
+          <h3>Publications</h3>
+          <ul class="stack-s" style="margin:0;padding-left:18px">
+            {[...r.publications].sort((a, b) => Number(b.year) - Number(a.year)).map(p => (
+              <li class="small">
+                {p.url ? <a href={p.url} target="_blank" rel="noopener">{p.title}</a> : <strong style="color:var(--color-text-heading)">{p.title}</strong>}
+                <span class="muted"> · {p.year}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section class="stack-s">
         <h3>OneAIM programs</h3>

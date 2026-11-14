@@ -4,7 +4,7 @@ import { useState } from "preact/hooks";
 import type { Answer, CompanyEntry, Field as FieldT, FileRef } from "../../lib/types";
 import { Field } from "../ui/Ui";
 import { ListPicker } from "./ListPicker";
-import { CompanyInput, companyProblem } from "./CompanyInput";
+import { CompanyInput, companyProblem, PublicationsInput, publicationProblem, ResearchGroupInput, researchGroupProblem } from "./CompanyInput";
 import { DEGREE_OPTIONS, SEMESTER_OPTIONS } from "../../lib/fields";
 import type { FormOptions } from "../../lib/types";
 import { IconFile } from "../ui/Icons";
@@ -41,6 +41,11 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
     for (const f of fields) {
       const v = answers[f.id];
       const empty = v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
+      if (f.kind === "researchGroup" || f.kind === "publications") {
+        const problem = f.kind === "publications" ? publicationProblem(v as never, !!f.required) : researchGroupProblem(v as never, !!f.required);
+        if (problem) e[f.id] = problem;
+        continue;
+      }
       if (f.kind === "company") {
         const problem = companyProblem(v as CompanyEntry[] | string | undefined, !!f.required);
         if (problem) e[f.id] = problem;
@@ -98,6 +103,13 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
           <CompanyInput allowNone options={options?.companies ?? []} invalid={!!errors[f.id]}
             value={v as CompanyEntry[] | string | undefined} onChange={x => set(f.id, x)} />
         );
+      case "researchGroup":
+        return (
+          <ResearchGroupInput options={options?.researchGroups ?? []} invalid={!!errors[f.id]}
+            value={v as never} onChange={x => set(f.id, x)} />
+        );
+      case "publications":
+        return <PublicationsInput invalid={!!errors[f.id]} value={v as never} onChange={x => set(f.id, x)} />;
       case "semester":
       case "degree": {
         const opts = f.kind === "semester" ? SEMESTER_OPTIONS : DEGREE_OPTIONS;
@@ -176,7 +188,7 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
   };
 
   // Fieldsets (radio/checkbox groups) must not be wrapped in <label>.
-  const grouped = (f: FieldT) => ["single", "multi", "yesno", "cv", "file", "university", "studyProgram"].includes(f.kind);
+  const grouped = (f: FieldT) => ["single", "multi", "yesno", "cv", "file", "university", "studyProgram", "researchGroup", "publications"].includes(f.kind);
 
   return (
     <form class="stack" style="gap:22px" onSubmit={submit} noValidate>

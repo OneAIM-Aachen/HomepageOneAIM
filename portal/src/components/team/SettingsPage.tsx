@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
 import type { Account } from "../../lib/types";
 import {
-  addCompany, addStudyProgram, addTag, addUniversity, changePassword, loadEmailSettings, mergeProfileValue, removeListEntry, removeProfileValue, removeTag,
+  addCompany, addResearchGroup, addStudyProgram, addTag, addUniversity, changePassword, loadEmailSettings, mergeProfileValue, removeListEntry, removeProfileValue, removeTag,
   saveEmailSettings, sendQueuedNow, useStore, type EmailSettings, type ListKind, type TagListKey,
 } from "../../lib/store";
 import { TeamShell, PageHead } from "./TeamShell";
@@ -188,7 +188,9 @@ function UnlistedRow({ kind, value, n, options, pickerOptions, groups }: {
   const [name, setName] = useState(value);
   const [group, setGroup] = useState("");      // field / sector; for universities: the country
   const [city, setCity] = useState("");
-  const add = (entry: string, grp: string) => kind === "university" ? addUniversity(entry, city, grp) : kind === "company" ? addCompany(entry, grp) : addStudyProgram(entry, grp);
+  const add = (entry: string, grp: string) => kind === "university" ? addUniversity(entry, city, grp) : kind === "company" ? addCompany(entry, grp)
+    : kind === "researchGroup" ? addResearchGroup(entry, grp) : addStudyProgram(entry, grp);
+  const groupLabel = kind === "company" ? "Sector" : kind === "university" ? "Country" : kind === "researchGroup" ? "Institution" : "Field";
   const missing = kind === "university" ? !city.trim() || !group.trim() : !group.trim();
   const people = `${n} ${n === 1 ? "person" : "people"}`;
   const exists = options.some(o => o.toLowerCase() === name.trim().toLowerCase());
@@ -229,9 +231,9 @@ function UnlistedRow({ kind, value, n, options, pickerOptions, groups }: {
         <form class="row" style="flex-wrap:nowrap;gap:6px" onSubmit={e => { e.preventDefault(); create(); }}>
           <input class="input input--sm" value={name} onInput={e => setName(e.currentTarget.value)} aria-label="Name of the new entry" autoFocus />
           {kind === "university" && <input class="input input--sm" style="max-width:120px" placeholder="City" value={city} onInput={e => setCity(e.currentTarget.value)} aria-label="City" />}
-          <GroupSelect label={kind === "company" ? "Sector" : kind === "university" ? "Country" : "Field"} groups={groups} value={group} onChange={setGroup} />
+          <GroupSelect label={groupLabel} groups={groups} value={group} onChange={setGroup} />
           <button class="btn btn--primary btn--sm" disabled={!name.trim() || (!exists && missing)}
-            title={exists ? "This entry exists already: the value is merged into it" : missing ? (kind === "university" ? "City and country are required" : `Choose a ${kind === "company" ? "sector" : "field"} first`) : ""}>
+            title={exists ? "This entry exists already: the value is merged into it" : missing ? (kind === "university" ? "City and country are required" : `Choose ${groupLabel === "Institution" ? "an" : "a"} ${groupLabel.toLowerCase()} first`) : ""}>
             {exists ? "Use existing" : "Create & use"}
           </button>
         </form>
@@ -255,14 +257,19 @@ function ProfileLists() {
   const [qC, setQC] = useState("");
   const [coName, setCoName] = useState("");
   const [coCat, setCoCat] = useState("");
+  const [qG, setQG] = useState("");
+  const [rgName, setRgName] = useState("");
+  const [rgInst, setRgInst] = useState("");
+  const institutions = [...new Set(s.researchGroups.map(g => g.institution))].sort();
   const coCategories = [...new Set(s.companies.map(c => c.category))].sort();
   const categories = [...new Set(s.studyPrograms.map(p => p.category))].sort();
   const countries = [...new Set(s.universities.map(u => u.country).filter((c): c is string => !!c))].sort();
 
   // Values entered via "Other" that aren't in the lists yet, with how many people use them
-  const listOf = (kind: ListKind) => (kind === "university" ? s.universities : kind === "company" ? s.companies : s.studyPrograms);
+  const listOf = (kind: ListKind) => (kind === "university" ? s.universities : kind === "company" ? s.companies : kind === "researchGroup" ? s.researchGroups : s.studyPrograms);
   const valuesOf = (p: (typeof s.people)[number], kind: ListKind) =>
-    kind === "university" ? p.universities : kind === "company" ? [...new Set(p.companies.map(c => c.company))] : p.studyPrograms;
+    kind === "university" ? p.universities : kind === "company" ? [...new Set(p.companies.map(c => c.company))]
+    : kind === "researchGroup" ? [...new Set(p.researchGroups.map(g => g.group))] : p.studyPrograms;
   const unlisted = (kind: ListKind) => {
     const list = new Set(listOf(kind).map(x => x.name));
     const counts = new Map<string, number>();
@@ -274,7 +281,7 @@ function ProfileLists() {
   // How many people use each entry (computed once per data load)
   const usage = useMemo(() => {
     const m = new Map<string, number>();
-    for (const p of s.people) for (const k of ["university", "studyProgram", "company"] as ListKind[]) for (const v of valuesOf(p, k)) m.set(`${k}:${v}`, (m.get(`${k}:${v}`) ?? 0) + 1);
+    for (const p of s.people) for (const k of ["university", "studyProgram", "company", "researchGroup"] as ListKind[]) for (const v of valuesOf(p, k)) m.set(`${k}:${v}`, (m.get(`${k}:${v}`) ?? 0) + 1);
     return m;
   }, [s.people]);
   const used = (kind: ListKind, name: string) => usage.get(`${kind}:${name}`) ?? 0;
@@ -302,13 +309,15 @@ function ProfileLists() {
       ? s.universities.map(u => ({ name: u.name, hint: u.country ?? u.city, terms: u.aliases }))
       : kind === "company"
       ? s.companies.map(c => ({ name: c.name, hint: c.category, terms: c.aliases }))
+      : kind === "researchGroup"
+      ? s.researchGroups.map(g => ({ name: g.name, hint: g.institution, terms: g.aliases }))
       : s.studyPrograms.map(p => ({ name: p.name, hint: p.category }));
     if (!rows.length) return <p class="muted small">Nothing entered via “Other” yet.</p>;
     return (
       <div class="stack-s">
         {rows.map(([value, n]) => (
           <UnlistedRow kind={kind} value={value} n={n} options={options} pickerOptions={pickerOptions}
-            groups={kind === "company" ? coCategories : kind === "studyProgram" ? categories : countries} />
+            groups={kind === "company" ? coCategories : kind === "studyProgram" ? categories : kind === "researchGroup" ? institutions : countries} />
         ))}
       </div>
     );
@@ -317,8 +326,8 @@ function ProfileLists() {
   return (
     <section class="stack">
       <div class="stack-s">
-        <h2>Universities, study programs & companies</h2>
-        <p class="muted small">The choices for “University affiliations”, “Study program(s)” and “Company affiliations” in every form. Applicants can pick several, or “Other (please specify)”; those entries appear below: make a new list entry from them, merge them into an existing one, or deny them.</p>
+        <h2>Universities, study programs, companies & research groups</h2>
+        <p class="muted small">The choices for “University affiliations”, “Study program(s)”, “Company affiliations” and “Research groups” in forms. Applicants can pick several, or “Other (please specify)”; those entries appear below: make a new list entry from them, merge them into an existing one, or deny them.</p>
       </div>
       <div class="grid-2" style="align-items:start">
         <div class="card stack-s">
@@ -401,6 +410,37 @@ function ProfileLists() {
         </form>
         <h3 style="margin-top:10px">Entered via “Other”</h3>
         <Unlisted kind="company" />
+      </div>
+
+      <div class="card stack-s">
+        <div class="row row--between"><h3>Research groups</h3><span class="chip">{s.researchGroups.length}</span></div>
+        <input class="input input--sm" placeholder="Search name, abbreviation or institution…" value={qG} onInput={e => setQG(e.currentTarget.value)} aria-label="Search research groups" />
+        <div class="list-box">
+          {!s.researchGroups.length && <p class="muted small" style="padding:6px 8px">No research groups yet. Add them below, or from what people entered via “Other”.</p>}
+          {institutions.map(inst => {
+            const ql = qG.trim().toLowerCase();
+            const items = s.researchGroups.filter(g => g.institution === inst && (!ql || g.name.toLowerCase().includes(ql) || g.aliases.some(a => a.toLowerCase().includes(ql)) || inst.toLowerCase().includes(ql)));
+            if (!items.length) return null;
+            return (
+              <>
+                <div class="picker__group">{inst}</div>
+                {items.map(g => (
+                  <div class="list-row">
+                    <span>{g.name}{g.aliases.length > 0 && <span class="muted small"> · {g.aliases.join(", ")}</span>}<span class="muted small"> · {used("researchGroup", g.name)} people</span></span>
+                    <button class="icon-btn" aria-label={`Remove ${g.name}`} onClick={() => remove("researchGroup", g.id, g.name)}><IconX /></button>
+                  </div>
+                ))}
+              </>
+            );
+          })}
+        </div>
+        <form class="row" style="flex-wrap:nowrap" onSubmit={e => { e.preventDefault(); act(() => addResearchGroup(rgName, rgInst), `Added ${rgName}`).then(() => setRgName("")); }}>
+          <input class="input input--sm" placeholder="New research group" value={rgName} onInput={e => setRgName(e.currentTarget.value)} aria-label="New research group" />
+          <GroupSelect label="Institution" groups={institutions} value={rgInst} onChange={setRgInst} />
+          <button class="btn btn--secondary btn--sm" disabled={!rgName.trim() || !rgInst.trim()} title={rgInst.trim() ? "" : "Choose an institution first"}>Add</button>
+        </form>
+        <h3 style="margin-top:10px">Entered via “Other”</h3>
+        <Unlisted kind="researchGroup" />
       </div>
     </section>
   );

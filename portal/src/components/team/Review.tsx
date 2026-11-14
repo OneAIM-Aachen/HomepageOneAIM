@@ -77,14 +77,17 @@ export function ScorecardEditor({ value, onChange, withName = true }: { value: S
           <Field label="Description"><input class="input" value={value.description ?? ""} onInput={e => onChange({ ...value, description: e.currentTarget.value })} /></Field>
         </div>
       )}
-      <span class="field__help">Each category is rated from 1 (weak) to 5 (excellent). The weight sets how much it counts in the total.</span>
+      <span class="field__help">Each category is rated from 1 (weak) to 5 (excellent). The weight (any number, e.g. 1, 1.5, 4) sets how much it counts in the total.</span>
       {value.criteria.map((c, i) => (
         <div class="criterion-row">
           <input class="input input--sm" placeholder="Category, e.g. Motivation" value={c.label} onInput={e => set(i, { label: e.currentTarget.value })} aria-label={`Category ${i + 1}`} />
           <input class="input input--sm" placeholder="What to look for (optional)" value={c.help ?? ""} onInput={e => set(i, { help: e.currentTarget.value })} aria-label={`Guidance ${i + 1}`} />
-          <select class="input input--sm" value={String(c.weight)} onChange={e => set(i, { weight: Number(e.currentTarget.value) })} aria-label={`Weight ${i + 1}`}>
-            {[1, 2, 3].map(w => <option value={String(w)}>×{w}</option>)}
-          </select>
+          <label class="weight-input" title="Weight: how much this category counts in the total">
+            <span aria-hidden="true">×</span>
+            <input class="input input--sm" type="number" min={0.1} step="any" inputMode="decimal" value={c.weight}
+              onInput={e => { const w = Number(e.currentTarget.value.replace(",", ".")); if (w > 0) set(i, { weight: w }); }}
+              aria-label={`Weight ${i + 1}`} />
+          </label>
           <span class="row" style="gap:0;flex-wrap:nowrap">
             <button type="button" class="icon-btn" disabled={i === 0} aria-label="Move up" onClick={() => move(i, -1)}><IconUp width={16} /></button>
             <button type="button" class="icon-btn" disabled={i === value.criteria.length - 1} aria-label="Move down" onClick={() => move(i, 1)}><IconDown width={16} /></button>
@@ -100,7 +103,7 @@ export function ScorecardEditor({ value, onChange, withName = true }: { value: S
   );
 }
 
-export const scorecardValid = (c: Scorecard) => c.name.trim().length > 0 && c.criteria.length > 0 && c.criteria.every(x => x.label.trim());
+export const scorecardValid = (c: Scorecard) => c.name.trim().length > 0 && c.criteria.length > 0 && c.criteria.every(x => x.label.trim() && x.weight > 0);
 
 // ── Filling in a scorecard ───────────────────────────────────────────────
 

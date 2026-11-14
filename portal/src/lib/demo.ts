@@ -179,7 +179,7 @@ export function withDemo(s: State): State {
     const p: Person = {
       id: `demo-p${pid}`, email: `demo${pid}@example.com`,
       name: `${FIRST[Math.floor(r() * FIRST.length)]} ${LAST[Math.floor(r() * LAST.length)]}`,
-      universities: [...new Set(universities)], studyPrograms: [...new Set(studyPrograms)], companies, semester, degree, firstSeen: "2026-03-01",
+      universities: [...new Set(universities)], studyPrograms: [...new Set(studyPrograms)], companies, researchGroups: [], publications: [], semester, degree, firstSeen: "2026-03-01",
     };
     pid++;
     people.push(p);

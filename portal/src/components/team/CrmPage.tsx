@@ -6,7 +6,8 @@ import { TeamShell, PageHead } from "./TeamShell";
 import { act, Avatar, confirmDialog, Drawer, Field, Modal, StatusChip, useParam } from "../ui/Ui";
 import { IconDownload, IconFile, IconMail, IconSearch } from "../ui/Icons";
 import { Answers, FileCard, isFile, openFile } from "./Answers";
-import { companyPeriod } from "../apply/CompanyInput";
+import { companyPeriod, researchGroupText } from "../apply/CompanyInput";
+import { publicationText } from "./Answers";
 import { FilterSearch, matchesFilter } from "../apply/ListPicker";
 
 // CRM: everyone who ever applied, one profile per email address.
@@ -74,9 +75,10 @@ function Crm({ acc, initial }: { acc: Account; initial: string | null }) {
   }).sort((a, b) => a.p.name.localeCompare(b.p.name));
 
   const exportCsv = () => {
-    const head = ["Name", "Email", "Phone", "LinkedIn", "University affiliations", "Study programs", "Company affiliations", "Semester", "Degree", "Applications"];
+    const head = ["Name", "Email", "Phone", "LinkedIn", "University affiliations", "Study programs", "Company affiliations", "Research groups", "Publications", "Semester", "Degree", "Applications"];
     const lines = filtered.map(({ p, subs }) => [p.name, p.email, p.phone ?? "", p.linkedin ?? "", p.universities.join("; "), p.studyPrograms.join("; "),
       p.companies.map(c => `${c.company} (${c.position}, ${companyPeriod(c)})`).join("; "),
+      p.researchGroups.map(researchGroupText).join("; "), p.publications.map(publicationText).join("; "),
       p.semester ?? "", p.degree ?? "", subs.map(x => `${appTitle(x.app!)} (${STATUS_LABEL[x.sub.status]})`).join("; ")]);
     const csv = [head, ...lines].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const a = document.createElement("a");
@@ -193,6 +195,8 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
     ["University affiliations", p.universities.join(", ") || undefined, undefined], ["Study programs", p.studyPrograms.join(", ") || undefined, undefined],
     ["Semester", p.semester, undefined], ["Degree level", p.degree, undefined],
     ["Company affiliations", p.companies.map(c => `${c.company}: ${c.position} (${companyPeriod(c)})`).join("\n") || undefined, undefined],
+    ["Research groups", p.researchGroups.map(researchGroupText).join("\n") || undefined, undefined],
+    ["Publications", p.publications.map(publicationText).join("\n") || undefined, undefined],
   ];
   const sorted = [...subs].sort((a, b) => b.sub.submittedAt.localeCompare(a.sub.submittedAt));
   const cvs = cvsOf(sorted);

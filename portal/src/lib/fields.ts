@@ -24,6 +24,8 @@ export const KINDS: Record<FieldKind, KindInfo> = {
   university:   { label: "University affiliations", profile: true, defaultLabel: "University affiliations" },
   studyProgram: { label: "Study programs",   profile: true,  defaultLabel: "Study program(s)" },
   company:      { label: "Company affiliations", profile: true, defaultLabel: "Company affiliations" },
+  researchGroup: { label: "Research groups",  profile: true,  defaultLabel: "Research groups" },
+  publications:       { label: "Publications",     profile: true,  defaultLabel: "Publications" },
   semester:     { label: "Semester",         profile: true,  defaultLabel: "Current semester" },
   degree:       { label: "Degree level",     profile: true,  defaultLabel: "Degree level", hasOptions: true },
   shortText:    { label: "Short text",       profile: false, defaultLabel: "Short answer" },
@@ -39,7 +41,7 @@ export const KINDS: Record<FieldKind, KindInfo> = {
 };
 
 /** Optional profile fields (the core ones are in every form anyway) */
-export const PROFILE_KINDS: FieldKind[] = ["cv", "phone", "linkedin"];
+export const PROFILE_KINDS: FieldKind[] = ["cv", "phone", "linkedin", "researchGroup", "publications"];
 export const CUSTOM_KINDS: FieldKind[] =
   ["shortText", "longText", "single", "multi", "dropdown", "file", "url", "number", "date", "yesno"];
 /** Feedback forms: questions only (participants are known, no file uploads) */

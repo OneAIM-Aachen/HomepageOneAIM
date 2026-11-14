@@ -1,7 +1,7 @@
 // Company affiliations: one entry per company, with the company from the
 // list (or "Other"), the position and start / end month (no end = today).
 // In application forms "I haven't worked at a company yet" is an answer too.
-import type { CompanyEntry, FormOptions } from "../../lib/types";
+import type { CompanyEntry, FormOptions, Publication, ResearchGroupEntry } from "../../lib/types";
 import { NO_COMPANY } from "../../lib/fields";
 import { ListPicker } from "./ListPicker";
 import { IconPlus, IconTrash } from "../ui/Icons";
@@ -100,3 +100,108 @@ export function CompanyInput({ options, value, onChange, allowNone, invalid }: {
     </div>
   );
 }
+
+// ── Research groups: like companies (group from the list, role, start / end) ──
+
+export function researchGroupProblem(v: ResearchGroupEntry[] | undefined, required: boolean): string | null {
+  const list = Array.isArray(v) ? v : [];
+  if (!list.length) return required ? "Add at least one research group." : null;
+  for (const e of list) {
+    if (!e.group.trim() || !e.role.trim() || !/^\d{4}-\d{2}$/.test(e.from)) return "Please fill in group, role and start for every entry.";
+    if (e.to && e.to < e.from) return "The end can't be before the start.";
+  }
+  return null;
+}
+
+export function ResearchGroupInput({ options, value, onChange, invalid }: {
+  options: FormOptions["researchGroups"]; value: ResearchGroupEntry[] | undefined; onChange: (v: ResearchGroupEntry[]) => void; invalid?: boolean;
+}) {
+  const list: ResearchGroupEntry[] = Array.isArray(value) ? value : [];
+  const set = (i: number, patch: Partial<ResearchGroupEntry>) => onChange(list.map((e, k) => (k === i ? { ...e, ...patch } : e)));
+  const pickerOptions = options.map(g => ({ name: g.name, hint: g.institution, terms: g.aliases }));
+  return (
+    <div class={`stack-s company-input ${invalid ? "company-input--invalid" : ""}`}>
+      {list.map((e, i) => (
+        <div class="company-entry">
+          <div class="company-entry__grid">
+            <div class="stack-s">
+              <span class="field__help">Research group</span>
+              <ListPicker single label={`Research group ${i + 1}`} placeholder="Start typing the group or institute…"
+                options={pickerOptions} value={e.group ? [e.group] : []} onChange={v => set(i, { group: v[v.length - 1] ?? "" })} />
+            </div>
+            <label class="stack-s">
+              <span class="field__help">Role</span>
+              <input class="input" placeholder="e.g. Student assistant (HiWi), Master thesis, PhD" maxLength={120} value={e.role}
+                onInput={ev => set(i, { role: ev.currentTarget.value })} />
+            </label>
+            <div class="stack-s">
+              <span class="field__help">Start</span>
+              <MonthYear label="Start" value={e.from || undefined} onChange={v => set(i, { from: v ?? "" })} />
+            </div>
+            <div class="stack-s">
+              <span class="field__help">End</span>
+              <MonthYear label="End" allowEmpty="Today" value={e.to} onChange={v => set(i, { to: v })} />
+            </div>
+          </div>
+          <button type="button" class="icon-btn" title="Remove" aria-label={`Remove research group ${i + 1}`} onClick={() => onChange(list.filter((_, k) => k !== i))}><IconTrash width={17} /></button>
+        </div>
+      ))}
+      <div class="row">
+        <button type="button" class="btn btn--secondary btn--sm" onClick={() => onChange([...list, { group: "", role: "", from: "" }])}>
+          <IconPlus width={16} />{list.length ? "Add another research group" : "Add research group"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Publications: title, year, link ────────────────────────────────────────────
+
+export function publicationProblem(v: Publication[] | undefined, required: boolean): string | null {
+  const list = Array.isArray(v) ? v : [];
+  if (!list.length) return required ? "Add at least one publication." : null;
+  for (const p of list) {
+    if (!String(p.title ?? "").trim() || !/^(19|20)\d{2}$/.test(String(p.year ?? ""))) return "Please fill in title and year for every publication.";
+    if (p.url && !/^https?:\/\/\S+$/.test(p.url.trim())) return "Links must start with https:// (e.g. https://doi.org/…).";
+  }
+  return null;
+}
+
+export function PublicationsInput({ value, onChange, invalid }: { value: Publication[] | undefined; onChange: (v: Publication[]) => void; invalid?: boolean }) {
+  const list: Publication[] = Array.isArray(value) ? value : [];
+  const set = (i: number, patch: Partial<Publication>) => onChange(list.map((e, k) => (k === i ? { ...e, ...patch } : e)));
+  return (
+    <div class={`stack-s company-input ${invalid ? "company-input--invalid" : ""}`}>
+      {list.map((p, i) => (
+        <div class="company-entry">
+          <div class="publication-entry__grid">
+            <label class="stack-s">
+              <span class="field__help">Title</span>
+              <input class="input" maxLength={300} value={p.title} onInput={ev => set(i, { title: ev.currentTarget.value })} />
+            </label>
+            <label class="stack-s">
+              <span class="field__help">Year</span>
+              <select class="input" value={String(p.year ?? "")} onChange={ev => set(i, { year: ev.currentTarget.value })}>
+                <option value="">Year</option>
+                {YEARS.map(y => <option>{y}</option>)}
+              </select>
+            </label>
+            <label class="stack-s">
+              <span class="field__help">Link (DOI or URL, optional)</span>
+              <input class="input" type="url" placeholder="https://doi.org/…" value={p.url ?? ""} onInput={ev => set(i, { url: ev.currentTarget.value || undefined })} />
+            </label>
+          </div>
+          <button type="button" class="icon-btn" title="Remove" aria-label={`Remove publication ${i + 1}`} onClick={() => onChange(list.filter((_, k) => k !== i))}><IconTrash width={17} /></button>
+        </div>
+      ))}
+      <div class="row">
+        <button type="button" class="btn btn--secondary btn--sm" onClick={() => onChange([...list, { title: "", year: "" }])}>
+          <IconPlus width={16} />{list.length ? "Add another publication" : "Add publication"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** "Lab A · HiWi · Mar 2024 – today" */
+export const researchGroupText = (e: ResearchGroupEntry) => `${e.group} · ${e.role} · ${companyPeriod(e)}`;

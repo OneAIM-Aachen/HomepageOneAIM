@@ -27,6 +27,7 @@ The database lives in `supabase/migrations/`:
 | `20261114140000_claims.sql` (+ `…150000`, `…160000`) | Reimbursement claims: members submit with a receipt (private bucket `finance-receipts`, folder per city: `<city>/<member>/<uuid>/<file>`); finance of the city approves / asks / rejects (`claim_decide`, never their own claim) and marks paid; members delete until approved. No emails |
 | `20261114170000_r2_files.sql` | Files on Cloudflare R2: keys as Supabase secrets (see “Secrets” below), `can_read_file` / `can_delete_file`; stored locations `r2:uploads/<application>/…` and `r2:receipts/<city>/<file name>` (uploader in `file_uploads`, `-2`, `-3` … when a name exists; `20261115100000_simple_receipt_paths.sql`); edge function `files` signs upload/download links and moves existing files from Supabase Storage |
 | `20261115110000_remove_profile_value.sql` | “Deny” for values entered via “Other” (Settings → lists): removes the value from all profiles |
+| `20261115120000_research_groups_papers.sql` (+ `…130000` rename to publications) | Research groups (managed list like companies: name, institution, aliases; `people.research_groups` = [{group, role, from, to}]) and `people.publications` = [{title, year, url}]: optional form fields, saved to the profile, shown and editable on the network site |
 
 ## Who can do what
 
