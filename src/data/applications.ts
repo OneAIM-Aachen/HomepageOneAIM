@@ -338,9 +338,14 @@ export function getNextUpcoming(city: CitySlug, today?: Date): Application | und
 // A round in the team area replaces an entry above for the same city,
 // program and semester.
 
-const APPLY_URL = import.meta.env.PUBLIC_APPLY_URL?.replace(/\/$/, "");
-const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-const SUPABASE_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+// Read at build time, or (pages created on request) from the server's environment
+const env = (name: string): string | undefined =>
+  (import.meta.env[name] as string | undefined)
+  || (typeof process !== "undefined" ? process.env?.[name] : undefined)
+  || undefined;
+const APPLY_URL = env("PUBLIC_APPLY_URL")?.trim().replace(/\/$/, "");
+const SUPABASE_URL = env("PUBLIC_SUPABASE_URL")?.trim().replace(/\/$/, "");
+const SUPABASE_KEY = env("PUBLIC_SUPABASE_ANON_KEY")?.trim();
 
 /** The entries written above, with "Apply" pointing to the new pages where set up. */
 const builtIn: Application[] = applications.map(a => ({
@@ -393,7 +398,12 @@ export async function liveRounds(astro?: { response: { headers: Headers } }): Pr
     astro.response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
     astro.response.headers.set("Netlify-CDN-Cache-Control", "public, durable, s-maxage=300, stale-while-revalidate=86400");
   }
-  if (!APPLY_URL || !SUPABASE_URL || !SUPABASE_KEY) return;
+  // Diagnostic header (no secrets): which settings are present and how many rounds came back
+  const note = (v: string) => astro?.response.headers.set("X-OneAIM-Rounds", v);
+  if (!APPLY_URL || !SUPABASE_URL || !SUPABASE_KEY) {
+    note(`off; missing ${[!APPLY_URL && "PUBLIC_APPLY_URL", !SUPABASE_URL && "PUBLIC_SUPABASE_URL", !SUPABASE_KEY && "PUBLIC_SUPABASE_ANON_KEY"].filter(Boolean).join(",")}`);
+    return;
+  }
   if (!cache || Date.now() - cache.at > 60_000) {
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/published_applications`, {
@@ -408,9 +418,11 @@ export async function liveRounds(astro?: { response: { headers: Headers } }): Pr
     } catch (e) {
       // Database not reachable: keep the last known rounds (or only the entries above)
       console.error("Could not load application rounds:", e);
+      note(`error; ${String((e as Error)?.message ?? e).slice(0, 80)}`);
       if (!cache) return;
     }
   }
   const live = cache.rounds;
+  if (!astro?.response.headers.has("X-OneAIM-Rounds")) note(`ok; ${live.length} published`);
   applications.splice(0, applications.length, ...builtIn.filter(a => !live.some(l => sameRound(a, l))), ...live);
 }
