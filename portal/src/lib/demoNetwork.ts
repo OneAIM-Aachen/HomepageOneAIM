@@ -45,7 +45,7 @@ export function demoProfiles(tags: { locations: string[]; programs: string[] }, 
   const empty: State = {
     team: [], scorecards: [], posts: [], networkAccounts: {}, departments: [], tagLists: { ...tags, semesters: [] },
     blueprints: [], applications: [], submissions: [], feedbacks: [], feedbackResponses: [], people: [], outbox: [], inbox: [], mailbox: null,
-    universities: [], studyPrograms: [], companies: [], researchGroups: [],
+    universities: [], studyPrograms: [], companies: [],
   };
   return profilesFromState(withDemo(empty)).flatMap(p => {
     if (!hasRealTeam || p.team?.status !== "active") return [p];

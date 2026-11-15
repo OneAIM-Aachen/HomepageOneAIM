@@ -101,35 +101,47 @@ export function CompanyInput({ options, value, onChange, allowNone, invalid }: {
   );
 }
 
-// ── Research groups: like companies (group from the list, role, start / end) ──
+// ── Research groups: university (from the list), group and professor as free text,
+//    role, start / end ───────────────────────────────────────────────────────────
 
 export function researchGroupProblem(v: ResearchGroupEntry[] | undefined, required: boolean): string | null {
   const list = Array.isArray(v) ? v : [];
   if (!list.length) return required ? "Add at least one research group." : null;
   for (const e of list) {
-    if (!e.group.trim() || !e.role.trim() || !/^\d{4}-\d{2}$/.test(e.from)) return "Please fill in group, role and start for every entry.";
+    if (!e.university?.trim() || !e.group.trim() || !e.role.trim() || !/^\d{4}-\d{2}$/.test(e.from))
+      return "Please fill in university, group, role and start for every research group.";
     if (e.to && e.to < e.from) return "The end can't be before the start.";
   }
   return null;
 }
 
-export function ResearchGroupInput({ options, value, onChange, invalid }: {
-  options: FormOptions["researchGroups"]; value: ResearchGroupEntry[] | undefined; onChange: (v: ResearchGroupEntry[]) => void; invalid?: boolean;
+export function ResearchGroupInput({ universities, value, onChange, invalid }: {
+  universities: FormOptions["universities"]; value: ResearchGroupEntry[] | undefined; onChange: (v: ResearchGroupEntry[]) => void; invalid?: boolean;
 }) {
   const list: ResearchGroupEntry[] = Array.isArray(value) ? value : [];
   const set = (i: number, patch: Partial<ResearchGroupEntry>) => onChange(list.map((e, k) => (k === i ? { ...e, ...patch } : e)));
-  const pickerOptions = options.map(g => ({ name: g.name, hint: g.institution, terms: g.aliases }));
+  const uniOptions = universities.map(u => ({ name: u.name, hint: u.country, terms: u.aliases }));
   return (
     <div class={`stack-s company-input ${invalid ? "company-input--invalid" : ""}`}>
       {list.map((e, i) => (
         <div class="company-entry">
           <div class="company-entry__grid">
-            <div class="stack-s">
-              <span class="field__help">Research group</span>
-              <ListPicker single label={`Research group ${i + 1}`} placeholder="Start typing the group or institute…"
-                options={pickerOptions} value={e.group ? [e.group] : []} onChange={v => set(i, { group: v[v.length - 1] ?? "" })} />
+            <div class="stack-s" style="grid-column:1/-1">
+              <span class="field__help">University</span>
+              <ListPicker single label={`University of research group ${i + 1}`} placeholder="Start typing the university…" minChars={2}
+                options={uniOptions} value={e.university ? [e.university] : []} onChange={v => set(i, { university: v[v.length - 1] ?? "" })} />
             </div>
             <label class="stack-s">
+              <span class="field__help">Research group / institute</span>
+              <input class="input" placeholder="e.g. Chair of Medical Engineering" maxLength={200} value={e.group}
+                onInput={ev => set(i, { group: ev.currentTarget.value })} />
+            </label>
+            <label class="stack-s">
+              <span class="field__help">Professor (optional)</span>
+              <input class="input" placeholder="e.g. Prof. Dr. Jane Doe" maxLength={120} value={e.professor ?? ""}
+                onInput={ev => set(i, { professor: ev.currentTarget.value || undefined })} />
+            </label>
+            <label class="stack-s" style="grid-column:1/-1">
               <span class="field__help">Role</span>
               <input class="input" placeholder="e.g. Student assistant (HiWi), Master thesis, PhD" maxLength={120} value={e.role}
                 onInput={ev => set(i, { role: ev.currentTarget.value })} />
@@ -147,7 +159,7 @@ export function ResearchGroupInput({ options, value, onChange, invalid }: {
         </div>
       ))}
       <div class="row">
-        <button type="button" class="btn btn--secondary btn--sm" onClick={() => onChange([...list, { group: "", role: "", from: "" }])}>
+        <button type="button" class="btn btn--secondary btn--sm" onClick={() => onChange([...list, { university: "", group: "", role: "", from: "" }])}>
           <IconPlus width={16} />{list.length ? "Add another research group" : "Add research group"}
         </button>
       </div>
@@ -203,5 +215,9 @@ export function PublicationsInput({ value, onChange, invalid }: { value: Publica
   );
 }
 
-/** "Lab A · HiWi · Mar 2024 – today" */
-export const researchGroupText = (e: ResearchGroupEntry) => `${e.group} · ${e.role} · ${companyPeriod(e)}`;
+/** "Lab A (Prof. Doe) · RWTH Aachen University · HiWi · Mar 2024 – today" */
+export const researchGroupText = (e: ResearchGroupEntry) =>
+  [researchGroupName(e), e.university, e.role, companyPeriod(e)].filter(Boolean).join(" · ");
+
+/** "Lab A (Prof. Doe)" */
+export const researchGroupName = (e: ResearchGroupEntry) => (e.professor ? `${e.group} (${e.professor})` : e.group);

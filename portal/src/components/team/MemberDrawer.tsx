@@ -3,7 +3,7 @@
 // Opened from the Team overview and from "my profile" in the sidebar.
 import { useState } from "preact/hooks";
 import type { Account, Department, RoleEntry, TeamMember, TeamRole } from "../../lib/types";
-import { activateMember, checkinNow, removeMember, removeRoleEntry, resendInvite, saveRoleEntry, setMemberStatus, ROLE_LABEL, updateMember, updatePersonDetails, uploadImage, useStore } from "../../lib/store";
+import { activateMember, checkinNow, formOptionsFromState, removeMember, removeRoleEntry, resendInvite, saveRoleEntry, setMemberStatus, ROLE_LABEL, updateMember, updatePersonDetails, uploadImage, useStore } from "../../lib/store";
 import { isDemoId } from "../../lib/demo";
 import { DEGREE_OPTIONS, fmtDate, SEMESTER_OPTIONS } from "../../lib/fields";
 import { act, Avatar, confirmDialog, Drawer, Field } from "../ui/Ui";
@@ -200,7 +200,7 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
             </div>
             <div class="stack-s">
               <span class="field__label">Research groups</span>
-              <ResearchGroupInput options={s.researchGroups} value={p.researchGroups} onChange={v => setP({ ...p, researchGroups: v })} />
+              <ResearchGroupInput universities={formOptionsFromState(s).universities} value={p.researchGroups} onChange={v => setP({ ...p, researchGroups: v })} />
             </div>
             <div class="stack-s">
               <span class="field__label">Publications</span>

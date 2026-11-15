@@ -12,6 +12,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 // Blurred decorative grid in the background: 12 tiles, alternating light
 // circles. Pure decoration (aria-hidden), therefore only indices here.
 const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
+
+// Where the member network is set up, the card leads there instead of "Launching soon"
+const networkUrl = import.meta.env.PUBLIC_NETWORK_URL?.replace(/\/$/, "");
 ---
 
 <BaseLayout
@@ -43,9 +46,11 @@ const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
               the current one. Search by name, city or batch and connect.
               Access is exclusive to
               <strong>team members, participants and sponsors</strong>.
-              We're putting the finishing touches on it.
+              {!networkUrl && "We're putting the finishing touches on it."}
             </p>
-            <span class="pcs__pill">Launching soon</span>
+            {networkUrl
+              ? <a class="pcs__btn" href={`${networkUrl}/`}>Open the members network</a>
+              : <span class="pcs__pill">Launching soon</span>}
           </div>
         </div>
 
@@ -159,6 +164,19 @@ const ghostTiles = Array.from({ length: 12 }, (_, i) => i % 2 === 0);
     font-weight:   800;
     color:         var(--color-brand-blue);
   }
+
+  .pcs__btn {
+    background:      var(--color-brand-blue);
+    border-radius:   var(--radius-pill);
+    padding:         13px 28px;
+    font-family:     var(--font-display);
+    font-size:       15px;
+    font-weight:     var(--fw-bold);
+    color:           var(--color-text-on-brand);
+    text-decoration: none;
+    transition:      background var(--transition-fast);
+  }
+  .pcs__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
 
   /* ── Responsive ───────────────────────────────────────────── */
   @media (max-width: 900px) { .pcs__ghost { grid-template-columns: repeat(4, 1fr); } }

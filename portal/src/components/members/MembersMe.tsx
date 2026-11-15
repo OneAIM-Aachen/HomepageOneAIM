@@ -22,7 +22,7 @@ function Me({ me, reload }: { me: Member; reload: () => void }) {
     companies: me.companies, researchGroups: me.researchGroups, publications: me.publications, semester: me.semester ?? "", degree: me.degree ?? "",
   };
   const [d, setD] = useState(initial);
-  const [options, setOptions] = useState<FormOptions>({ universities: [], studyPrograms: [], companies: [], researchGroups: [] });
+  const [options, setOptions] = useState<FormOptions>({ universities: [], studyPrograms: [], companies: [] });
   const [preview, setPreview] = useState(false);
   const welcome = new URLSearchParams(location.search).get("welcome") === "1";
   useEffect(() => { fetchFormOptions().then(setOptions); }, []);
@@ -79,7 +79,7 @@ function Me({ me, reload }: { me: Member; reload: () => void }) {
         <div class="stack-s">
           <span class="field__label">Research groups</span>
           <span class="field__help">Student assistant (HiWi), thesis, PhD …: one entry per group, with your role.</span>
-          <ResearchGroupInput options={options.researchGroups} value={d.researchGroups} onChange={v => setD({ ...d, researchGroups: v })} />
+          <ResearchGroupInput universities={options.universities} value={d.researchGroups} onChange={v => setD({ ...d, researchGroups: v })} />
         </div>
         <div class="stack-s">
           <span class="field__label">Publications</span>

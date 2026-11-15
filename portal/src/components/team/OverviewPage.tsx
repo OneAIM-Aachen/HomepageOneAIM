@@ -34,8 +34,8 @@ export default function OverviewPage() {
     <TeamShell active="overview">
       {acc => (
         <div class="stack" style="gap:24px">
-          <PageHead overline={`OneAIM ${acc.city}`} title={acc.legacy ? `Welcome back, ${acc.city} team` : `Welcome back, ${acc.name.split(" ")[0]}`}
-            sub="Everything that needs your attention across all cities."
+          <PageHead overline="Overview" title={acc.legacy ? `Welcome back, ${acc.city} team` : `Welcome back, ${acc.name.split(" ")[0]}`}
+            sub="Everything that needs your attention."
             actions={<a class="btn btn--primary" href="/applications?new=1"><IconPlus width={18} />New application</a>} />
 
           <div class="stats">

@@ -44,7 +44,7 @@ function Team({ acc }: { acc: Account }) {
 
   return (
     <div class="stack">
-      <PageHead overline="OneAIM" title="Team overview"
+      <PageHead overline="Team overview" title="Our team"
         sub="Who is who in every city. Click a person for their profile; everyone can edit, invite and remove."
         actions={<>
           <button class="btn btn--secondary" onClick={() => setEditingDepts(true)}>Departments</button>

@@ -52,7 +52,7 @@ export default function LoginPage() {
           <img src="/logo.png" alt="OneAIM" />
           <div class="stack-s">
             <h1>Sign in</h1>
-            <p class="muted">one-aim.org/portal</p>
+            <p class="muted">OneAIM team portal</p>
           </div>
           <Field label="Email">
             <input class="input" type="email" autoComplete="username" required value={email}

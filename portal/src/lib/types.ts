@@ -324,13 +324,13 @@ export interface MailboxStatus {
 export interface ListUniversity { id: string; name: string; city?: string; country?: string; aliases: string[] }
 export interface ListStudyProgram { id: string; name: string; category: string }
 export interface ListCompany { id: string; name: string; category: string; aliases: string[] }
-export interface ListResearchGroup { id: string; name: string; institution: string; aliases: string[] }
 
 /** One company affiliation: company (from the list), position, start / end month ("YYYY-MM"; no end = until today) */
 export interface CompanyEntry { company: string; position: string; from: string; to?: string }
 
-/** One research group affiliation: group (from the list), role, start / end month ("YYYY-MM"; no end = until today) */
-export interface ResearchGroupEntry { group: string; role: string; from: string; to?: string }
+/** One research group affiliation: university (from the list), group and professor (free text), role,
+ *  start / end month ("YYYY-MM"; no end = until today). Older entries may have no university. */
+export interface ResearchGroupEntry { university?: string; group: string; professor?: string; role: string; from: string; to?: string }
 
 /** One publication: title, year, link (DOI or URL, optional) */
 export interface Publication { title: string; year: number | string; url?: string }
@@ -340,7 +340,6 @@ export interface FormOptions {
   universities: { name: string; country?: string; aliases?: string[] }[];
   studyPrograms: { name: string; category: string }[];
   companies: { name: string; category: string; aliases?: string[] }[];
-  researchGroups: { name: string; institution: string; aliases?: string[] }[];
 }
 
 export interface TagLists {
@@ -369,6 +368,5 @@ export interface State {
   universities: ListUniversity[];
   studyPrograms: ListStudyProgram[];
   companies: ListCompany[];
-  researchGroups: ListResearchGroup[];
   mailbox: MailboxStatus | null;
 }

@@ -36,7 +36,7 @@ function Applications({ acc, startNew }: { acc: Account; startNew: boolean }) {
 
   return (
     <div class="stack" style="gap:22px">
-      <PageHead overline="Applications" title="Applications"
+      <PageHead overline="Applications" title="Application rounds"
         sub="Each application is one round for a program, city and semester. Create it from a blueprint, then manage applicants through its pipeline."
         actions={<button class="btn btn--primary" onClick={() => setCreating(true)}><IconPlus width={18} />New application</button>} />
 

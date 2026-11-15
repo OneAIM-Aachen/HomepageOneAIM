@@ -5,7 +5,7 @@
 // where the data comes from the database function network_directory().
 import type { ComponentChildren } from "preact";
 import type { CompanyEntry, Publication, ResearchGroupEntry, RoleEntry, TeamMember } from "../../lib/types";
-import { companyPeriod } from "../apply/CompanyInput";
+import { companyPeriod, researchGroupName } from "../apply/CompanyInput";
 import { Avatar, Drawer } from "../ui/Ui";
 import { fmtMonth, roleLabel } from "../team/MemberDrawer";
 
@@ -115,8 +115,8 @@ export function ProfileDrawer({ r, onClose, foot }: { r: NetworkProfile; onClose
               <li class="history__item">
                 <span class="history__dot" />
                 <div style="flex:1;min-width:0">
-                  <strong style="color:var(--color-text-heading)">{g.group}</strong><span class="muted"> · {g.role}</span>
-                  <div class="muted small">{companyPeriod(g)}</div>
+                  <strong style="color:var(--color-text-heading)">{researchGroupName(g)}</strong><span class="muted"> · {g.role}</span>
+                  <div class="muted small">{[g.university, companyPeriod(g)].filter(Boolean).join(" · ")}</div>
                 </div>
               </li>
             ))}

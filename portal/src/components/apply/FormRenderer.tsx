@@ -105,7 +105,7 @@ export function FormRenderer({ fields, preview, onSubmit, submitLabel = "Submit 
         );
       case "researchGroup":
         return (
-          <ResearchGroupInput options={options?.researchGroups ?? []} invalid={!!errors[f.id]}
+          <ResearchGroupInput universities={options?.universities ?? []} invalid={!!errors[f.id]}
             value={v as never} onChange={x => set(f.id, x)} />
         );
       case "publications":

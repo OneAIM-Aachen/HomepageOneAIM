@@ -231,7 +231,7 @@ function Finance({ acc }: { acc: Account }) {
 
   return (
     <div class="stack" style="gap:18px">
-      <PageHead overline="Finance" title={`Finance · OneAIM ${city}`}
+      <PageHead overline="Finance" title="Manage your city’s finances"
         sub="Get money back for things you paid, keep a receipt for every payment of the city account, and have everything ready for the tax return." />
       <div class="demo-banner" role="status">
         {isDemo()

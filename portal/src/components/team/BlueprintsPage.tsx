@@ -34,7 +34,7 @@ function List({ startNew }: { startNew: boolean }) {
 
   return (
     <div class="stack" style="gap:22px">
-      <PageHead overline="Blueprints" title="Blueprints"
+      <PageHead overline="Blueprints" title="Forms & scorecards"
         sub="Reusable forms: application forms, feedback forms for participants and scorecards. Applications get a copy, so editing a blueprint never changes existing applications."
         actions={<button class="btn btn--primary" onClick={() => open("application")}><IconPlus width={18} />New blueprint</button>} />
 

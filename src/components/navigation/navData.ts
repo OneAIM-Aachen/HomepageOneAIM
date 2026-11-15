@@ -39,8 +39,10 @@ const NETWORK_URL = import.meta.env.PUBLIC_NETWORK_URL?.replace(/\/$/, "");
 export const communityItems: NavItem[] = [
   { label: "Partners & Sponsors", href: "/partners"     },
   { label: "Team",                href: "/team"         },
-  { label: "Participants",        href: "/participants" },
-  ...(NETWORK_URL ? [{ label: "Member network", href: `${NETWORK_URL}/` }] : []),
+  // Where the members network is set up, this entry leads there
+  NETWORK_URL
+    ? { label: "Members network", href: `${NETWORK_URL}/` }
+    : { label: "Participants",    href: "/participants" },
 ];
 
 /**

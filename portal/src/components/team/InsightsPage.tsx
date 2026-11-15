@@ -120,7 +120,7 @@ function Insights() {
 
   return (
     <div class="stack insights" style="gap:22px">
-      <PageHead overline="Insights" title="Insights"
+      <PageHead overline="Insights" title="Numbers & trends"
         sub="Who applies, who gets in, and how it develops. Counts are people, unless a chart says applications."
         actions={<>
           <button class="btn btn--secondary" onClick={exportCsv}><IconDownload width={16} />Export CSV</button>

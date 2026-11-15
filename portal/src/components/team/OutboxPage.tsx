@@ -129,7 +129,7 @@ function Emails({ acc, initial }: { acc: Account; initial: string | null }) {
 
   return (
     <div class="stack" style="gap:18px">
-      <PageHead overline="Emails" title="Emails"
+      <PageHead overline="Emails" title="Sent & received emails"
         sub="Everything sent and received on the email account, as conversations. Emails from applicants are linked to their applications."
         actions={<>
           <span class={`small ${mb?.lastError ? "" : "muted"}`} style={mb?.lastError ? "color:var(--p-red)" : ""} title={mb?.lastError}>

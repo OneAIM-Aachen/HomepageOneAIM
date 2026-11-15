@@ -32,7 +32,7 @@ function Board({ acc }: { acc: Account }) {
 
   return (
     <div class="stack">
-      <PageHead overline="Network" title="Board"
+      <PageHead overline="Board" title="Manage posts in the network"
         sub="Jobs, events and news on the network site. Members' posts appear after a team member approves them; your own posts go live right away."
         actions={<>
           <a class="btn btn--secondary" href={areaHref("network", "/board")} target="_blank" rel="noopener">View on network site</a>
