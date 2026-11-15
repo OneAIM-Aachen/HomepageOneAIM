@@ -28,7 +28,12 @@ import {
   getApplicationFor,
   getStatus,
   getTermLabel,
+  liveRounds,
 } from "../../data/applications";
+
+// Created when opened, with the rounds published in the team area
+export const prerender = false;
+await liveRounds(Astro);
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", {
   day: "numeric", month: "long", year: "numeric",

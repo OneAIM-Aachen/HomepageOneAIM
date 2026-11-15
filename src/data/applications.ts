@@ -326,11 +326,91 @@ export function getNextUpcoming(city: CitySlug, today?: Date): Application | und
   return getUpcomingApplications(city, undefined, today)[0];
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Rounds published in the team area (Supabase)
+// ─────────────────────────────────────────────────────────────────────────────
+//
 // With the new application pages (PUBLIC_APPLY_URL, see docs/deployment.md)
-// "Apply" leads there, filtered by city and program, instead of the stored form link.
+// "Apply" leads there instead of the stored form link, and the rounds
+// published in the team area are shown too. They are loaded when a page is
+// opened (pages with `prerender = false` call liveRounds()), so publishing,
+// editing or a round opening/closing shows up without a new build.
+// A round in the team area replaces an entry above for the same city,
+// program and semester.
+
 const APPLY_URL = import.meta.env.PUBLIC_APPLY_URL?.replace(/\/$/, "");
-if (APPLY_URL) {
-  for (const a of applications) {
-    a.applyUrl = `${APPLY_URL}/?location=${encodeURIComponent(getCityName(a.city))}&program=${encodeURIComponent(getProgramName(a))}`;
+const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+const SUPABASE_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+
+/** The entries written above, with "Apply" pointing to the new pages where set up. */
+const builtIn: Application[] = applications.map(a => ({
+  ...a,
+  applyUrl: APPLY_URL
+    ? `${APPLY_URL}/?location=${encodeURIComponent(getCityName(a.city))}&program=${encodeURIComponent(getProgramName(a))}`
+    : a.applyUrl,
+}));
+applications.splice(0, applications.length, ...builtIn);
+
+const KNOWN_CITIES = new Set(locationItems.map(l => l.href.replace(/^\//, "")));
+const sameRound = (a: Application, b: Application) =>
+  a.city === b.city && a.program === b.program && a.semester === b.semester && a.year === b.year;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function fromDatabase(r: any): Application | undefined {
+  const term = /^(WS|SS)\s*(\d{2})/.exec(r.semester_label ?? "");
+  if (!term || !KNOWN_CITIES.has(r.location_id) || !getProgram(r.program_id)) return undefined;
+  return {
+    id: `db-${r.slug}`,
+    city: r.location_id as CitySlug,
+    program: r.program_id,
+    semester: term[1] as Semester,
+    year: 2000 + Number(term[2]),
+    opensAt: r.opens_at,
+    deadline: r.deadline ?? undefined,
+    deadlineTime: r.deadline_time ? String(r.deadline_time).slice(0, 5) : undefined,
+    interviewsFrom: r.interviews_from ?? undefined,
+    interviewsTo: r.interviews_to ?? undefined,
+    interviewsLabel: r.interviews_label ?? undefined,
+    decisionBy: r.decision_by ?? undefined,
+    startsAt: r.starts_at ?? undefined,
+    spots: r.spots ?? undefined,
+    applyUrl: `${APPLY_URL}/form?a=${encodeURIComponent(r.slug)}`,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+let cache: { at: number; rounds: Application[] } | undefined;
+
+/**
+ * Loads the published rounds and puts them into `applications`, so all helpers
+ * above (and every component using them) see them. Call it at the top of a page
+ * with `export const prerender = false`, passing Astro: the page is then kept
+ * by Netlify's CDN for 5 minutes and refreshed in the background.
+ * Without PUBLIC_APPLY_URL / Supabase settings only the entries above are shown.
+ */
+export async function liveRounds(astro?: { response: { headers: Headers } }): Promise<void> {
+  if (astro) {
+    astro.response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+    astro.response.headers.set("Netlify-CDN-Cache-Control", "public, durable, s-maxage=300, stale-while-revalidate=86400");
   }
+  if (!APPLY_URL || !SUPABASE_URL || !SUPABASE_KEY) return;
+  if (!cache || Date.now() - cache.at > 60_000) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/published_applications`, {
+        method: "POST",
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+        body: "{}",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) throw new Error(`Supabase ${res.status}`);
+      const rows = (await res.json()) as unknown[];
+      cache = { at: Date.now(), rounds: rows.map(fromDatabase).filter((a): a is Application => !!a) };
+    } catch (e) {
+      // Database not reachable: keep the last known rounds (or only the entries above)
+      console.error("Could not load application rounds:", e);
+      if (!cache) return;
+    }
+  }
+  const live = cache.rounds;
+  applications.splice(0, applications.length, ...builtIn.filter(a => !live.some(l => sameRound(a, l))), ...live);
 }

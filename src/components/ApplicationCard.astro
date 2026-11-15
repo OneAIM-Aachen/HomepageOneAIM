@@ -7,10 +7,12 @@
 // program pages; the data comes from applications.ts.
 
 import type { CitySlug } from "../data/cityData";
+import type { Application } from "../data/applications";
 import {
   getApplicationFor,
   getDeadlineLabel,
   getFeaturedApplication,
+  getOpenApplications,
   getProgramName,
   getStatus,
   getTermLabel,
@@ -85,6 +87,22 @@ const external = Boolean(
   app && status === "open" && app.applyUrl && (direct || !toPanel)
 );
 
+// City-page hero with SEVERAL open rounds: instead of the single card a compact
+// list, one line per round with its own button (at most 3, the rest in the
+// program panel below). With one open round the card stays as it is.
+const openRounds = variant === "hero" && !program ? getOpenApplications(city) : [];
+const multi = openRounds.length > 1;
+const MAX_ROWS = 3;
+const sameTerm = openRounds.every(a => getTermLabel(a) === getTermLabel(openRounds[0]!));
+const roundHref = (a: Application) => {
+  const panel = a.program === "aim-connect" || (a.program === "aim-code" && onOwnPage);
+  return { href: a.applyUrl && !panel ? a.applyUrl : `${base}#${a.program}-apply`, external: Boolean(a.applyUrl && !panel) };
+};
+const roundLine = (a: Application) => [
+  sameTerm ? undefined : getTermLabel(a),
+  a.deadline ? `until ${getDeadlineLabel(a)}` : "deadline to be announced",
+].filter(Boolean).join(" · ");
+
 const card = app
   ? {
       status,
@@ -126,6 +144,35 @@ const card = app
     };
 ---
 
+{multi ? (
+<div class="appc appc--hero">
+  <div class="appc__status appc__status--open">
+    <span class="appc__dot" aria-hidden="true"></span>
+    <span>{openRounds.length} applications open</span>
+  </div>
+  <p class="appc__subtitle appc__subtitle--multi">{cityName}{sameTerm ? ` · ${getTermLabel(openRounds[0]!)}` : ""}</p>
+  <ul class="appc__list">
+    {openRounds.slice(0, MAX_ROWS).map(a => {
+      const t = roundHref(a);
+      return (
+        <li class="appc__item">
+          <div class="appc__item-text">
+            <strong>{getProgramName(a)}</strong>
+            <span>{roundLine(a)}</span>
+          </div>
+          <a class="appc__btn appc__btn--sm" href={t.href}
+            {...(t.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            aria-label={`Apply for ${getProgramName(a)}`}>Apply</a>
+        </li>
+      );
+    })}
+  </ul>
+  {openRounds.length > MAX_ROWS && (
+    <a class="appc__more" href={`${base}#programs`}>+{openRounds.length - MAX_ROWS} more below</a>
+  )}
+  <slot />
+</div>
+) : (
 <div class={`appc ${variant === "hero" ? "appc--hero" : ""}`}>
   <div class={`appc__status appc__status--${card.status}`}>
     <span class="appc__dot" aria-hidden="true"></span>
@@ -151,6 +198,7 @@ const card = app
   )}
   <slot />
 </div>
+)}
 
 <style>
   /* Mirror of the hero card (CityBlueprint .bp__app), just with a softer
@@ -231,6 +279,21 @@ const card = app
   }
 
   .appc__btn:hover { background: var(--color-brand-blue-dark); text-decoration: none; }
+
+  /* Several open rounds (hero): one line per round */
+  .appc__subtitle--multi { margin-top: -8px; }
+  .appc__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .appc__item {
+    display: flex; align-items: center; gap: var(--space-4);
+    padding: 12px 0;
+    border-top: 1px solid rgba(35, 42, 207, 0.10);
+  }
+  .appc__item:last-child { padding-bottom: 0; }
+  .appc__item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .appc__item-text strong { font-size: 17px; color: var(--color-brand-blue); }
+  .appc__item-text span { font-size: 13px; color: var(--color-text-muted); }
+  .appc__btn--sm { margin-top: 0; flex-shrink: 0; font-size: 14px; padding: 8px 18px; }
+  .appc__more { font-size: 13px; font-weight: 700; color: var(--color-brand-blue); }
 
   /* On the city-page hero photo: same shadow as before */
   .appc--hero { box-shadow: 0 20px 48px rgba(6, 10, 30, 0.35); }

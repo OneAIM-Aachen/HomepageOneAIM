@@ -104,9 +104,15 @@ function Applications({ acc, startNew }: { acc: Account; startNew: boolean }) {
 function NewApplicationModal({ acc, onClose }: { acc: Account; onClose: () => void }) {
   const s = useStore(x => x);
   const forms = s.blueprints.filter(b => b.kind === "application");
-  const [bp, setBp] = useState(forms[0]?.id ?? "");
+  // A blueprint named after a program ("AIM Code", "AIM Code – short form") also picks that program
+  const programOf = (id: string) => {
+    const name = forms.find(b => b.id === id)?.name.toLowerCase() ?? "";
+    return [...s.tagLists.programs].sort((a, b) => b.length - a.length).find(p => name.includes(p.toLowerCase()));
+  };
+  const [bp, setBpState] = useState(forms[0]?.id ?? "");
+  const setBp = (id: string) => { setBpState(id); const p = programOf(id); if (p) setProgram(p); };
   const [semester, setSemester] = useState(s.tagLists.semesters.find(x => x.startsWith("SS 27")) ?? s.tagLists.semesters[0] ?? "");
-  const [program, setProgram] = useState(s.tagLists.programs[0] ?? "");
+  const [program, setProgram] = useState(programOf(forms[0]?.id ?? "") ?? s.tagLists.programs[0] ?? "");
   const [location, setLocation] = useState(s.tagLists.locations.includes(acc.city) ? acc.city : s.tagLists.locations[0] ?? "");
   const [pipeline, setPipeline] = useState<Pipeline>("interview");
   const [title, setTitle] = useState("");

@@ -35,6 +35,13 @@ Additionally:
 - Portal: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`; `PUBLIC_INDEXABLE = true`
   **only live** (lets search engines list the application pages; team area and
   network site are never listed).
+- Main website: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY` (same as the portal).
+  Together with `PUBLIC_APPLY_URL` the home, city and program pages show the rounds
+  published in the team area. These pages are created when opened and kept by
+  Netlify for 5 minutes, so publishing or a round opening/closing shows up without
+  a new build. A round in the team area replaces an entry in `src/data/applications.ts`
+  for the same city, program and semester. With several open rounds in a city, the
+  city page header shows a short list (one line and button per round).
 - Main website test copy: `PUBLIC_NOINDEX = true` (keeps it out of search engines).
 - Apply / network sites: `PORTAL_URL` = address of the portal site.
 
@@ -47,7 +54,8 @@ team invitations / password / yearly check `team_url`, network welcome `network_
 1. **Main website test site**: Netlify → Add new site → Import from GitHub
    `OneAIM-Aachen/HomepageOneAIM`, branch `branchLucas`, base directory *(empty)*,
    build command `npm run build`, publish `dist`. Name e.g. `oneaim-test`.
-   Environment: `PUBLIC_APPLY_URL`, `PUBLIC_NETWORK_URL`, `PUBLIC_NOINDEX = true`.
+   Environment: `PUBLIC_APPLY_URL`, `PUBLIC_NETWORK_URL`, `PUBLIC_NOINDEX = true`,
+   `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`.
 2. **Apply site**: same import, base directory `deploy/apply` (build command and
    publish directory come from its `netlify.toml`). Name e.g. `oneaim-test-apply`.
    Environment: `PORTAL_URL = https://lambent-rolypoly-19b487.netlify.app`.

@@ -16,15 +16,14 @@
 import BaseLayout     from "../../layouts/BaseLayout.astro";
 import CityBlueprint  from "../../components/sections/CityBlueprint.astro";
 
-import { getCityStaticPaths } from "../../data/cityData";
-import type { CityData }       from "../../data/cityData";
+import { cities }     from "../../data/cityData";
+import { liveRounds } from "../../data/applications";
 
-export function getStaticPaths() {
-  return getCityStaticPaths();
-}
-
-interface Props { city: CityData }
-const { city } = Astro.props as Props;
+// Created when opened, with the rounds published in the team area
+export const prerender = false;
+const city = cities.find(c => c.slug === Astro.params.city);
+if (!city) return new Response(null, { status: 404 });
+await liveRounds(Astro);
 ---
 
 <BaseLayout

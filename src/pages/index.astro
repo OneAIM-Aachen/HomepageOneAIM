@@ -18,6 +18,11 @@ import WhatIsOneAIM      from "../components/sections/WhatIsOneAIM.astro";
 import ProgramsBento     from "../components/sections/ProgramsBento.astro";
 import JoinSection       from "../components/sections/JoinSection.astro";
 import NewsSection       from "../components/sections/NewsSection.astro";
+import { liveRounds }    from "../data/applications";
+
+// Created when opened, with the rounds published in the team area (announcement band)
+export const prerender = false;
+await liveRounds(Astro);
 // LogoGallery was deliberately removed – replaced by PartnersSection with a carousel.
 ---
 

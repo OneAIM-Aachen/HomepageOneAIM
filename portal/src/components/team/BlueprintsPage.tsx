@@ -55,6 +55,12 @@ function List({ startNew }: { startNew: boolean }) {
 
       {creating && (
         <Modal title={creating === "feedback" ? "New feedback form" : "New blueprint"} onClose={() => setCreating(null)}>
+          <Field label="Type" required help="Application forms are filled in by applicants; feedback forms are sent to participants after a program. They can't be swapped later.">
+            <div class="row" style="gap:8px">
+              <button type="button" class={`btn btn--sm ${creating === "application" ? "btn--primary" : "btn--secondary"}`} onClick={() => { setCreating("application"); setFrom(""); }}>Application form</button>
+              <button type="button" class={`btn btn--sm ${creating === "feedback" ? "btn--primary" : "btn--secondary"}`} onClick={() => { setCreating("feedback"); setFrom(""); }}>Feedback form</button>
+            </div>
+          </Field>
           <Field label="Name" required>
             <input class="input" value={name} placeholder={creating === "feedback" ? "e.g. AIM Connect – feedback" : "e.g. AIM Connect – short form"} onInput={e => setName(e.currentTarget.value)} autoFocus />
           </Field>

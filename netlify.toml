@@ -2,7 +2,9 @@
 # The portal (portal/) and the forwarding sites (deploy/) are separate Netlify
 # sites, see docs/deployment.md.
 # Optional environment variables (test copy, and live once the portal is live):
-#   PUBLIC_APPLY_URL    "Apply" buttons lead to the new application pages
+#   PUBLIC_APPLY_URL    "Apply" buttons lead to the new application pages, and the
+#                       rounds published in the team area are shown (needs the two below)
+#   PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY   same public values as on the portal site
 #   PUBLIC_NETWORK_URL  "Member network" link in the menu and footer
 #   PUBLIC_NOINDEX      "true" on test copies: keep out of search engines
 
@@ -11,3 +13,8 @@
   publish = "dist"
   # Only rebuild when the main website changed (not for portal / Supabase / docs changes)
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)portal' ':(exclude)supabase' ':(exclude)deploy' ':(exclude)docs'"
+
+# Home, city and program pages are created when opened (live application rounds,
+# see src/data/applications.ts); Netlify keeps them for 5 minutes.
+[build.environment]
+  NODE_VERSION = "22"
