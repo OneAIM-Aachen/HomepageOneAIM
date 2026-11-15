@@ -944,3 +944,25 @@ img.receipt { max-height: 340px; background: #fff; }
 .iban-option.is-active { border-color: var(--color-brand-blue); background: #F7F9FF; }
 .weight-input { display: flex; align-items: center; gap: 4px; font-weight: 700; color: var(--color-text-muted); }
 .weight-input .input { width: 72px; }
+
+/* ── Bug report button (components/team/BugReport.tsx) ─────────────────── */
+.bug-fab {
+  position: fixed; z-index: 40;
+  right: calc(20px + env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  width: 48px; height: 48px; border-radius: 50%; border: 0; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--color-brand-blue); color: #fff;
+  box-shadow: 0 8px 24px rgba(35, 42, 207, 0.32);
+  transition: transform .15s ease, background .15s ease;
+}
+.bug-fab:hover { background: var(--color-brand-blue-dark); transform: translateY(-2px); }
+.bug-fab:focus-visible { outline: 3px solid #C9D8FF; outline-offset: 2px; }
+.bug-drop {
+  display: grid; place-items: center; text-align: center; min-height: 90px; padding: 14px;
+  border: 1.5px dashed #C9D8FF; border-radius: 12px; background: #F8FAFF; color: var(--color-text-muted); font-size: .9rem; cursor: pointer;
+}
+.bug-drop:hover { border-color: var(--color-brand-blue); color: var(--color-brand-blue); }
+.bug-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.bug-shot { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.bug-shot img { max-height: 220px; max-width: 100%; border-radius: 10px; border: 1px solid #DCE1F5; }
+@media (prefers-reduced-motion: reduce) { .bug-fab { transition: none; } }

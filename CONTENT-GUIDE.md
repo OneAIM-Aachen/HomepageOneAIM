@@ -22,38 +22,18 @@ automatically.
 - `id` values become URLs, so keep them lowercase-with-dashes and stable.
 - Fields marked `(optional)` below can simply be left out.
 
-**Important:** the site is static. Anything derived from dates (applications
-flipping to "open", events moving to "past") only changes with the next
-build/deploy after that date.
+**Important:** apart from the pages with application rounds, the site is static.
+Anything else derived from dates (events moving to "past") only changes with the
+next build/deploy after that date.
 
 ---
 
-## Applications: `src/data/applications.ts`
+## Applications: team area
 
-One entry = one application round. The status (upcoming / open / closed) is
-**computed from the dates**, never set by hand. Drives the application cards on
-the city heroes and program pages, the semester timelines, all apply buttons
-and the announcement banner on the landing page.
-
-```ts
-{
-  id:       "aachen-aim-connect-ws26",   // "<city>-<program>-<ws|ss><year>"
-  city:     "aachen",                    // city slug
-  program:  "aim-connect",               // program slug
-  semester: "WS",                        // "WS" | "SS"
-  year:     2026,                        // WS 2026 renders as "WS 26/27"
-  opensAt:  "2026-08-30",                // applications open on this date
-  deadline: "2026-09-21",                // (optional) missing = "to be announced"
-  interviewsFrom: "2026-09-25",          // (optional) interview window start
-  interviewsTo:   "2026-09-27",          // (optional) interview window end
-  interviewsLabel: "Oct",                // (optional) free text if only the month is known
-  decisionBy: "2026-09-27",              // (optional) offers sent by this date
-  startsAt:  "2026-10-23",               // (optional) program start
-  spots:     20,                         // (optional) number of spots
-  applyUrl:  "https://tally.so/r/XXXXX", // (optional) Tally form, needed once open
-  note:      "Extra line on the card",   // (optional)
-}
-```
+Application rounds are created and published in the team area (Applications), not
+in this repository. Published rounds appear on the city and program pages, the apply
+buttons and the announcement banner within about 5 minutes. The status (upcoming /
+open / closed) is computed from the round's dates.
 
 ---
 

@@ -8,6 +8,7 @@ import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
 import { fmtDate, setSimDate, simDate } from "../../lib/fields";
 import { Avatar, ConfirmHost, Modal, Toaster, toast } from "../ui/Ui";
 import { MemberDrawer } from "./MemberDrawer";
+import { BugReport } from "./BugReport";
 import {
   IconApps, IconBlueprint, IconChart, IconEuro, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconBoard, IconCrm, IconSettings, IconTeam,
 } from "../ui/Icons";
@@ -157,6 +158,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
           </div>
         </Modal>
       )}
+      <BugReport />
       <Toaster />
       <ConfirmHost />
     </div>

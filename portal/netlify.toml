@@ -18,6 +18,9 @@
   # Test site only: shows the "Demo data" switch in the team area
   # (made-up applications, only in the viewer's browser). Remove for the real portal.
   PUBLIC_DEMO_MODE = "true"
+  # Bug report button in the team area (→ GitHub issues, see components/team/BugReport.tsx).
+  # Remove this line, or set it to "false", to switch the button off.
+  PUBLIC_BUG_REPORTS = "true"
 
 [[headers]]
   for = "/*"

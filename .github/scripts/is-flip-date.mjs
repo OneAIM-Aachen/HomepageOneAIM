@@ -1,10 +1,10 @@
 // Decides whether TODAY is a date on which the website's build output
-// changes (an application round opening or closing, an event moving
-// from upcoming to past). Used by the nightly-build workflow: it only
+// changes (an event moving from upcoming to past; application rounds are
+// loaded live from the database and need no rebuild). Used by the nightly-build workflow: it only
 // pushes its rebuild commit to main when this script says so.
 //
 // The dates are extracted from the databases, so there is no second
-// list to maintain: editing applications.ts/eventsData.ts is enough.
+// list to maintain: editing eventsData.ts is enough.
 //
 // Exit code 0 = flip day (rebuild), 1 = nothing changes today.
 
@@ -22,13 +22,6 @@ const plusOne = iso => {
 };
 
 const flipDates = new Set();
-
-// Application rounds: the status flips ON opensAt (upcoming -> open)
-// and the day AFTER the deadline (open -> closed).
-const apps = read("src/data/applications.ts");
-for (const [, key, iso] of apps.matchAll(/(opensAt|deadline):\s*"(\d{4}-\d{2}-\d{2})"/g)) {
-  flipDates.add(key === "opensAt" ? iso : plusOne(iso));
-}
 
 // Educate events: an event moves to "past" after its (end) date.
 // Both date and endDate are added; a superfluous rebuild is harmless.

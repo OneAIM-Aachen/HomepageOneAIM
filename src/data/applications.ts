@@ -1,28 +1,11 @@
 // src/data/applications.ts
 //
-// ╔══════════════════════════════════════════════════════════════════════════╗
-// ║  ADDING A NEW APPLICATION ROUND – one step:                              ║
-// ║  Write an entry into the array below. Position does not matter.          ║
-// ║                                                                          ║
-// ║  The status (upcoming / open / closed) is NOT maintained by hand, it is  ║
-// ║  computed from the date fields:                                          ║
-// ║      today <  opensAt   → "upcoming"                                     ║
-// ║      today <= deadline  → "open"                                         ║
-// ║      otherwise          → "closed"                                       ║
-// ║  So there is no flag anyone could forget to flip.                        ║
-// ║                                                                          ║
-// ║  IMPORTANT: The site is built statically. "Today" is the time of the     ║
-// ║  build – an expiry only becomes visible with the next deploy.            ║
-// ╚══════════════════════════════════════════════════════════════════════════╝
+// Application rounds on the main website. They come ONLY from the database:
+// created and published in the team area (Applications), loaded by liveRounds()
+// when a page with rounds is opened. There is no list to maintain here.
 //
-// ONE ENTRY = ONE ROUND, not one program. Summer and winter semester can
-// therefore sit side by side, and expired rounds simply remain as history –
-// the helper functions filter them out, and they serve as a template for
-// the next round.
-//
-// SLUGS: `city` uses the same slugs as navigation and news,
-// `program` the same as src/data/programs.ts. Display names come from there,
-// so they are deliberately not repeated here.
+// This file holds the round type and the helpers the pages use to show rounds:
+// status (upcoming / open / closed, computed from the dates), labels, deadlines.
 
 import type { CitySlug } from "./cityData";
 import { getProgram } from "./programs";
@@ -84,92 +67,8 @@ export interface Application {
   note?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Application rounds
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Currently empty – the demo rounds are removed. Add a new round following
-// this pattern; everything else (cards, status, deadlines) happens
-// automatically on the location and program pages:
-//
-//   {
-//     id:       "munich-aim-connect-ws26",   // "<city>-<program>-<semester><year>"
-//     city:     "munich",                    // "munich" | "aachen" | "frankfurt"
-//     program:  "aim-connect",               // slug from programs.ts
-//     semester: "WS",                        // "WS" | "SS"
-//     year:     2026,
-//     opensAt:  "2026-08-01",                // applications open
-//     deadline: "2026-09-15",                // application deadline
-//     startsAt: "2026-10-15",                // optional: program start
-//     spots:    20,                          // optional
-//     applyUrl: "https://…",                 // application form
-//   },
-export const applications: Application[] = [
-  {
-    id:       "munich-aim-connect-ws26",
-    city:     "munich",
-    program:  "aim-connect",
-    semester: "WS",
-    year:     2026,
-    opensAt:  "2026-09-01",
-    deadline: "2026-09-13",
-    interviewsFrom: "2026-09-18",
-    interviewsTo:   "2026-09-22",
-    decisionBy:     "2026-09-27",
-    startsAt: "2026-10-16",
-    applyUrl: "https://tally.so/r/5BAxZM",
-  },
-  {
-    id:       "frankfurt-aim-connect-ws26",
-    city:     "frankfurt",
-    program:  "aim-connect",
-    semester: "WS",
-    year:     2026,
-    opensAt:  "2026-08-30",
-    deadline: "2026-09-25",
-    interviewsLabel: "Oct",
-    decisionBy: "2026-10-11",
-    startsAt: "2026-10-24",
-    applyUrl: "https://tally.so/r/WOVevk",
-  },
-  {
-    id:       "aachen-aim-connect-ws26",
-    city:     "aachen",
-    program:  "aim-connect",
-    semester: "WS",
-    year:     2026,
-    opensAt:  "2026-08-30",
-    deadline: "2026-09-22",
-    interviewsFrom: "2026-09-25",
-    interviewsTo:   "2026-09-27",
-    decisionBy:     "2026-09-27",
-    startsAt: "2026-10-23",
-    applyUrl: "https://tally.so/r/7RgbEL",
-  },
-  {
-    // AIM Innovate Impact Hub (AIMcubate), Munich. The program page shows
-    // the Munich card with a direct button to this form (directApply).
-    id:       "munich-aim-innovate-ws26",
-    city:     "munich",
-    program:  "aim-innovate",
-    semester: "WS",
-    year:     2026,
-    opensAt:  "2026-10-20",
-    deadline: "2026-11-01",
-    applyUrl: "https://tally.so/r/laDy65",
-  },
-  {
-    id:           "aachen-aim-code-ws26",
-    city:         "aachen",
-    program:      "aim-code",
-    semester:     "WS",
-    year:         2026,
-    opensAt:      "2026-10-21",
-    deadline:     "2026-11-06",
-    deadlineTime: "12:00",
-    applyUrl:     "https://tally.so/r/5XKBp6",
-  },
-];
+/** The rounds currently shown; filled by liveRounds() from the database. */
+export const applications: Application[] = [];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Derived helpers
@@ -330,13 +229,10 @@ export function getNextUpcoming(city: CitySlug, today?: Date): Application | und
 // Rounds published in the team area (Supabase)
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// With the new application pages (PUBLIC_APPLY_URL, see docs/deployment.md)
-// "Apply" leads there instead of the stored form link, and the rounds
-// published in the team area are shown too. They are loaded when a page is
-// opened (pages with `prerender = false` call liveRounds()), so publishing,
-// editing or a round opening/closing shows up without a new build.
-// A round in the team area replaces an entry above for the same city,
-// program and semester.
+// Loaded when a page is opened (pages with `prerender = false` call liveRounds()),
+// so publishing, editing or a round opening/closing shows up without a new build.
+// Needs PUBLIC_APPLY_URL (where "Apply" leads) and the two Supabase settings,
+// see docs/deployment.md. Without them no rounds are shown.
 
 // Read at build time, or (pages created on request) from the server's environment
 const env = (name: string): string | undefined =>
@@ -347,18 +243,7 @@ const APPLY_URL = env("PUBLIC_APPLY_URL")?.trim().replace(/\/$/, "");
 const SUPABASE_URL = env("PUBLIC_SUPABASE_URL")?.trim().replace(/\/$/, "");
 const SUPABASE_KEY = env("PUBLIC_SUPABASE_ANON_KEY")?.trim();
 
-/** The entries written above, with "Apply" pointing to the new pages where set up. */
-const builtIn: Application[] = applications.map(a => ({
-  ...a,
-  applyUrl: APPLY_URL
-    ? `${APPLY_URL}/?location=${encodeURIComponent(getCityName(a.city))}&program=${encodeURIComponent(getProgramName(a))}`
-    : a.applyUrl,
-}));
-applications.splice(0, applications.length, ...builtIn);
-
 const KNOWN_CITIES = new Set(locationItems.map(l => l.href.replace(/^\//, "")));
-const sameRound = (a: Application, b: Application) =>
-  a.city === b.city && a.program === b.program && a.semester === b.semester && a.year === b.year;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function fromDatabase(r: any): Application | undefined {
@@ -387,11 +272,11 @@ function fromDatabase(r: any): Application | undefined {
 let cache: { at: number; rounds: Application[] } | undefined;
 
 /**
- * Loads the published rounds and puts them into `applications`, so all helpers
- * above (and every component using them) see them. Call it at the top of a page
+ * Loads the published rounds into `applications`, so all helpers above (and every
+ * component using them) see them. Call it at the top of a page
  * with `export const prerender = false`, passing Astro: the page is then kept
  * by Netlify's CDN for 5 minutes and refreshed in the background.
- * Without PUBLIC_APPLY_URL / Supabase settings only the entries above are shown.
+ * Without PUBLIC_APPLY_URL / Supabase settings no rounds are shown.
  */
 export async function liveRounds(astro?: { response: { headers: Headers } }): Promise<void> {
   if (astro) {
@@ -416,7 +301,7 @@ export async function liveRounds(astro?: { response: { headers: Headers } }): Pr
       const rows = (await res.json()) as unknown[];
       cache = { at: Date.now(), rounds: rows.map(fromDatabase).filter((a): a is Application => !!a) };
     } catch (e) {
-      // Database not reachable: keep the last known rounds (or only the entries above)
+      // Database not reachable: keep the last known rounds (or none)
       console.error("Could not load application rounds:", e);
       note(`error; ${String((e as Error)?.message ?? e).slice(0, 80)}`);
       if (!cache) return;
@@ -424,5 +309,5 @@ export async function liveRounds(astro?: { response: { headers: Headers } }): Pr
   }
   const live = cache.rounds;
   if (!astro?.response.headers.has("X-OneAIM-Rounds")) note(`ok; ${live.length} published`);
-  applications.splice(0, applications.length, ...builtIn.filter(a => !live.some(l => sameRound(a, l))), ...live);
+  applications.splice(0, applications.length, ...live);
 }

@@ -8,8 +8,7 @@
 # push already exists and skips. (GitHub cron can fire with delay, so
 # "midnight" in practice means "shortly after midnight".)
 #
-# The flip dates come straight from src/data/applications.ts and
-# src/data/eventsData.ts (see .github/scripts/is-flip-date.mjs), so
+# The flip dates come straight from src/data/eventsData.ts (see .github/scripts/is-flip-date.mjs), so
 # editing the databases is all that is ever needed.
 # A manual run via the Actions tab always rebuilds, regardless of date.
 
