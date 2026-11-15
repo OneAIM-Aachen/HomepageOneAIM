@@ -28,7 +28,7 @@ function List({ startNew }: { startNew: boolean }) {
   const create = async () => {
     const src = s.blueprints.find(b => b.id === from);
     const id = await act(() => createBlueprint(name, src, creating ?? "application"));
-    if (id) window.location.href = `/team/blueprints?id=${id}`;
+    if (id) window.location.href = `/blueprints?id=${id}`;
   };
   const open = (kind: Blueprint["kind"]) => { setName(""); setFrom(""); setCreating(kind); };
 
@@ -87,7 +87,7 @@ function BlueprintGrid({ kind }: { kind: Blueprint["kind"] }) {
           return (
             <div class="card stack-s" style="gap:12px">
               <div class="row row--between" style="align-items:flex-start">
-                <a href={`/team/blueprints?id=${b.id}`} style="font-weight:800;font-size:1.05rem;color:var(--color-text-heading)">{b.name}</a>
+                <a href={`/blueprints?id=${b.id}`} style="font-weight:800;font-size:1.05rem;color:var(--color-text-heading)">{b.name}</a>
                 <span class="chip">{b.fields.length} {kind === "feedback" ? "questions" : "fields"}</span>
               </div>
               <p class="muted small" style="min-height:40px">{b.description || "No description."}</p>
@@ -106,7 +106,7 @@ function BlueprintGrid({ kind }: { kind: Blueprint["kind"] }) {
                         message: `Do you really want to delete the ${kind === "feedback" ? "feedback form" : "blueprint"} "${b.name}"?\n\nApplications that use it keep their copy.` }))
                         act(() => deleteBlueprint(b.id), "Blueprint deleted");
                     }}><IconTrash /></button>
-                  <a class="btn btn--secondary btn--sm" href={`/team/blueprints?id=${b.id}`}>Edit</a>
+                  <a class="btn btn--secondary btn--sm" href={`/blueprints?id=${b.id}`}>Edit</a>
                 </span>
               </div>
             </div>
@@ -121,7 +121,7 @@ function Editor({ id }: { id: string }) {
   const [draft, setDraft] = useState<Blueprint | undefined>(original ? structuredClone(original) : undefined);
   const [preview, setPreview] = useState(false);
 
-  if (!original || !draft) return <div class="empty">This blueprint does not exist. <a href="/team/blueprints">Back to blueprints</a></div>;
+  if (!original || !draft) return <div class="empty">This blueprint does not exist. <a href="/blueprints">Back to blueprints</a></div>;
 
   const content = (b: Blueprint) => JSON.stringify([b.name, b.description, b.fields]);
   const dirty = content(draft) !== content(original);
@@ -130,12 +130,12 @@ function Editor({ id }: { id: string }) {
   const feedback = original.kind === "feedback";
   return (
     <div class="stack" style="gap:22px">
-      <PageHead crumbs={[{ label: "Blueprints", href: "/team/blueprints" }, { label: original.name }]}
+      <PageHead crumbs={[{ label: "Blueprints", href: "/blueprints" }, { label: original.name }]}
         overline={feedback ? "Feedback form" : undefined}
         title={draft.name || "Untitled blueprint"}
         actions={<>
           <button class="btn btn--secondary" onClick={() => setPreview(true)}>Preview form</button>
-          {!feedback && <a class="btn btn--secondary" href="/team/applications?new=1">Use for new application</a>}
+          {!feedback && <a class="btn btn--secondary" href="/applications?new=1">Use for new application</a>}
           <button class="btn btn--primary" disabled={!dirty} onClick={save}>{dirty ? "Save changes" : "Saved"}</button>
         </>} />
 

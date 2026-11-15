@@ -18,7 +18,7 @@ The database lives in `supabase/migrations/`:
 | `20261029100000_team_members.sql` | Personal team accounts, team profiles (linked to the network person), departments for the organigram |
 | `20261029120000_team_profiles_without_login.sql` | Profiles without login; import of the website team |
 | `20261030120000_review_workflow.sql` | Interviewers per slot, reviewers per applicant, notes with stage, scorecards (templates + per application, one sheet per member and stage) |
-| `20261029220000_network_site.sql` | Network site (/members): logins for everyone in the network, directory/profile functions, welcome email when someone is accepted |
+| `20261029220000_network_site.sql` | Network site (/network): logins for everyone in the network, directory/profile functions, welcome email when someone is accepted |
 | `20261029160000_team_history_alumni_checkins.sql` | Position history, alumni, yearly "still active?" check (pg_cron daily → team-accounts `checkins`) |
 | `20261030190100_participant_feedback.sql` | Feedback forms (blueprints of kind `feedback`), personal token per participant (`submissions.feedback_token`), pg_cron job `send-due-feedback` (every 5 minutes) |
 | `20261030200000_feedback_rounds.sql` | Several feedbacks per application (`feedback_forms`: name, form copy, email text, send time), answers in `feedback_responses`, `email_log.feedback_id`; only accepted / confirmed participants get the link `/apply/feedback?t=<token>&f=<feedback id>` |
@@ -32,13 +32,13 @@ The database lives in `supabase/migrations/`:
 ## Who can do what
 
 - **Team** = a logged-in user with a row in `team_members` (personal account). All members have the same rights: full access to everything, incl. all CVs, and they can invite and remove members.
-  - Accounts are created only by invitation (Team overview → "Invite member", edge function `team-accounts`). The email (via Brevo) links to `/team/welcome`, where the person sets their password. "Forgot password?" works the same way.
+  - Accounts are created only by invitation (Team overview → "Invite member", edge function `team-accounts`). The email (via Brevo) links to the team area's `/welcome`, where the person sets their password. "Forgot password?" works the same way.
   - Every member is linked to the network person (`people`) with the same email; same email under a different name is refused. Universities, study programs, phone and LinkedIn live on that person.
   - Only `status = 'active'` members have access. Alumni keep profile and position history (`team_member_roles`) but can't sign in.
-  - Yearly check: one year after the email is added (and a year after every "yes"), team-accounts emails a link to `/team/checkin`; "no" makes the member alumni. One reminder after 14 days; without an answer within one month they become alumni anyway (`expire_team_checkins()`, pg_cron daily).
+  - Yearly check: one year after the email is added (and a year after every "yes"), team-accounts emails a link to the team area's `/checkin`; "no" makes the member alumni. One reminder after 14 days; without an answer within one month they become alumni anyway (`expire_team_checkins()`, pg_cron daily).
   - The old city logins (`team_accounts`) stop working once the first personal account has set its password, except logins marked `keep_active` (`aachen@one-aim.org`).
 - **Participants** (feedback): the public page `/apply/feedback?t=<token>` only calls `get_feedback()` and `submit_feedback()`. They work for accepted / confirmed participants of that application, once per person and feedback.
-- **Network members** (members site `/members`): everyone accepted after a selection (screening / interview), plus team and team alumni. Their logins (`network_accounts`) have no table access and are not team (`is_team()` is false). They only call `network_directory()`, `network_me()` and `network_update_me()`, which return the network profile fields (contact, studies, OneAIM programs/events, team history) and nothing else. Accepting someone queues a welcome email with a set-password link (`network_invites`, sent by team-accounts `network_queue`).
+- **Network members** (network site `/network`): everyone accepted after a selection (screening / interview), plus team and team alumni. Their logins (`network_accounts`) have no table access and are not team (`is_team()` is false). They only call `network_directory()`, `network_me()` and `network_update_me()`, which return the network profile fields (contact, studies, OneAIM programs/events, team history) and nothing else. Accepting someone queues a welcome email with a set-password link (`network_invites`, sent by team-accounts `network_queue`).
 - **Applicants / public** have no table access at all. They can only:
   - `published_applications()`: list published rounds (also used by one-aim.org)
   - `submit_application(id, answers, consent)`: checks the form, consent and duplicates, creates/updates the person, queues the confirmation email
@@ -106,7 +106,7 @@ Steps 1–3 are done (25 Oct 2026); all migrations are pushed.
      supabase functions deploy send-emails --use-api --no-verify-jwt
      ```
 
-- Going live: set the sender to `applications@one-aim.org`, link base to `https://apply.one-aim.org`,
+- Going live: set the sender to `applications@one-aim.org`, link base to `https://one-aim.org`,
   switch test mode off.
 
 ## Mailbox (incoming emails)
@@ -180,7 +180,7 @@ Enable Banking secrets, “Connect bank account” isn't available.
 ### Enable Banking
 
 Application in the **production** environment, redirect URLs
-`http://localhost:4400/team/bank-callback` and
-`https://lambent-rolypoly-19b487.netlify.app/team/bank-callback` (later the real
+`http://localhost:4400/bank-callback` and
+`https://lambent-rolypoly-19b487.netlify.app/bank-callback` (later the real
 domain), “Activate by linking accounts” (restricted mode: only the linked
 OneAIM accounts can be read). Then set the two `ENABLE_BANKING_…` secrets.

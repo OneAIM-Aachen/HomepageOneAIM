@@ -1,0 +1,13 @@
+# Netlify settings for the main website (one-aim.org; repo root as base directory).
+# The portal (portal/) and the forwarding sites (deploy/) are separate Netlify
+# sites, see docs/deployment.md.
+# Optional environment variables (test copy, and live once the portal is live):
+#   PUBLIC_APPLY_URL    "Apply" buttons lead to the new application pages
+#   PUBLIC_NETWORK_URL  "Member network" link in the menu and footer
+#   PUBLIC_NOINDEX      "true" on test copies: keep out of search engines
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+  # Only rebuild when the main website changed (not for portal / Supabase / docs changes)
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ':(exclude)portal' ':(exclude)supabase' ':(exclude)deploy' ':(exclude)docs'"

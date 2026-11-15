@@ -3,7 +3,9 @@
 
 const year = new Date().getFullYear();
 
+const networkUrl = import.meta.env.PUBLIC_NETWORK_URL?.replace(/\/$/, "");
 const footerLinks = [
+  ...(networkUrl ? [{ label: "Member network", href: `${networkUrl}/`, external: false }] : []),
   { label: "Contact Us",    href: "/contact",      external: false },
   { label: "Privacy Policy", href: "/datenschutz",  external: false },
   { label: "Legal Notice",   href: "/impressum",    external: false },

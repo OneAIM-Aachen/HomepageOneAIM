@@ -21,6 +21,7 @@ import { isDemo, withDemo } from "./demo";
 import { fileUrl, uploadFile } from "./files";
 import { mapPost } from "./members";
 import type { PostDraft } from "../components/network/Board";
+import { areaUrl } from "./areas";
 
 // ── State ────────────────────────────────────────────────────────────────
 
@@ -532,13 +533,11 @@ export async function uploadImage(file: File, folder = "headers"): Promise<strin
 // ── Emails (preview only – sending happens in the database queue) ────────
 
 export function feedbackLink(sub: Pick<Submission, "feedbackToken">, feedbackId: string): string {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/apply/feedback?t=${sub.feedbackToken}&f=${feedbackId}`;
+  return areaUrl("apply", `/feedback?t=${sub.feedbackToken}&f=${feedbackId}`);
 }
 
 export function bookingLink(sub: Pick<Submission, "bookingToken">): string {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/apply/book?t=${sub.bookingToken}`;
+  return areaUrl("apply", `/book?t=${sub.bookingToken}`);
 }
 
 const slotFmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
@@ -563,8 +562,8 @@ export function renderTemplate(text: string, app: Application, person: Pick<Pers
     "{semester}": app.tags.semester,
     "{deadline}": fmtDate(app.dates.deadline),
     "{start_date}": fmtDate(app.dates.startsAt),
-    "{booking_link}": sub ? bookingLink(sub) : "https://apply.one-aim.org/book/…",
-    "{feedback_link}": "https://apply.one-aim.org/feedback/…",
+    "{booking_link}": sub ? bookingLink(sub) : areaUrl("apply", "/book?t=…"),
+    "{feedback_link}": areaUrl("apply", "/feedback?t=…"),
     ...interviewVars(app, sub),
   };
   return text.replace(/\{[a-z_]+\}/g, m => vars[m] ?? m);

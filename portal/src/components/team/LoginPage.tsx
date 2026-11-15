@@ -11,7 +11,7 @@ export default function LoginPage() {
 
   const next = () => {
     const n = new URLSearchParams(location.search).get("next");
-    return n && n.startsWith("/team") ? n : "/team";
+    return n && n.startsWith("/") ? n : "/";
   };
 
   useEffect(() => { currentAccount().then(a => { if (a) window.location.replace(next()); }); }, []);
@@ -52,7 +52,7 @@ export default function LoginPage() {
           <img src="/logo.png" alt="OneAIM" />
           <div class="stack-s">
             <h1>Sign in</h1>
-            <p class="muted">team.one-aim.org</p>
+            <p class="muted">one-aim.org/portal</p>
           </div>
           <Field label="Email">
             <input class="input" type="email" autoComplete="username" required value={email}

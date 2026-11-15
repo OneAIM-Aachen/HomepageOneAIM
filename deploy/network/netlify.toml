@@ -1,0 +1,10 @@
+# Forwarding site for the network area of the portal (see docs/deployment.md).
+# In Netlify: Base directory "deploy/network", environment variable PORTAL_URL.
+[build]
+  command = "node ../proxy.mjs network"
+  publish = "out"
+  # Only rebuild when this folder or the script changed
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- . ../proxy.mjs"
+
+[build.environment]
+  NODE_VERSION = "22"

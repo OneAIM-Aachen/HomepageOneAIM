@@ -56,6 +56,14 @@ const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short
 const slotFmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
 const fmt = (iso?: string | null) => (iso ? dateFmt.format(new Date(`${iso}T12:00:00Z`)).replace("Sept", "Sep") : "–");
 
+/** Link into an area of the website: its own address if set (email_settings.*_url), else a path on apply_base_url */
+type Urls = { apply_base_url: string; team_url?: string | null; apply_url?: string | null; network_url?: string | null };
+function areaLink(s: Urls, area: "team" | "apply" | "network", path: string): string {
+  const own = s[`${area}_url` as const];
+  if (own) return `${own.replace(/\/$/, "")}${path}`;
+  return `${s.apply_base_url.replace(/\/$/, "")}${area === "team" ? "" : `/${area}`}${path}`;
+}
+
 function render(text: string, vars: Record<string, string>) {
   return text.replace(/\{[a-z_]+\}/g, m => vars[m] ?? m);
 }
@@ -160,8 +168,8 @@ Deno.serve(async req => {
         "{semester}": semester,
         "{deadline}": fmt(a?.deadline),
         "{start_date}": fmt(a?.starts_at),
-        "{booking_link}": sub ? `${settings.apply_base_url.replace(/\/$/, "")}/apply/book?t=${sub.booking_token}` : "",
-        "{feedback_link}": sub ? `${settings.apply_base_url.replace(/\/$/, "")}/apply/feedback?t=${sub.feedback_token}${fb ? `&f=${fb.id}` : ""}` : "",
+        "{booking_link}": sub ? areaLink(settings, "apply", `/book?t=${sub.booking_token}`) : "",
+        "{feedback_link}": sub ? areaLink(settings, "apply", `/feedback?t=${sub.feedback_token}${fb ? `&f=${fb.id}` : ""}`) : "",
         "{interview_time}": slot ? `${slotFmt.format(new Date(slot.starts_at))} (${slot.duration_min} min, German time)` : "",
         "{interview_place}": slot?.location || "Online",
         "{meeting_link}": slot?.meeting_link || "follows in a separate email",

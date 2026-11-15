@@ -77,8 +77,8 @@ function Settings({ acc }: { acc: Account }) {
             </tbody>
           </table>
           <div class="row">
-            {acc.memberId && <a class="btn btn--secondary btn--sm" href={`/team/team?member=${acc.memberId}`}>Edit my team profile</a>}
-            <a class="btn btn--ghost btn--sm" href="/team/team">Team overview</a>
+            {acc.memberId && <a class="btn btn--secondary btn--sm" href={`/team?member=${acc.memberId}`}>Edit my team profile</a>}
+            <a class="btn btn--ghost btn--sm" href="/team">Team overview</a>
           </div>
         </div>
         <form class="card stack" onSubmit={e => {
@@ -135,7 +135,7 @@ function EmailSection() {
         <Field label="Reply-to address" help="Empty = replies go to the sender address.">
           <input class="input" type="email" value={d.reply_to ?? ""} onInput={e => set({ reply_to: e.currentTarget.value })} />
         </Field>
-        <Field label="Link base for emails" help="Where interview booking links point. Later: https://apply.one-aim.org">
+        <Field label="Link base for emails" help="Address of the website in email links (booking, feedback, invitations). Later: https://one-aim.org">
           <input class="input" type="url" value={d.apply_base_url} onInput={e => set({ apply_base_url: e.currentTarget.value })} />
         </Field>
         <Field label="Daily limit" help="Brevo free plan: 300/day. Emails above it go out the next day.">

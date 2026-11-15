@@ -8,7 +8,7 @@
 // • connect {location_id, aspsp_name, redirect_url}  (finance of that city)
 //   returns the bank's login URL; the treasurer confirms there with TAN/app
 // • callback {code?, state, error?}              (finance of that city) after the bank
-//   redirected back to /team/bank-callback: creates the session, first sync
+//   redirected back to the team area's /bank-callback: creates the session, first sync
 // • disconnect {location_id}                     (finance of that city)
 // • sync_all                                     (public, pg_cron 4× a day) skips
 //   connections synced within the last 5 hours (banks allow ~4 fetches a day)
@@ -175,7 +175,7 @@ Deno.serve(async req => {
       if (!(await financeOf(location))) return json({ error: "not_allowed" }, 403);
       const aspsp = String(input.aspsp_name ?? "").trim();
       const redirect = String(input.redirect_url ?? "");
-      if (!aspsp || !/^https?:\/\/[^/]+\/team\/bank-callback$/.test(redirect)) return json({ error: "missing_field" }, 400);
+      if (!aspsp || !/^https?:\/\/[^/]+\/bank-callback$/.test(redirect)) return json({ error: "missing_field" }, 400);
       const bank = await Bank.from(db);
       const state = crypto.randomUUID();
       // Some banks allow less than 180 days: then ask for 90

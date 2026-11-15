@@ -36,7 +36,7 @@ export default function OverviewPage() {
         <div class="stack" style="gap:24px">
           <PageHead overline={`OneAIM ${acc.city}`} title={acc.legacy ? `Welcome back, ${acc.city} team` : `Welcome back, ${acc.name.split(" ")[0]}`}
             sub="Everything that needs your attention across all cities."
-            actions={<a class="btn btn--primary" href="/team/applications?new=1"><IconPlus width={18} />New application</a>} />
+            actions={<a class="btn btn--primary" href="/applications?new=1"><IconPlus width={18} />New application</a>} />
 
           <div class="stats">
             <div class="card stat"><span class="stat__num">{live.length}</span><span class="stat__label">Open applications</span><span class="muted small">accepting applicants right now</span></div>
@@ -54,7 +54,7 @@ export default function OverviewPage() {
                 ? <p class="muted">Nothing to do right now.</p>
                 : <div class="stack-s">
                     {attention.map(({ app, fresh, waiting }) => (
-                      <a class="row" href={`/team/application?id=${app.id}`} style="padding:10px 12px;border-radius:12px;background:#F8FAFF;text-decoration:none;color:inherit">
+                      <a class="row" href={`/application?id=${app.id}`} style="padding:10px 12px;border-radius:12px;background:#F8FAFF;text-decoration:none;color:inherit">
                         <div style="flex:1;min-width:0">
                           <strong style="color:var(--color-text-heading)">{appTitle(app)}</strong>
                           <div class="muted small">{PIPELINES[app.pipeline].label}</div>
@@ -73,7 +73,7 @@ export default function OverviewPage() {
                 ? <p class="muted">No interviews booked.</p>
                 : <div class="stack-s">
                     {upcomingInterviews.slice(0, 6).map(({ sub, app, slot, person }) => (
-                      <a class="row" href={`/team/application?id=${app.id}&s=${sub.id}`} style="text-decoration:none;color:inherit">
+                      <a class="row" href={`/application?id=${app.id}&s=${sub.id}`} style="text-decoration:none;color:inherit">
                         <Avatar name={person.name} />
                         <div style="flex:1;min-width:0">
                           <strong style="color:var(--color-text-heading)">{person.name}</strong>
@@ -88,7 +88,7 @@ export default function OverviewPage() {
           </div>
 
           <section class="card card--flush">
-            <div class="card__head" style="padding:20px 24px 0"><h2>Latest applicants</h2><a href="/team/crm" class="small">Open CRM →</a></div>
+            <div class="card__head" style="padding:20px 24px 0"><h2>Latest applicants</h2><a href="/crm" class="small">Open CRM →</a></div>
             <div class="table-wrap">
               <table class="table">
                 <thead><tr><th>Person</th><th>Application</th><th>Status</th><th>Submitted</th></tr></thead>
@@ -97,7 +97,7 @@ export default function OverviewPage() {
                     const p = s.people.find(pp => pp.id === x.personId)!;
                     const app = s.applications.find(a => a.id === x.applicationId)!;
                     return (
-                      <tr class="is-clickable" onClick={() => (location.href = `/team/application?id=${app.id}&s=${x.id}`)}>
+                      <tr class="is-clickable" onClick={() => (location.href = `/application?id=${app.id}&s=${x.id}`)}>
                         <td><div class="cell-person"><Avatar name={p.name} /><div><strong>{p.name}</strong><span class="muted small">{p.universities[0] ?? p.email}</span></div></div></td>
                         <td>{appTitle(app)} <PhaseChip phase={appPhase(app)} /></td>
                         <td><StatusChip status={x.status} /></td>
@@ -136,7 +136,7 @@ function myTasks(s: State, memberId: string): Task[] {
       tasks.push({
         key: `r-${app.id}`, title: `Review ${toReview.length} applicant${toReview.length > 1 ? "s" : ""}`,
         sub: `${appTitle(app)}${app.scorecards.screening ? " · fill in the screening scorecard" : ""}`,
-        href: `/team/application?id=${app.id}${toReview.length === 1 ? `&s=${toReview[0]!.id}` : ""}`, due: screeningDue(app),
+        href: `/application?id=${app.id}${toReview.length === 1 ? `&s=${toReview[0]!.id}` : ""}`, due: screeningDue(app),
       });
     }
     for (const slot of app.slots.filter(sl => sl.interviewerIds.includes(memberId))) {
@@ -147,14 +147,14 @@ function myTasks(s: State, memberId: string): Task[] {
           key: `i-${slot.id}`, time: true, due: slot.start,
           title: booked.length ? `Interview ${booked.map(b => s.people.find(p => p.id === b.personId)?.name).join(", ")}` : "Interview slot (not booked yet)",
           sub: `${appTitle(app)} · ${slot.mode === "online" ? "Online" : slot.location}`,
-          href: `/team/application?id=${app.id}${booked.length === 1 ? `&s=${booked[0]!.id}` : "&tab=slots"}`,
+          href: `/application?id=${app.id}${booked.length === 1 ? `&s=${booked[0]!.id}` : "&tab=slots"}`,
         });
       } else if (app.scorecards.interview) {
         // After the interview: my interview scorecard
         for (const b of booked.filter(x => x.status === "invited" && !x.scoreSheets.some(y => y.memberId === memberId && y.stage === "interview"))) {
           tasks.push({
             key: `is-${b.id}`, title: `Interview scorecard: ${s.people.find(p => p.id === b.personId)?.name}`,
-            sub: `${appTitle(app)} · interviewed ${fmtSlot(slot.start)}`, href: `/team/application?id=${app.id}&s=${b.id}`,
+            sub: `${appTitle(app)} · interviewed ${fmtSlot(slot.start)}`, href: `/application?id=${app.id}&s=${b.id}`,
             due: app.dates.decisionBy,
           });
         }

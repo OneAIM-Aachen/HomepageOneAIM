@@ -30,7 +30,7 @@ export interface BankTransaction {
   purpose: string;
 }
 
-export const BANK_CALLBACK_PATH = "/team/bank-callback";
+export const BANK_CALLBACK_PATH = "/bank-callback";
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("bank", { body });

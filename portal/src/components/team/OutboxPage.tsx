@@ -246,14 +246,14 @@ function Thread({ acc, s, conv }: { acc: Account; s: State; conv: Conversation }
             <h2 style="font-size:1.2rem">{conv.name}</h2>
             <span class="muted small">{conv.email}</span>
           </div>
-          {conv.personId && <a class="btn btn--ghost btn--sm" href={`/team/crm?p=${conv.personId}`}>CRM profile →</a>}
+          {conv.personId && <a class="btn btn--ghost btn--sm" href={`/crm?p=${conv.personId}`}>CRM profile →</a>}
         </div>
         {apps.length > 0 ? (
           <div class="stack-s">
             <span class="overline" style="font-size:10.5px">Applications{apps.length > 1 ? ` (${apps.length})` : ""}</span>
             <div class="row" style="gap:6px">
               {apps.map(({ sub, app }) => (
-                <a class="app-link" href={`/team/application?id=${app.id}&s=${sub.id}`}>
+                <a class="app-link" href={`/application?id=${app.id}&s=${sub.id}`}>
                   <span>{appTitle(app)}</span><StatusChip status={sub.status} />
                 </a>
               ))}
@@ -307,7 +307,7 @@ function Incoming({ msg, apps }: { msg: InboxMessage; apps: { sub: Submission; a
         <div class="row" style="gap:6px;margin-top:4px">
           <span class="chip chip--purple">Received</span>
           {linked && (
-            <a class="chip chip--blue" href={`/team/application?id=${linked.app.id}&s=${linked.sub.id}`} title={msg.matchedBy === "thread" ? "Reply to one of our emails" : "Linked to this application"}>
+            <a class="chip chip--blue" href={`/application?id=${linked.app.id}&s=${linked.sub.id}`} title={msg.matchedBy === "thread" ? "Reply to one of our emails" : "Linked to this application"}>
               {msg.matchedBy === "thread" ? "Reply about" : "About"}: {appTitle(linked.app)} →
             </a>
           )}
@@ -355,7 +355,7 @@ function Outgoing({ s, mail }: { s: State; mail: SentEmail }) {
             {mail.status === "sent" ? "Sent" : mail.status === "failed" ? "Failed" : "Queued"}
           </span>
           <span class="chip chip--outline">{kindLabel(mail)} · by {mail.queuedBy}</span>
-          {app && <a class="chip chip--blue" href={`/team/application?id=${app.id}${mail.submissionId ? `&s=${mail.submissionId}` : ""}`}>{appTitle(app)} →</a>}
+          {app && <a class="chip chip--blue" href={`/application?id=${app.id}${mail.submissionId ? `&s=${mail.submissionId}` : ""}`}>{appTitle(app)} →</a>}
         </div>
         {mail.error && <span class={`small ${mail.status === "sent" ? "muted" : ""}`} style={mail.status === "sent" ? "" : "color:var(--p-red)"}>{mail.error}</span>}
       </div>

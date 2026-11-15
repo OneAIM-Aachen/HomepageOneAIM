@@ -1,0 +1,9 @@
+# Old portal addresses: the team area was under /team, then /portal; the network
+# site under /members. Links in emails sent before keep working (the query,
+# e.g. ?token_hash=…, is kept).
+/team          /                301
+/team/*        /:splat          301
+/portal        /                301
+/portal/*      /:splat          301
+/members       /network         301
+/members/*     /network/:splat  301

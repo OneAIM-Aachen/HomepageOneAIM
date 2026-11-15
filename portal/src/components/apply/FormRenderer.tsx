@@ -1,4 +1,4 @@
-// Renders an application form from its field list. Used on apply.one-aim.org
+// Renders an application form from its field list. Used on one-aim.org/apply
 // and as a preview in the team area.
 import { useState } from "preact/hooks";
 import type { Answer, CompanyEntry, Field as FieldT, FileRef } from "../../lib/types";

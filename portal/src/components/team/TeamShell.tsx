@@ -11,22 +11,23 @@ import { MemberDrawer } from "./MemberDrawer";
 import {
   IconApps, IconBlueprint, IconChart, IconEuro, IconExternal, IconHome, IconLogout, IconMail, IconMenu, IconBoard, IconCrm, IconSettings, IconTeam,
 } from "../ui/Icons";
+import { areaHref } from "../../lib/areas";
 
 export type NavKey = "overview" | "applications" | "blueprints" | "crm" | "board" | "insights" | "outbox" | "finance" | "team" | "settings";
 
 const NAV: { key: NavKey; label: string; href: string; Icon: typeof IconHome }[] = [
-  { key: "overview", label: "Overview", href: "/team", Icon: IconHome },
-  { key: "applications", label: "Applications", href: "/team/applications", Icon: IconApps },
-  { key: "blueprints", label: "Blueprints", href: "/team/blueprints", Icon: IconBlueprint },
-  { key: "crm", label: "CRM", href: "/team/crm", Icon: IconCrm },
-  { key: "board", label: "Board", href: "/team/board", Icon: IconBoard },
-  { key: "insights", label: "Insights", href: "/team/insights", Icon: IconChart },
-  { key: "outbox", label: "Emails", href: "/team/outbox", Icon: IconMail },
-  { key: "finance", label: "Finance", href: "/team/finance", Icon: IconEuro },
+  { key: "overview", label: "Overview", href: "/", Icon: IconHome },
+  { key: "applications", label: "Applications", href: "/applications", Icon: IconApps },
+  { key: "blueprints", label: "Blueprints", href: "/blueprints", Icon: IconBlueprint },
+  { key: "crm", label: "CRM", href: "/crm", Icon: IconCrm },
+  { key: "board", label: "Board", href: "/board", Icon: IconBoard },
+  { key: "insights", label: "Insights", href: "/insights", Icon: IconChart },
+  { key: "outbox", label: "Emails", href: "/outbox", Icon: IconMail },
+  { key: "finance", label: "Finance", href: "/finance", Icon: IconEuro },
 ];
 const NAV2: typeof NAV = [
-  { key: "team", label: "Team overview", href: "/team/team", Icon: IconTeam },
-  { key: "settings", label: "Settings", href: "/team/settings", Icon: IconSettings },
+  { key: "team", label: "Team overview", href: "/team", Icon: IconTeam },
+  { key: "settings", label: "Settings", href: "/settings", Icon: IconSettings },
 ];
 
 export function TeamShell({ active, children }: { active: NavKey; children: (acc: Account) => ComponentChildren }) {
@@ -52,7 +53,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
     (async () => {
       const a = await currentAccount();
       if (!a) {
-        window.location.replace(`/team/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+        window.location.replace(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
         return;
       }
       try {
@@ -94,13 +95,13 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
       </div>
       {open && <div class="overlay" style="z-index:45" onClick={() => setOpen(false)} />}
       <aside class={`sidebar ${open ? "is-open" : ""}`}>
-        <a class="sidebar__brand" href="/team"><img src="/logo.png" alt="OneAIM" /><span>Team</span></a>
+        <a class="sidebar__brand" href="/"><img src="/logo.png" alt="OneAIM" /><span>Team</span></a>
         <nav class="nav" aria-label="Team navigation">
           {NAV.map(item)}
           <div class="nav__section">Team</div>
           {NAV2.map(item)}
-          <a class="nav__item" href="/apply" target="_blank" rel="noopener"><IconExternal />Applicant site</a>
-          <a class="nav__item" href="/members" target="_blank" rel="noopener"><IconExternal />Network site</a>
+          <a class="nav__item" href={areaHref("apply")} target="_blank" rel="noopener"><IconExternal />Applicant site</a>
+          <a class="nav__item" href={areaHref("network")} target="_blank" rel="noopener"><IconExternal />Network site</a>
         </nav>
         {demoAvailable() && (
           <SimDateControl />
@@ -121,7 +122,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
             </div>
           </button>
           <button class="icon-btn" title="Log out" aria-label="Log out"
-            onClick={async () => { await logout(); window.location.href = "/team/login"; }}><IconLogout /></button>
+            onClick={async () => { await logout(); window.location.href = "/login"; }}><IconLogout /></button>
         </div>
       </aside>
       <main class="main">
@@ -152,7 +153,7 @@ export function TeamShell({ active, children }: { active: NavKey; children: (acc
             : "Your team profile couldn't be found. Please reload the page."}</p>
           <div class="row" style="justify-content:flex-end">
             <button class="btn btn--ghost" onClick={() => setProfileOpen(false)}>Close</button>
-            {acc.legacy && <a class="btn btn--primary" href="/team/team?invite=1">Invite myself</a>}
+            {acc.legacy && <a class="btn btn--primary" href="/team?invite=1">Invite myself</a>}
           </div>
         </Modal>
       )}

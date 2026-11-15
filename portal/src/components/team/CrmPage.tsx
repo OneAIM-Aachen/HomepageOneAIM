@@ -207,7 +207,7 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
   return (
     <Drawer onClose={onClose}
       head={<div class="row" style="flex-wrap:nowrap"><Avatar name={p.name} large /><div><h2 style="font-size:1.25rem">{p.name}</h2><span class="muted small">First applied {fmtDate(p.firstSeen)} · {subs.length} application{subs.length === 1 ? "" : "s"}</span></div></div>}
-      foot={<><a class="btn btn--secondary btn--sm" href={`/team/outbox?p=${p.id}`}>Emails with {p.name.split(" ")[0]}</a><NetworkSiteStatus person={p} /><span class="spacer" />
+      foot={<><a class="btn btn--secondary btn--sm" href={`/outbox?p=${p.id}`}>Emails with {p.name.split(" ")[0]}</a><NetworkSiteStatus person={p} /><span class="spacer" />
         <span class="muted small">Profile = newest answers from their applications</span></>}>
 
       {member && (
@@ -216,7 +216,7 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
             <span class="overline">{member.status === "alumni" ? `OneAIM alumni${member.alumniSince ? ` · left ${fmtDate(member.alumniSince)}` : ""}` : "OneAIM team"}</span>
             <p><strong style="color:var(--color-text-heading)">{member.position || (member.role === "lead" && dept ? `Team Lead | ${dept.name}` : ROLE_LABEL[member.role])}</strong> · {member.city}{dept && member.role !== "lead" ? ` · ${dept.name}` : ""}{member.memberSince ? ` · since ${member.memberSince}` : ""}</p>
           </div>
-          <a class="btn btn--secondary btn--sm" href={`/team/team?member=${member.id}`}>Team profile</a>
+          <a class="btn btn--secondary btn--sm" href={`/team?member=${member.id}`}>Team profile</a>
         </section>
       )}
 
@@ -269,7 +269,7 @@ export function PersonDrawer({ person: p, subs, onClose }: { person: Person; sub
                   {sub.comments.map(c => <p class="small"><strong>{c.author}:</strong> {c.text}</p>)}
                 </div>
               )}
-              <a class="btn btn--ghost btn--sm" style="align-self:flex-start" href={`/team/application?id=${app.id}&s=${sub.id}`}>Open in application →</a>
+              <a class="btn btn--ghost btn--sm" style="align-self:flex-start" href={`/application?id=${app.id}&s=${sub.id}`}>Open in application →</a>
             </div>
           </details>
         ))}
@@ -293,7 +293,7 @@ function EmailHistory({ person: p }: { person: Person }) {
     <section class="stack-s">
       <div class="row row--between">
         <h3>Email history</h3>
-        {mails.length > 0 && <a class="btn btn--ghost btn--sm" href={`/team/outbox?p=${p.id}`}>Open conversation →</a>}
+        {mails.length > 0 && <a class="btn btn--ghost btn--sm" href={`/outbox?p=${p.id}`}>Open conversation →</a>}
       </div>
       {mails.length === 0 && <p class="muted small">No emails yet.</p>}
       {mails.map(m => (

@@ -1,9 +1,12 @@
 ---
-// Shared HTML shell for the team (/team) and apply (/apply) prototypes.
+// Shared HTML shell for the team area (/), apply (/apply) and network (/network) pages.
 import "../styles/portal.css";
 
 interface Props { title: string; noindex?: boolean }
-const { title, noindex = true } = Astro.props;
+const { title, noindex: hidden = true } = Astro.props;
+// Only pages that ask for it (application pages), and only where the deployment
+// allows it (PUBLIC_INDEXABLE = "true" on the live site), may be listed by search engines
+const noindex = hidden || import.meta.env.PUBLIC_INDEXABLE !== "true";
 ---
 <!doctype html>
 <html lang="en">

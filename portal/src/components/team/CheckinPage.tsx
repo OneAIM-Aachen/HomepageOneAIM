@@ -57,7 +57,7 @@ export default function CheckinPage() {
             <>
               <h1>Thanks!</h1>
               <p class="muted">Great to have you on the team. We'll ask again in a year.</p>
-              <a class="btn btn--secondary btn--block" href="/team">Go to the team portal</a>
+              <a class="btn btn--secondary btn--block" href="/">Go to the team portal</a>
             </>
           )}
           {done === "alumni" && (

@@ -325,3 +325,12 @@ export function getFeaturedApplication(city: CitySlug, today?: Date): Applicatio
 export function getNextUpcoming(city: CitySlug, today?: Date): Application | undefined {
   return getUpcomingApplications(city, undefined, today)[0];
 }
+
+// With the new application pages (PUBLIC_APPLY_URL, see docs/deployment.md)
+// "Apply" leads there, filtered by city and program, instead of the stored form link.
+const APPLY_URL = import.meta.env.PUBLIC_APPLY_URL?.replace(/\/$/, "");
+if (APPLY_URL) {
+  for (const a of applications) {
+    a.applyUrl = `${APPLY_URL}/?location=${encodeURIComponent(getCityName(a.city))}&program=${encodeURIComponent(getProgramName(a))}`;
+  }
+}

@@ -1,7 +1,7 @@
 // A network profile: name, photo, contact data, studies, the OneAIM
 // programs/events someone took part in and their team history. Nothing
 // else (no emails, CVs, answers, declined applications).
-// Used by the team portal (Network page) and the members site (/members),
+// Used by the team portal (Network page) and the members site (/network),
 // where the data comes from the database function network_directory().
 import type { ComponentChildren } from "preact";
 import type { CompanyEntry, Publication, ResearchGroupEntry, RoleEntry, TeamMember } from "../../lib/types";

@@ -13,14 +13,14 @@
 // • checkins                                                  (public, daily by pg_cron)
 //   yearly "still active?" emails, one reminder after 14 days
 // • checkin_now {member_id}                                   (team only) asks right away
-// Network site (/members):
+// Network site (/network):
 // • network_queue                                             (public, pg_cron every 5 min)
 //   welcome emails for people who just joined the network
 // • network_invite {person_id}                                (team only)
 // • reset {email, site: "members"}                            (public) password link for the
 //   network site; also creates the login if someone in the network has none yet
 //
-// Links are one-time tokens that the portal's /team/welcome page redeems
+// Links are one-time tokens that the team area's /welcome page redeems
 // (supabase.auth.verifyOtp), so no redirect URL has to be allowed in Supabase.
 // Emails go through Brevo with the sender from email_settings; test mode
 // does not apply (these emails are for the team itself).
@@ -42,6 +42,14 @@ const json = (data: unknown, status = 200) =>
 const escapeHtml = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 const validEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+/** Link into an area of the website: its own address if set (email_settings.*_url), else a path on apply_base_url */
+type Urls = { apply_base_url: string; team_url?: string | null; apply_url?: string | null; network_url?: string | null };
+function areaLink(s: Urls, area: "team" | "apply" | "network", path: string): string {
+  const own = s[`${area}_url` as const];
+  if (own) return `${own.replace(/\/$/, "")}${path}`;
+  return `${s.apply_base_url.replace(/\/$/, "")}${area === "team" ? "" : `/${area}`}${path}`;
+}
+
 type Kind = "invite" | "recovery";
 
 /** One-time link for the welcome page; creates the auth user for invites. */
@@ -52,9 +60,9 @@ async function makeLink(db: SupabaseClient, email: string, kind: Kind) {
 }
 
 async function sendMail(db: SupabaseClient, to: { email: string; name: string }, kind: Kind, token: string) {
-  const { data: s } = await db.from("email_settings").select("apply_base_url").single();
+  const { data: s } = await db.from("email_settings").select("apply_base_url, team_url, apply_url, network_url").single();
   if (!s) throw new Error("email_settings missing");
-  const link = `${s.apply_base_url.replace(/\/$/, "")}/team/welcome?token_hash=${encodeURIComponent(token)}&type=${kind}`;
+  const link = areaLink(s, "team", `/welcome?token_hash=${encodeURIComponent(token)}&type=${kind}`);
   const first = to.name.split(" ")[0];
   const subject = kind === "invite" ? "Your OneAIM team account" : "Set a new password for the OneAIM team portal";
   const body = kind === "invite"
@@ -63,11 +71,11 @@ async function sendMail(db: SupabaseClient, to: { email: string; name: string },
   await brevo(db, to, subject, body);
 }
 
-/** Welcome to the network (new login) or password link (existing login), for /members. */
+/** Welcome to the network (new login) or password link (existing login), for /network. */
 async function sendNetworkMail(db: SupabaseClient, to: { email: string; name: string }, kind: Kind, token: string, welcome: boolean) {
-  const { data: s } = await db.from("email_settings").select("apply_base_url, test_mode, test_recipient").single();
+  const { data: s } = await db.from("email_settings").select("apply_base_url, team_url, apply_url, network_url, test_mode, test_recipient").single();
   if (!s) throw new Error("email_settings missing");
-  const link = `${s.apply_base_url.replace(/\/$/, "")}/members/welcome?token_hash=${encodeURIComponent(token)}&type=${kind}`;
+  const link = areaLink(s, "network", `/welcome?token_hash=${encodeURIComponent(token)}&type=${kind}`);
   const first = to.name.split(" ")[0];
   const subject = welcome ? "Welcome to the OneAIM network!" : "Your login for the OneAIM network";
   const body = welcome
@@ -117,11 +125,11 @@ type CheckMember = {
 };
 const deadlineFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin" });
 
-/** Yearly "still active?" email; the link opens /team/checkin with Yes / No. */
+/** Yearly "still active?" email; the link opens the team area's /checkin with Yes / No. */
 async function sendCheck(db: SupabaseClient, m: CheckMember, reminder: boolean) {
-  const { data: s } = await db.from("email_settings").select("apply_base_url").single();
+  const { data: s } = await db.from("email_settings").select("apply_base_url, team_url, apply_url, network_url").single();
   const token = m.check_token ?? crypto.randomUUID();
-  const link = `${String(s?.apply_base_url ?? "").replace(/\/$/, "")}/team/checkin?t=${token}`;
+  const link = s ? areaLink(s, "team", `/checkin?t=${token}`) : `/checkin?t=${token}`;
   const city = m.locations?.name ?? "";
   const first = m.name.split(" ")[0];
   // No answer within one month of the first email → alumni (database job expire_team_checkins)

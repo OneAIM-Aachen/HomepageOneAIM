@@ -3,6 +3,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { currentMember, redeemMemberLink, setMemberPassword, type Member } from "../../lib/members";
 import { Field } from "../ui/Ui";
+import { areaHref } from "../../lib/areas";
 
 export default function MembersWelcome() {
   const [me, setMe] = useState<Member | null | undefined>(undefined);
@@ -18,7 +19,7 @@ export default function MembersWelcome() {
       const token = q.get("token_hash");
       const type = q.get("type") === "recovery" ? "recovery" : "invite";
       setKind(type);
-      history.replaceState(null, "", "/members/welcome");
+      history.replaceState(null, "", areaHref("network", "/welcome"));
       try {
         const m = token ? await redeemMemberLink(token, type) : await currentMember();
         if (!m) throw new Error("This link is not valid, or your account is not part of the OneAIM network.");
@@ -35,7 +36,7 @@ export default function MembersWelcome() {
     setBusy(true);
     try {
       await setMemberPassword(pw);
-      window.location.href = kind === "invite" ? "/members/me?welcome=1" : "/members";
+      window.location.href = kind === "invite" ? areaHref("network", "/me?welcome=1") : areaHref("network");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
@@ -56,7 +57,7 @@ export default function MembersWelcome() {
             <img src="/logo.png" alt="OneAIM" />
             <h1>Link not valid</h1>
             <p class="field__error" style="font-size:15px">{error}</p>
-            <a class="btn btn--primary btn--block" href="/members/login">Go to the login</a>
+            <a class="btn btn--primary btn--block" href={areaHref("network", "/login")}>Go to the login</a>
           </div>
         )}
         {me && (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { currentMember, memberLogin, requestMemberLink } from "../../lib/members";
 import { Field } from "../ui/Ui";
+import { areaHref } from "../../lib/areas";
 
 export default function MembersLogin() {
   const [email, setEmail] = useState("");
@@ -11,7 +12,8 @@ export default function MembersLogin() {
 
   const next = () => {
     const n = new URLSearchParams(location.search).get("next");
-    return n && n.startsWith("/members") ? n : "/members";
+    // only paths on this site (no "//other.site")
+    return n && n.startsWith("/") && !n.startsWith("//") ? n : areaHref("network");
   };
   useEffect(() => { currentMember().then(m => { if (m) window.location.replace(next()); }); }, []);
 

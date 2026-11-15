@@ -36,6 +36,8 @@ const pageTitle = title ? `${title} | OneAIM` : "OneAIM";
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    {/* Test copies of the website (PUBLIC_NOINDEX = "true") stay out of search engines */}
+    {import.meta.env.PUBLIC_NOINDEX === "true" && <meta name="robots" content="noindex" />}
     <title>{pageTitle}</title>
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

@@ -7,6 +7,7 @@ import { isPast, PostCard, PostForm, type Post } from "../network/Board";
 import { TeamShell, PageHead } from "./TeamShell";
 import { act, confirmDialog, Field, Modal } from "../ui/Ui";
 import { IconPlus } from "../ui/Icons";
+import { areaHref } from "../../lib/areas";
 
 export default function BoardPage() {
   return <TeamShell active="board">{acc => <Board acc={acc} />}</TeamShell>;
@@ -34,7 +35,7 @@ function Board({ acc }: { acc: Account }) {
       <PageHead overline="Network" title="Board"
         sub="Jobs, events and news on the network site. Members' posts appear after a team member approves them; your own posts go live right away."
         actions={<>
-          <a class="btn btn--secondary" href="/members/board" target="_blank" rel="noopener">View on network site</a>
+          <a class="btn btn--secondary" href={areaHref("network", "/board")} target="_blank" rel="noopener">View on network site</a>
           <button class="btn btn--primary" onClick={() => setWriting(true)}><IconPlus width={18} />New post</button>
         </>} />
 

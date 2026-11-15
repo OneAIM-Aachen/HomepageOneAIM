@@ -7,11 +7,12 @@ import { currentMember, memberLogout, type Member } from "../../lib/members";
 import { Avatar, ConfirmHost, Toaster } from "../ui/Ui";
 import { demoAvailable, isDemo, setDemo } from "../../lib/demo";
 import { IconLogout } from "../ui/Icons";
+import { areaHref } from "../../lib/areas";
 
 export function MembersShell({ active, children }: { active: "directory" | "board" | "me"; children: (me: Member, reload: () => void) => ComponentChildren }) {
   const [me, setMe] = useState<Member | null | undefined>(undefined);
   const load = () => currentMember().then(m => {
-    if (!m) window.location.replace(`/members/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+    if (!m) window.location.replace(`${areaHref("network", "/login")}?next=${encodeURIComponent(location.pathname + location.search)}`);
     else setMe(m);
   });
   useEffect(() => { load(); }, []);
@@ -20,10 +21,10 @@ export function MembersShell({ active, children }: { active: "directory" | "boar
   return (
     <div class="members">
       <header class="members__bar">
-        <a class="members__brand" href="/members"><img src="/logo.png" alt="OneAIM" /><span>Network</span></a>
+        <a class="members__brand" href={areaHref("network")}><img src="/logo.png" alt="OneAIM" /><span>Network</span></a>
         <nav class="members__nav" aria-label="Network">
-          <a href="/members" class={active === "directory" ? "is-active" : ""} aria-current={active === "directory" ? "page" : undefined}>Members</a>
-          <a href="/members/board" class={active === "board" ? "is-active" : ""} aria-current={active === "board" ? "page" : undefined}>Board</a>
+          <a href={areaHref("network")} class={active === "directory" ? "is-active" : ""} aria-current={active === "directory" ? "page" : undefined}>Members</a>
+          <a href={areaHref("network", "/board")} class={active === "board" ? "is-active" : ""} aria-current={active === "board" ? "page" : undefined}>Board</a>
         </nav>
         <span class="spacer" />
         {demoAvailable() && (
@@ -33,9 +34,9 @@ export function MembersShell({ active, children }: { active: "directory" | "boar
             <span>Demo data</span>
           </label>
         )}
-        <a href="/members/me" class={`members__me ${active === "me" ? "is-active" : ""}`} title="My profile" aria-current={active === "me" ? "page" : undefined}><Avatar name={me.name} src={me.photo} /><span>{me.name.split(" ")[0]}</span></a>
+        <a href={areaHref("network", "/me")} class={`members__me ${active === "me" ? "is-active" : ""}`} title="My profile" aria-current={active === "me" ? "page" : undefined}><Avatar name={me.name} src={me.photo} /><span>{me.name.split(" ")[0]}</span></a>
         <button class="icon-btn" title="Log out" aria-label="Log out"
-          onClick={async () => { await memberLogout(); window.location.href = "/members/login"; }}><IconLogout /></button>
+          onClick={async () => { await memberLogout(); window.location.href = areaHref("network", "/login"); }}><IconLogout /></button>
       </header>
       <main class="members__main">
         {isDemo() && (

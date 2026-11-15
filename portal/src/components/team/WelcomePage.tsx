@@ -20,7 +20,7 @@ export default function WelcomePage() {
       const type = q.get("type") === "recovery" ? "recovery" : "invite";
       setKind(type);
       // The token works once: take it out of the address bar right away
-      history.replaceState(null, "", "/team/welcome");
+      history.replaceState(null, "", "/welcome");
       try {
         const a = token ? await redeemLink(token, type) : await currentAccount();
         if (!a) throw new Error("This link is not valid. Use “Forgot password?” on the login page to get a new one.");
@@ -38,7 +38,7 @@ export default function WelcomePage() {
     try {
       await changePassword(pw);
       // New members land on their profile to fill it in
-      window.location.href = kind === "invite" && acc?.memberId ? `/team/team?member=${acc.memberId}` : "/team";
+      window.location.href = kind === "invite" && acc?.memberId ? `/team?member=${acc.memberId}` : "/";
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
@@ -59,7 +59,7 @@ export default function WelcomePage() {
             <img src="/logo.png" alt="OneAIM" />
             <h1>Link not valid</h1>
             <p class="field__error" style="font-size:15px">{error}</p>
-            <a class="btn btn--primary btn--block" href="/team/login">Go to the login</a>
+            <a class="btn btn--primary btn--block" href="/login">Go to the login</a>
           </div>
         )}
         {acc && (

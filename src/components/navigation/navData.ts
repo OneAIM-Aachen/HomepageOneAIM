@@ -33,10 +33,14 @@ export const locationItems: NavItem[] = cities.map(city => ({
  * "/partners" already exists; "/team" and "/participants" are
  * stub pages for now (content to follow).
  */
+/** Network site for all members (separate address, see docs/deployment.md); only where it's set up */
+const NETWORK_URL = import.meta.env.PUBLIC_NETWORK_URL?.replace(/\/$/, "");
+
 export const communityItems: NavItem[] = [
   { label: "Partners & Sponsors", href: "/partners"     },
   { label: "Team",                href: "/team"         },
   { label: "Participants",        href: "/participants" },
+  ...(NETWORK_URL ? [{ label: "Member network", href: `${NETWORK_URL}/` }] : []),
 ];
 
 /**

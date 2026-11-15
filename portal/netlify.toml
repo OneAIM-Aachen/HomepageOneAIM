@@ -1,11 +1,17 @@
-# Netlify settings for the portal (team + apply).
+# Netlify settings for the portal: team area (at /), applications (/apply)
+# and network site (/network). See docs/deployment.md.
 # In Netlify set "Base directory" to: portal
 # Environment variables (Site configuration → Environment variables):
 #   PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY   (public values, see .env.example)
+#   PUBLIC_SITE_URL, PUBLIC_TEAM_URL, PUBLIC_APPLY_URL, PUBLIC_NETWORK_URL   (addresses of the areas)
+#   PUBLIC_INDEXABLE = "true" only on the live site: lets search engines list
+#   the application pages (team area and network site never)
 
 [build]
   command = "npm run build"
   publish = "dist"
+  # Only rebuild when something in the portal folder changed
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
 
 [build.environment]
   NODE_VERSION = "22"
@@ -13,10 +19,8 @@
   # (made-up applications, only in the viewer's browser). Remove for the real portal.
   PUBLIC_DEMO_MODE = "true"
 
-# Test/preview: keep search engines out
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"

@@ -22,7 +22,7 @@ function Finish() {
     <div class="empty stack-s" style="margin:48px auto;max-width:520px">
       <strong>{result.ok ? "Bank account connected" : "Connecting didn't work"}</strong>
       <span>{result.text}</span>
-      <a class="btn btn--primary" style="align-self:center" href={`/team/finance?tab=bank${result.city ? `&city=${result.city}` : ""}`}>Back to Finance</a>
+      <a class="btn btn--primary" style="align-self:center" href={`/finance?tab=bank${result.city ? `&city=${result.city}` : ""}`}>Back to Finance</a>
     </div>
   );
 }

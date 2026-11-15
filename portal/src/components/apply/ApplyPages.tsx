@@ -1,4 +1,4 @@
-// apply.one-aim.org: open applications, the form, interview booking.
+// one-aim.org/apply: open applications, the form, interview booking.
 // Uses only the public database functions (no table access).
 import type { ComponentChildren } from "preact";
 import type { FormOptions } from "../../lib/types";
@@ -11,16 +11,17 @@ import { appTitle, fmtDate, fmtSlot, firstName, formatFee } from "../../lib/fiel
 import { FormRenderer } from "./FormRenderer";
 import { useParam } from "../ui/Ui";
 import { IconCalendar } from "../ui/Icons";
+import { areaHref } from "../../lib/areas";
 
 function Frame({ children }: { children: ComponentChildren }) {
   return (
     <>
       <header class="apply-top">
         <div class="apply-top__inner">
-          <a href="/apply"><img src="/logo.png" alt="OneAIM" /></a>
+          <a href={areaHref("apply")}><img src="/logo.png" alt="OneAIM" /></a>
           <span>Apply</span>
           <span class="spacer" style="background:none" />
-          <a class="small" href="https://one-aim.org" style="font-weight:700">one-aim.org →</a>
+          <a class="small" href={areaHref("site")} style="font-weight:700">one-aim.org →</a>
         </div>
       </header>
       <main class="apply-wrap">{children}</main>
@@ -50,7 +51,7 @@ function Facts({ app }: { app: PublicApplication }) {
   );
 }
 
-const applyHref = (a: PublicApplication) => `/apply/form?a=${a.slug}`;
+const applyHref = (a: PublicApplication) => areaHref("apply", `/form?a=${a.slug}`);
 
 /** Filter value from the URL (?location=Aachen&program=AIM%20Connect), case-insensitive. */
 function initialFilter(name: string): string {
@@ -146,7 +147,7 @@ export function ApplyForm() {
   if (error) return <Frame><div class="empty">Could not load this application. Please try again later.</div></Frame>;
   if (!apps) return <Frame><Loading /></Frame>;
   const app = apps.find(a => a.slug === slug);
-  if (!app) return <Frame><div class="empty">This application doesn't exist or isn't published. <a href="/apply">See open applications</a></div></Frame>;
+  if (!app) return <Frame><div class="empty">This application doesn't exist or isn't published. <a href={areaHref("apply")}>See open applications</a></div></Frame>;
 
   const nameField = app.fields.find(f => f.kind === "name");
 
@@ -161,7 +162,7 @@ export function ApplyForm() {
               ? "Your registration is confirmed. We'll send you a confirmation email."
               : `We received your application for ${appTitle(app)}. We'll get back to you after the deadline (${fmtDate(app.dates.deadline)}).`}
           </p>
-          <a class="btn btn--secondary" href="/apply">See other applications</a>
+          <a class="btn btn--secondary" href={areaHref("apply")}>See other applications</a>
         </div>
       </Frame>
     );

@@ -20,6 +20,7 @@ import { act, Avatar, confirmDialog, Drawer, Field, Modal, PhaseChip, StatusChip
 import { FormRenderer } from "../apply/FormRenderer";
 import { isDemoId } from "../../lib/demo";
 import { IconCalendar, IconExternal, IconPlus, IconSearch, IconTrash, IconX } from "../ui/Icons";
+import { areaHref, areaUrl } from "../../lib/areas";
 
 type Tab = "applicants" | "decisions" | "setup" | "form" | "scorecards" | "emails" | "slots" | "feedback";
 
@@ -50,10 +51,10 @@ function Detail({ acc, id, initialTab, openSub, created }: {
   const [sideReview, setSideReview] = useState(false);
   const [sideConfirm, setSideConfirm] = useState<Decision | null>(null);
 
-  if (!app) return <div class="empty">This application does not exist. <a href="/team/applications">Back to applications</a></div>;
+  if (!app) return <div class="empty">This application does not exist. <a href="/applications">Back to applications</a></div>;
 
   const phase = appPhase(app);
-  const publicUrl = `/apply/form?a=${app.slug}`;
+  const publicUrl = areaHref("apply", `/form?a=${app.slug}`);
   const tabs: [Tab, string, number?][] = [
     ["applicants", "Applicants", subs.length],
     ...(app.pipeline !== "instant" ? [["decisions", "Decisions", subs.filter(x => x.plannedDecision).length || undefined] as [Tab, string, number?]] : []),
@@ -67,11 +68,11 @@ function Detail({ acc, id, initialTab, openSub, created }: {
 
   return (
     <div class="stack" style="gap:18px">
-      <PageHead crumbs={[{ label: "Applications", href: "/team/applications" }, { label: appTitle(app) }]}
+      <PageHead crumbs={[{ label: "Applications", href: "/applications" }, { label: appTitle(app) }]}
         title={appTitle(app)}
         actions={<>
           <button class="btn btn--secondary" onClick={() => setPreview(true)}>Preview form</button>
-          <button class="btn btn--secondary" onClick={() => { navigator.clipboard?.writeText(`https://apply.one-aim.org/${app.slug}`); toast("Public link copied"); }}>Copy link</button>
+          <button class="btn btn--secondary" onClick={() => { navigator.clipboard?.writeText(areaUrl("apply", `/form?a=${app.slug}`)); toast("Public link copied"); }}>Copy link</button>
           {app.published && phase !== "closed" &&
             <a class="btn btn--secondary" href={publicUrl} target="_blank" rel="noopener"><IconExternal width={16} />Open public form</a>}
         </>} />
@@ -276,7 +277,7 @@ function Applicants({ acc, app, subs, openSub, onOpened }: {
       </div>
 
       {subs.length === 0
-        ? <div class="empty">No applicants yet. Share the <a href={`/apply/form?a=${app.id}`} target="_blank" rel="noopener">application form</a> to get started.</div>
+        ? <div class="empty">No applicants yet. Share the <a href={areaHref("apply", `/form?a=${app.slug}`)} target="_blank" rel="noopener">application form</a> to get started.</div>
         : (
           <div class="card card--flush">
             <div class="table-wrap">
@@ -457,8 +458,8 @@ function ApplicantDrawer({ acc, app, sub, onClose, onDecide, onReview }: {
           </button>
         )}
         <span class="spacer" />
-        <a class="btn btn--ghost btn--sm" href={`/team/outbox?p=${person.id}`}>Emails →</a>
-        <a class="btn btn--ghost btn--sm" href={`/team/crm?p=${person.id}`}>CRM profile{others ? ` (+${others})` : ""} →</a>
+        <a class="btn btn--ghost btn--sm" href={`/outbox?p=${person.id}`}>Emails →</a>
+        <a class="btn btn--ghost btn--sm" href={`/crm?p=${person.id}`}>CRM profile{others ? ` (+${others})` : ""} →</a>
       </>}>
 
       <div class="grid-2">
@@ -634,7 +635,7 @@ function Setup({ app, hasSubs }: { app: Application; hasSubs: boolean }) {
               : "") + "\n\nThis can't be undone.",
           }).then(ok => {
             if (ok) act(async () => { await deleteApplication(app.id); return true; }, "Application deleted")
-              .then(done => { if (done) window.location.href = "/team/applications"; });
+              .then(done => { if (done) window.location.href = "/applications"; });
           });
         }}><IconTrash width={16} />Delete</button>
       </section>

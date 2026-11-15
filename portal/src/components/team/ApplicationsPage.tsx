@@ -67,7 +67,7 @@ function Applications({ acc, startNew }: { acc: Account; startNew: boolean }) {
               const c = (st: string) => subs.filter(x => x.status === st).length;
               const total = subs.length || 1;
               return (
-                <a class="app-card" href={`/team/application?id=${a.id}`}>
+                <a class="app-card" href={`/application?id=${a.id}`}>
                   <div class="app-card__img" style={a.image ? `background-image:url(${a.image})` : ""}>
                     <PhaseChip phase={appPhase(a)} />
                     {a.id.startsWith("demo-") && <span class="chip chip--amber" title="Made up, view only">Demo</span>}
@@ -115,7 +115,7 @@ function NewApplicationModal({ acc, onClose }: { acc: Account; onClose: () => vo
   const create = async () => {
     setBusy(true);
     const id = await act(() => createApplication({ blueprintId: bp, tags: { semester, program, location }, pipeline, title, createdBy: actorLabel(acc) }));
-    if (id) window.location.href = `/team/application?id=${id}&tab=setup&created=1`;
+    if (id) window.location.href = `/application?id=${id}&tab=setup&created=1`;
     else setBusy(false);
   };
 
@@ -132,7 +132,7 @@ function NewApplicationModal({ acc, onClose }: { acc: Account; onClose: () => vo
             </button>
           ))}
         </div>
-        <a class="small" href="/team/blueprints?new=1">+ Create a new blueprint first</a>
+        <a class="small" href="/blueprints?new=1">+ Create a new blueprint first</a>
       </div>
 
       <div class="stack-s">
@@ -148,7 +148,7 @@ function NewApplicationModal({ acc, onClose }: { acc: Account; onClose: () => vo
             <select class="input" value={location} onChange={e => setLocation(e.currentTarget.value)}>{s.tagLists.locations.map(t => <option>{t}</option>)}</select>
           </Field>
         </div>
-        <span class="field__help">Missing an option? Add it under <a href="/team/settings">Settings → Tags</a>.</span>
+        <span class="field__help">Missing an option? Add it under <a href="/settings">Settings → Tags</a>.</span>
       </div>
 
       <div class="stack-s">

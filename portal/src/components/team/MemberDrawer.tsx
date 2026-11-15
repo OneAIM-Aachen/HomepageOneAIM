@@ -109,7 +109,7 @@ export function MemberDrawer({ member: m, acc, onClose }: { member: TeamMember; 
         ? <span class="muted small">Demo member: made up, can't be changed.</span>
         : <>
             <button class="btn btn--primary btn--sm" disabled={!dirty} onClick={save}>Save profile</button>
-            {person && <a class="btn btn--secondary btn--sm" href={`/team/crm?p=${person.id}`}>CRM profile{apps ? ` (${apps} application${apps > 1 ? "s" : ""})` : ""}</a>}
+            {person && <a class="btn btn--secondary btn--sm" href={`/crm?p=${person.id}`}>CRM profile{apps ? ` (${apps} application${apps > 1 ? "s" : ""})` : ""}</a>}
             <span class="spacer" />
             {!isMe && <button class="btn btn--ghost btn--sm" style="color:var(--p-red)" onClick={remove}><IconTrash width={16} />Remove</button>}
           </>}>
